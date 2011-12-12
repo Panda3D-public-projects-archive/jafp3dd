@@ -6,7 +6,7 @@ Created on Thu Dec 01 15:38:44 2011
 """
 import os
 from panda3d.core import *
-import time
+import time, random
 
 #_DATAPATH_ = "./resources"
 
@@ -147,6 +147,15 @@ class terrainManager(tileManager):
 #        for thisTile in tileInfo:    
         self.addTile(self.curIJ)            
                 
+    def defo(self,xp,yp):
+        nf = PNMImage(xp,yp,1,65535)
+        nerr = int(.05 * xp * yp)
+        for i in range(nerr):
+            x0 = random.randint(0,xp-1)
+            y0 = random.randint(0,yp-1)
+            nf.setGray(x0,y0,.1*(-.5+random.random()))
+        return nf
+         
     def setupTile(self,tileID):
 #    GENERATE THE WORLD. GENERATE THE CHEERLEADER                
         HFname = self.tileInfo[tileID][0]
@@ -243,5 +252,7 @@ class terrainManager(tileManager):
     def updateTask(self,task):
         tileManager.updateTask(self,task)
         for tile in self.tiles.values():
+            nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
+            tile.setHeightfield(tile.heightfield()+nf)
             tile.update()
         return task.cont
