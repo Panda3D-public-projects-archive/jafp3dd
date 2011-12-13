@@ -153,7 +153,7 @@ class terrainManager(tileManager):
         for i in range(nerr):
             x0 = random.randint(0,xp-1)
             y0 = random.randint(0,yp-1)
-            nf.setGray(x0,y0,.1*(-.5+random.random()))
+            nf.setGray(x0,y0,.8+.2*random.random())
         return nf
          
     def setupTile(self,tileID):
@@ -253,6 +253,6 @@ class terrainManager(tileManager):
         tileManager.updateTask(self,task)
         for tile in self.tiles.values():
             nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
-            tile.setHeightfield(tile.heightfield()+nf)
+            tile.setHeightfield(tile.heightfield()*nf)
             tile.update()
         return task.cont

@@ -57,8 +57,8 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = 'models/cone2.dae'
-#_AVMODEL_ = 'models/MrStix.x'
+#_AVMODEL_ = 'models/cone2.dae'
+_AVMODEL_ = 'models/MrStix.x'
 _STARTPOS_ = (64,61)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 8
