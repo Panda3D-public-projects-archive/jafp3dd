@@ -17,25 +17,62 @@ else:
     sys.path.append('/usr/lib/panda3d')
     sys.path.append('/usr/share/panda3d')
     _DATAPATH_ = "/home/shawn/Documents/project0/resources"
-    
+
+from direct.showbase.ShowBase import ShowBase   
 from panda3d.core import *
     
-cManager = QueuedConnectionManager()
-cReader = QueuedConnectionReader(cManager,0)
-cWriter = ConnectionWriter(cManager,0)
     
-port_address=9099  # same for client and server
- 
- # a valid server URL. You can also use a DNS name
- # if the server has one, such as "localhost" or "panda3d.org"
-ip_address="127.0.0.1"
- 
- # how long until we give up trying to reach the server?
-timeout_in_miliseconds=3000  # 3 seconds
- 
-myConnection=cManager.openTCPClientConnection(ip_address,port_address,timeout_in_miliseconds)
-if myConnection:
-  cReader.addConnection(myConnection)  # receive messages from server
+class netClient(ShowBase):
+    port_address=9099  # same for client and server
+     
+     # a valid server URL. You can also use a DNS name
+     # if the server has one, such as "localhost" or "panda3d.org"
+    ip_address="127.0.0.1"
+     
+     # how long until we give up trying to reach the server?
+    timeout_in_miliseconds=3000  # 3 seconds
 
-while(1): print "Client Loop"  
+    def __init__(self,addr=None):
+        ShowBase.__init__(self)
+        if addr: self.ip_address = addr
+        self.cManager = QueuedConnectionManager()
+        self.cReader = QueuedConnectionReader(self.cManager,0)
+        self.cWriter = ConnectionWriter(self.cManager,0)
+        print "Adding pollers..."
+        taskMgr.add(self.tskReaderPolling,'Poll connection reader',-40)
+        print "connecting to ", self.ip_address
+        self.connect()
+        print "Initialization completed successfully!"
+    
+    def connect(self):
+        self.myConnection=self.cManager.openTCPClientConnection(self.ip_address,self.port_address,self.timeout_in_miliseconds)
+        if self.myConnection:
+          self.cReader.addConnection(self.myConnection)  # receive messages from server
+
+    def tskReaderPolling(self,task):
+        if self.cReader.dataAvailable():
+            datagram = NetDatagram()
+            #Note that the QueuedConnectionReader retrieves data from all clients 
+            #connected to the server. The NetDatagram can be queried using 
+            #NetDatagram.getConnection to determine which client sent the message. 
+            
+            # check return value incase other thread grabbed data first
+            if self.cReader.getData(datagram):
+    #            myProcessDataFunction(datagram)
+                 print datagram
+        return task.cont
+
+    def write(self,message):
+        datagram = NetDatagram()
+        datagram.addString(message)
+        self.cWriter.send(datagram, self.myConnection)
+        
+
+client = netClient('127.0.0.1')
+from time import sleep
+while(1): 
+    client.write('ping')
+    sleep(3)
+  
+
 #cManager.closeConnection(myConnection)

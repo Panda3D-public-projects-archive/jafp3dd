@@ -27,7 +27,7 @@ from direct.gui.OnscreenText import OnscreenText
 class serverApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
-        self.OSD = OnscreenText(text = str("Starting the world..."), pos = (0, 0.5), scale = 0.1, fg = (.8,.8,1,.5))       
+        self.OSD = OnscreenText(text = str("Starting the world..."), pos = (0, 0.5), scale = 0.5, fg = (.8,.8,1,.5))       
 
         port_address = 9099
         backlog = 1000 
@@ -76,7 +76,17 @@ class serverApp(ShowBase):
             if self.cReader.getData(datagram):
     #            myProcessDataFunction(datagram)
                  print datagram
+                 I = DatagramIterator(datagram)
+                 if I.getString() == 'ping':
+                     self.write('pong')
+                                  
         return task.cont
+
+    def write(self,message):
+##TO DO: SERVER SIDE NEEDS TO KNOW WHERE TO SEND THE MESSAGE        
+        datagram = NetDatagram()
+        datagram.addString(message)
+        self.cWriter.send(datagram, self.myConnection)
         
 
 server = serverApp()
