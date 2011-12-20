@@ -143,10 +143,15 @@ class terrainManager(tileManager):
     def __init__(self,parentNode,tileScale=(1,1,1), delay=1, **kwargs ):
         tileManager.__init__(self,parentNode,tileScale,delay=1,**kwargs)        
         self.LODfocusNode = kwargs['focusNode']
+        self.objectInfo = kwargs['objDict']
         # COULD just init the addlist and let the task do the loading        
 #        for thisTile in tileInfo:    
         self.addTile(self.curIJ)            
-                
+    
+    def addTile(self,tileID):
+        tileManager.addTile(self,tileID)
+        self.placeObjects(tileID)    # HAACK FOR NOW
+
     def defo(self,xp,yp):
         nf = PNMImage(xp,yp,1,65535)
         nerr = int(.05 * xp * yp)
@@ -232,12 +237,23 @@ class terrainManager(tileManager):
 #            for i in range(1,len(t)):
 #                delta.append( round(t[i]-t[i-1],2) )
 #            print delta, int(t[-1])
-
+        
+        
         return terrain 
 #        except:
 #            print "  --> failed to setup terrain"
 #            return []
-                   
+
+# TRY TO ADD TREES HERE
+    def placeObjects(self,tileID):
+        for obj in self.objectInfo[tileID]:
+            tmpModel = loader.loadModel(obj[2]) # name
+            tmpModel.reparentTo(self.parentNode)
+            obj_Z = self.getElevation(obj[0])
+            tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
+            tmpModel.setScale(obj[1])
+            tmpModel.setH(random.randint(0,360))
+               
     def getElevation(self,worldPos):
         ij = tileManager.ijTile(self,worldPos)
         if self.tiles.has_key(ij):
@@ -252,7 +268,8 @@ class terrainManager(tileManager):
     def updateTask(self,task):
         tileManager.updateTask(self,task)
         for tile in self.tiles.values():
-            nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
-            tile.setHeightfield(tile.heightfield()*nf)
+            # Deformation test below
+#            nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
+#            tile.setHeightfield(tile.heightfield()*nf)
             tile.update()
         return task.cont

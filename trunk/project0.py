@@ -10,7 +10,7 @@ if platform.system() == 'Windows':
 else:
     sys.path.append('/usr/lib/panda3d')
     sys.path.append('/usr/share/panda3d')
-    _DATAPATH_ = "/home/shawn/Documents/project0/resources"
+    _DATAPATH_ = "resources"
 
 import os.path
 from math import *

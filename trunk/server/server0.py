@@ -27,7 +27,7 @@ from direct.gui.OnscreenText import OnscreenText
 class serverApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
-        self.OSD = OnscreenText(text = str("Starting the world..."), pos = (0, 0.5), scale = 0.5, fg = (.8,.8,1,.5))       
+        self.OSD = OnscreenText(text = str("Starting the world..."), pos = (0.5, 0.5), scale = 0.5, fg = (.8,.8,1,.5))       
 
         port_address = 9099
         backlog = 1000 
@@ -47,11 +47,11 @@ class serverApp(ShowBase):
         print "Initialization completed successfully!"
         
     def tskListenerPolling(self,task):
-        for con in self.activeConnections:
-            if not self.cListener.isConnectionOk(con):
-                self.cListener.removeConnection(con)
-                self.activeConnections.remove(con)
-                print "lost connection"
+#        for con in self.activeConnections:
+#            if not self.cListener.isConnectionOk(con):
+#                self.cListener.removeConnection(con)
+#                self.activeConnections.remove(con)
+#                print "lost connection"
 
         if self.cListener.newConnectionAvailable():
             rendezvous = PointerToConnection()
@@ -62,7 +62,7 @@ class serverApp(ShowBase):
                 newConnection = newConnection.p()
                 self.activeConnections.append(newConnection)
                 self.cReader.addConnection(newConnection)
-        self.OSD.setText(str(("Open Connections: ",len(self.activeConnections))))
+        self.OSD.setText( "Open Connections: %d" % (len(self.activeConnections)) )
         return task.cont
         
     def tskReaderPolling(self,task):
@@ -75,18 +75,20 @@ class serverApp(ShowBase):
             # check return value incase other thread grabbed data first
             if self.cReader.getData(datagram):
     #            myProcessDataFunction(datagram)
-                 print datagram
+                 
                  I = DatagramIterator(datagram)
-                 if I.getString() == 'ping':
-                     self.write('pong')
-                                  
+                 ds = I.getString()
+                 if ds == 'ping':
+                     print "request recv - replying..."
+                     self.write('pong',datagram.getConnection())
+            
         return task.cont
 
-    def write(self,message):
+    def write(self,message, toConnection):
 ##TO DO: SERVER SIDE NEEDS TO KNOW WHERE TO SEND THE MESSAGE        
         datagram = NetDatagram()
         datagram.addString(message)
-        self.cWriter.send(datagram, self.myConnection)
+        self.cWriter.send(datagram, toConnection)
         
 
 server = serverApp()
