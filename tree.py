@@ -21,16 +21,32 @@ from panda3d.core import NodePath, Geom, GeomNode, GeomVertexArrayFormat, Transf
 from panda3d.core import Mat4, Vec3, Vec4, CollisionNode, CollisionTube, Point3, Quat
 import math, random
 
+from panda3d.core import PStatClient
+PStatClient.connect()
+
+
 #this is for making the tree not too straight
+#def _randomBend(inQuat, maxAngle=20):
+#    q=Quat()
+#    angle=random.random()*2*math.pi
+#   
+#    #power of 2 here makes distrobution even withint a circle
+#    # (makes larger bends are more likley as they are further spread)
+#    ammount=(random.random()**2)*maxAngle
+#    q.setHpr((math.sin(angle)*ammount,math.cos(angle)*ammount,0))
+#    return inQuat*q
+
 def _randomBend(inQuat, maxAngle=20):
     q=Quat()
-    angle=random.random()*2*math.pi
+    theta = random.randint(-maxAngle,maxAngle)
+    phi = random.randint(-maxAngle,maxAngle)
    
     #power of 2 here makes distrobution even withint a circle
     # (makes larger bends are more likley as they are further spread)
     ammount=(random.random()**2)*maxAngle
-    q.setHpr((math.sin(angle)*ammount,math.cos(angle)*ammount,0))
+    q.setHpr((theta,phi,0))
     return inQuat*q
+
 
 # TODO : This needs to get updated to work with quat. Using tmp hack.
 def _angleRandomAxis(quat, angle):
@@ -44,7 +60,7 @@ def _angleRandomAxis(quat, angle):
 #     nperp2.normalize()
 #     nperp1 = nfwd.cross(nperp2)
 #     nperp1.normalize()
-    return _randomBend(quat,60)
+    return _randomBend(quat,20)
 
 
 class FractalTree(NodePath):
@@ -112,11 +128,12 @@ class FractalTree(NodePath):
                 numCopies = numCopiesList[depth] 
                 if numCopies:       
                     for i in xrange(numCopies):
-                        stack.append((newPos, _angleRandomAxis(quat, 2 * math.pi * i / numCopies), depth + 1))
+#                        stack.append((newPos, _angleRandomAxis(quat, 2 * math.pi * i / numCopies), depth + 1))
+                        stack.append((newPos, _randomBend(quat, self.maxAngle), depth + 1))
                         #stack.append((newPos, _randomAxis(vecList,3), depth + 1))
                 else:
                     #just make another branch connected to this one with a small variation in direction
-                    stack.append((newPos, _randomBend(quat, 20), depth + 1))
+                    stack.append((newPos, _randomBend(quat, self.maxBend), depth + 1))
             else:
                 ends.append((pos, quat, depth))
                 self.drawBody(pos, quat, radiusList[depth], False)
@@ -131,7 +148,7 @@ class FractalTree(NodePath):
     #triangles to form the body.
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
-    def drawBody(self, pos, quat, radius=1, keepDrawing=True, numVertices=16):
+    def drawBody(self, pos, quat, radius=1, keepDrawing=True, numVertices=6):
         vdata = self.bodydata
         circleGeom = Geom(vdata)
         vertWriter = GeomVertexWriter(vdata, "vertex")
@@ -204,14 +221,14 @@ class FractalTree(NodePath):
         leafModel.setTransform(TransformState.makeMat(axisAdj))
 
        
-    def grow(self, num=1, removeLeaves=True, leavesScale=1):
+    def grow(self, num=1, removeLeaves=0, leavesScale=1):
         self.iterations += num
         while num > 0:
             self.setScale(self, 1.1)
             self.leafModel.setScale(self.leafModel, leavesScale / 1.1)
             if removeLeaves:
-                for c in self.leaves.getChildren():
-                    c.removeNode()
+                for i,c in enumerate(self.leaves.getChildren()):
+                    if i%removeLeaves==0: c.removeNode()
             self.makeFromStack()
             self.bodies.setTexture(self.barkTexture)         
             num -= 1
@@ -219,16 +236,21 @@ FractalTree.makeFMT()
 
 
 class DefaultTree(FractalTree):
-    def __init__(self):       
+    def __init__(self, numIterations=64,branchEvery=1,numBranches=2,maxAngle=None,maxBend=None,lenScale=None):       
+        if maxAngle: self.maxAngle = maxAngle
+        if maxBend: self.maxBend = maxBend
         barkTexture = base.loader.loadTexture("resources/models/barkTexture.jpg")
         leafModel = base.loader.loadModel('resources/models/shrubbery')
         leafModel.clearModelNodes()
         leafModel.flattenStrong()
         leafTexture = base.loader.loadTexture('resources/models/material-10-cl.png')
-        leafModel.setTexture(leafTexture, 1)       
-        lengthList = self.makeLengthList(Vec3(1, 1, 1), 64)
-        numCopiesList = self.makeNumCopiesList(4, 3, 64)
-        radiusList = self.makeRadiusList(0.5, 64, numCopiesList)
+        leafModel.setTexture(leafTexture, 1) 
+        leafModel.setScale(0.05)
+        
+        lengthList = self.makeLengthList(Vec3(0, 0, 1), numIterations,lenScale[0] or None, lenScale[1] or None, lenScale[2] or None)
+        numCopiesList = self.makeNumCopiesList(numBranches, branchEvery, numIterations)
+        radiusList = self.makeRadiusList(0.5, numIterations, numCopiesList)
+        
         FractalTree.__init__(self, barkTexture, leafModel, lengthList, numCopiesList, radiusList)
        
     @staticmethod
@@ -244,7 +266,7 @@ class DefaultTree(FractalTree):
         return l
    
     @staticmethod
-    def makeLengthList(length, iterations, sx=2.0, sy=2.0, sz=1.25):
+    def makeLengthList(length, iterations, sx=2.0, sy=2.0, sz=1.0):
         l = [length]
         for i in xrange(1, iterations):
             #if i % 3 == 0:
@@ -255,10 +277,11 @@ class DefaultTree(FractalTree):
         return l
    
     @staticmethod
-    def makeNumCopiesList(numCopies, branchat, iterations):
+    def makeNumCopiesList(numCopies, branchAt, iterations):
         l = list()
         for i in xrange(iterations):
-            if i % int(branchat) == 0:
+#            if i % int(branchAt) == 0:
+            if random.random() <= branchAt:    # go with a probability of a branching occuring 
                 l.append(numCopies)
             else:
                 l.append(0)
@@ -266,24 +289,29 @@ class DefaultTree(FractalTree):
 
 #this grows a tree
 if __name__ == "__main__":
+    random.seed(2000*math.pi)
     from direct.showbase.ShowBase import ShowBase
     base = ShowBase()
-    base.cam.setPos(0, -10, 10)
-    t = DefaultTree()
+    base.cam.setPos(0, -40, 10)
+#    base.cam.lookAt(base.render)
+    base.setFrameRateMeter(1)
+    
+    t = DefaultTree(numIterations=64,branchEvery=.35,numBranches=4,maxAngle=60, maxBend=20, lenScale = (1.0,1.0,1.5))
     t.reparentTo(base.render)
     #make an optimized snapshot of the current tree
-    np = t.getStatic()
-    np.setPos(10, 10, 0)
-    np.reparentTo(base.render)
+#    np = t.getStatic()
+#    np.setPos(10, 10, 0)
+#    np.reparentTo(base.render)
     #demonstrate growing
     last = [0] # a bit hacky
+    dt = .25
     def grow(task):
-        if task.time > last[0] + 1:
-            t.grow(removeLeaves=True)
+        if task.time > last[0] + dt:
+            t.grow(removeLeaves=0,leavesScale=1.2)
             last[0] = task.time
             #t.leaves.detachNode()
-#        if last[0] > 10:
-#            return task.done
+        if last[0] > 10*dt:
+            return task.done
         return task.cont
     base.taskMgr.add(grow, "growTask")
     base.run()
