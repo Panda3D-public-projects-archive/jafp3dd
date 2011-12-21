@@ -13,6 +13,7 @@ import time, random
 _BLOCKSIZE_ = 32    # for LOD chunking
 _LODNEAR_ = 64 # ideal = Fog min distance
 _LODFAR_ = 192
+_Brute = False # use brute force
 
 # This should probably go in its own file  
 class ScalingGeoMipTerrain(GeoMipTerrain):
@@ -186,21 +187,21 @@ class terrainManager(tileManager):
         terrain.setHeightfield(HF)
 #            t.append((time.time()-t0)*1e3 )
         terrain.setScale(self.tileScale[0],self.tileScale[1],self.tileScale[2]) # for objects of my class        
-        terrain.setBruteforce(0) # skip all that LOD stuff 
+        terrain.setBruteforce(_Brute) # skip all that LOD stuff 
         terrain.setBorderStitching(0)   
         terrain.setNear(_LODNEAR_)
         terrain.setFar(_LODFAR_)
         terrain.setBlockSize(_BLOCKSIZE_)
     
-#            teraMat = Material()
-#            teraMat.setAmbient(VBase4(1,1,1,1))
-#            teraMat.setDiffuse(VBase4(1,1,1,1))
-#            teraMat.setShininess(0)
-#    #        terrainRoot = terrain.getRoot()     
-#            terrain.root.setMaterial(teraMat)
+        teraMat = Material()
+        teraMat.setAmbient(VBase4(1,1,1,1))
+        teraMat.setDiffuse(VBase4(1,1,1,1))
+        teraMat.setShininess(0)
+#        terrainRoot = terrain.getRoot()     
+        terrain.root.setMaterial(teraMat)
                     
-    #        terrainRoot.setColor(1,0,1,1) 
-    #        terrain.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
+#        terrainRoot.setColor(1,0,1,1) 
+#        terrain.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
         if texList:
 #                t.append((time.time()-t0)*1e3 )
 #                print "Loading Tex"
@@ -246,13 +247,16 @@ class terrainManager(tileManager):
 
 # TRY TO ADD TREES HERE
     def placeObjects(self,tileID):
-        for obj in self.objectInfo[tileID]:
-            tmpModel = loader.loadModel(obj[2]) # name
-            tmpModel.reparentTo(self.parentNode)
-            obj_Z = self.getElevation(obj[0])
-            tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
-            tmpModel.setScale(obj[1])
-            tmpModel.setH(random.randint(0,360))
+        if self.objectInfo.has_key(tileID):
+            for obj in self.objectInfo[tileID]:
+    #            obj[2] = 'resources/models/sampleTree.bam'    # DEBUG OVERRIDE TO TEST MODEL
+    #            obj[1] = 1.0
+                tmpModel = loader.loadModel(obj[2]) # name
+                tmpModel.reparentTo(self.parentNode)
+                obj_Z = self.getElevation(obj[0])
+                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
+                tmpModel.setScale(obj[1])
+                tmpModel.setH(random.randint(0,360))
                
     def getElevation(self,worldPos):
         ij = tileManager.ijTile(self,worldPos)
@@ -267,9 +271,10 @@ class terrainManager(tileManager):
         
     def updateTask(self,task):
         tileManager.updateTask(self,task)
-        for tile in self.tiles.values():
+        if not _Brute:
+            for tile in self.tiles.values():
             # Deformation test below
 #            nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
 #            tile.setHeightfield(tile.heightfield()*nf)
-            tile.update()
+                tile.update()
         return task.cont

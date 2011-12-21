@@ -30,7 +30,7 @@ import pickle
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 1
+_DoFog = 0
 _ShowOcean = 0
 _ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
@@ -59,9 +59,9 @@ fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 # AVATAR SETTINGS
 #_AVMODEL_ = 'models/cone2.dae'
 _AVMODEL_ = 'models/MrStix.x'
-_STARTPOS_ = (64,61)
+_STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
-_WALKRATE_ = 8
+_WALKRATE_ = 38
 _MINCAMDIST_ = 1
 _MaxCamDist = 15
  
@@ -108,7 +108,6 @@ class World(ShowBase):
         treefile = open(os.path.join(_DATAPATH_,_treePath))        
         treeLocs = pickle.load(treefile)
         treefile.close()
-        print treeLocs[(0,0)]
         initText.setText("Starting Terrain Manager...")       
         tileInfo = enumerateMapTiles(_mapName,16)              
         self.ttMgr = terrainManager(parentNode=self.terraNode, tileScale=_terraScale, \
@@ -136,7 +135,7 @@ class World(ShowBase):
         self.sun.aMin = VBase4(.1,.1,.1,1)
         self.sun.eColor=VBase4(1,1,1,1)
         self.sun.aColor = VBase4(.2,.2,.2,1)
-        self.sun.dColor = VBase4(1,1,1,1)
+        self.sun.dColor = VBase4(1,1,1,1)*0
         self.sun.dayColor = VBase4(_SKYCOLOR_)
         taskMgr.add(self.sun.updateTask,'sun task')
 #        
@@ -201,7 +200,7 @@ class World(ShowBase):
         taskMgr.add(self.updateAvnp,"update Av node")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
-        taskMgr.setupTaskChain('TileUpdates',numThreads=2,threadPriority=2,frameBudget=0.01,frameSync=True)
+        taskMgr.setupTaskChain('TileUpdates',numThreads=16,threadPriority=2,frameBudget=0.01,frameSync=True)
         taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
         initText.setText("Done with init...")
         initText.destroy()
@@ -237,7 +236,7 @@ class World(ShowBase):
         
     def setupLights(self):
         self.dlight = DirectionalLight('dlight')
-        self.dlight.setColor(VBase4(.9, .9, .9, 1))
+        self.dlight.setColor(VBase4(.59, .59, .59, 1))
 #        self.dlight.setShadowCaster(True,512,512)        
         self.dlnp = render.attachNewNode(self.dlight)
         self.dlnp.setHpr(-90,-45,0)        

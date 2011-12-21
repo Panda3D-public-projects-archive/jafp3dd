@@ -245,7 +245,7 @@ class DefaultTree(FractalTree):
         leafModel.flattenStrong()
         leafTexture = base.loader.loadTexture('resources/models/material-10-cl.png')
         leafModel.setTexture(leafTexture, 1) 
-        leafModel.setScale(0.05)
+        leafModel.setScale(0.045)
         
         lengthList = self.makeLengthList(Vec3(0, 0, 1), numIterations,lenScale[0] or None, lenScale[1] or None, lenScale[2] or None)
         numCopiesList = self.makeNumCopiesList(numBranches, branchEvery, numIterations)
@@ -289,10 +289,10 @@ class DefaultTree(FractalTree):
 
 #this grows a tree
 if __name__ == "__main__":
-    random.seed(2000*math.pi)
+#    random.seed(2000*math.pi)
     from direct.showbase.ShowBase import ShowBase
     base = ShowBase()
-    base.cam.setPos(0, -40, 10)
+    base.cam.setPos(0, -20, 5)
 #    base.cam.lookAt(base.render)
     base.setFrameRateMeter(1)
     
@@ -304,14 +304,18 @@ if __name__ == "__main__":
 #    np.reparentTo(base.render)
     #demonstrate growing
     last = [0] # a bit hacky
-    dt = .25
+    dt = .1
     def grow(task):
         if task.time > last[0] + dt:
             t.grow(removeLeaves=0,leavesScale=1.2)
             last[0] = task.time
             #t.leaves.detachNode()
         if last[0] > 10*dt:
+            t.setScale(1)
+            t.flattenStrong()
+            t.write_bam_file('sampleTree.bam')
             return task.done
         return task.cont
     base.taskMgr.add(grow, "growTask")
+    base.accept('escape',sys.exit)
     base.run()
