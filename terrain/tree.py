@@ -21,9 +21,6 @@ from panda3d.core import NodePath, Geom, GeomNode, GeomVertexArrayFormat, Transf
 from panda3d.core import Mat4, Vec3, Vec4, CollisionNode, CollisionTube, Point3, Quat
 import math, random
 
-from panda3d.core import PStatClient
-PStatClient.connect()
-
 #this is for making the tree not too straight
 #def _randomBend(inQuat, maxAngle=20):
 #    q=Quat()
@@ -295,8 +292,8 @@ if __name__ == "__main__":
     base.cam.setPos(0, -20, 2)
 #    base.cam.lookAt(base.render)
     base.setFrameRateMeter(1)
-    _Nstep = 1
-    t = DefaultTree(numIterations=64,branchEvery=200,numBranches=0,maxAngle=60, maxBend=20, lenScale = (1.0,1.0,2))
+    _Nstep = 12
+    t = DefaultTree(numIterations=64,branchEvery=3,numBranches=3,maxAngle=60, maxBend=20, lenScale = (1.0,1.0,2))
     t.reparentTo(base.render)
     #make an optimized snapshot of the current tree
 #    np = t.getStatic()
