@@ -27,8 +27,8 @@ from collections import namedtuple
 
 _BarkTex_ = "../resources/models/barkTexture-1y.jpg"
 _LeafTex_ = '../resources/models/material-12.png'
-_Uscale = 1
-_Vscale = 1 #repeats
+_Uscale = 2
+_Vscale = 3 #repeats prt unit length (along the tree axis)
 _DoLeaves_ = 0
 _polySize = 6
 
@@ -159,7 +159,7 @@ class FractalTree(NodePath):
     #triangles to form the body.
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
-    def drawBody(self, pos, quat, radius=1, keepDrawing=True, numVertices=_polySize,sCoord=0):
+    def drawBody(self, pos, quat, radius=1,sCoord=0, keepDrawing=True, numVertices=_polySize):
         vdata = self.bodydata
         circleGeom = Geom(vdata)
         vertWriter = GeomVertexWriter(vdata, "vertex")
@@ -195,15 +195,15 @@ class FractalTree(NodePath):
             normal = perp1 * math.cos(currAngle) + perp2 * math.sin(currAngle)       
             normalWriter.addData3f(normal)
             vertWriter.addData3f(adjCircle)
-            texReWriter.addData2f(1.0*i / numVertices,sCoord)            # UV SCALE HERE!
+            texReWriter.addData2f(float(_Uscale*i) / numVertices,sCoord)            # UV SCALE HERE!
             #colorWriter.addData4f(0.5, 0.5, 0.5, 1)
-            drawReWriter.addData1f(keepDrawing)
+#            drawReWriter.addData1f(keepDrawing)
             currAngle += angleSlice 
         drawReader = GeomVertexReader(vdata, "drawFlag")
         drawReader.setRow(startRow - numVertices)   
         
         #we cant draw quads directly so we use Tristrips
-        if (startRow != 0) and (drawReader.getData1f() != False):
+        if (startRow != 0) and (keepDrawing == False):
             lines = GeomTristrips(Geom.UHStatic)         
             for i in xrange(numVertices):
                 lines.addVertex(i + startRow)
@@ -269,8 +269,8 @@ class flexibleTree(FractalTree):
     def branchFromNodes(self,nodeList):
         endNode = nodeList.pop() # need to set keepDraw False on last node
         for node in nodeList:
-            self.drawBody(node.pos, node.quat, node.radius)
-        self.drawBody(endNode.pos,endNode.quat,endNode.radius,sCoord=1) # tell drawBody this is the end of the branch
+            self.drawBody(node.pos, node.quat, node.radius,node.texV,keepDrawing=False)
+        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texV,keepDrawing=False) # tell drawBody this is the end of the branch
 
         
 
@@ -281,15 +281,10 @@ if __name__ == "__main__":
 #    random.seed(11*math.pi)
     from direct.showbase.ShowBase import ShowBase
     base = ShowBase()
-    base.cam.setPos(0, -2, .5)
-#    base.cam.lookAt(base.render)
+    base.cam.setPos(0, -10, 1)
     base.setFrameRateMeter(1)
     tree = flexibleTree(numIterations=64,branchEvery=600,numBranches=2,maxAngle=40, maxBend=5, lenScale = 2,radScale=3)
     tree.reparentTo(base.render)
-    #make an optimized snapshot of the current tree
-#    np = t.getStatic()
-#    np.setPos(2, -10, 0)
-#    np.reparentTo(base.render)
     
     root = []
     lfact = 0.75
@@ -313,8 +308,8 @@ if __name__ == "__main__":
             quat *= curQ #rotate curQ by newQ and put in newQ
             pos = curP + quat.getUp() * L 
             radius = .7*thisBranch[i-1].radius
+            Vcoord = thisBranch[i-1].texV + L*float(_Vscale) # This will keep the texture scale per unit length constant
             L *= lfact
-            Vcoord = pos - curP # This will keep the texture scale per unit length constant
             newNode = BranchNode._make([pos,quat,radius,Vcoord])
             thisBranch.append(newNode)        
     
