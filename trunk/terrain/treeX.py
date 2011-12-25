@@ -18,20 +18,18 @@ import sys
 #sys.path.append('/usr/share/panda3d')
 
 from panda3d.core import NodePath, Geom, GeomNode, GeomVertexArrayFormat, TransformState, GeomVertexWriter, GeomTristrips, GeomVertexRewriter, GeomVertexReader, GeomVertexData, GeomVertexFormat, InternalName
-from panda3d.core import Mat4, Vec3, Vec4, CollisionNode, CollisionTube, Point3, Quat
+from panda3d.core import Mat4, Vec3, CollisionNode, CollisionTube, Point3, Quat
 import math, random
 from collections import namedtuple
-import random
 
 #from panda3d.core import PStatClient
 #PStatClient.connect()
 
-_BarkTex_ = "../resources/models/barkTexture.jpg"
+_BarkTex_ = "../resources/models/barkTexture-1y.jpg"
 _LeafTex_ = '../resources/models/material-12.png'
 _Uscale = 1
 _Vscale = 1 #repeats
 _DoLeaves_ = 0
-_Nstep = 12
 _polySize = 6
 
 #this is for making the tree not too straight
@@ -72,17 +70,7 @@ def _angleRandomAxis(quat, angle):
     return _randomBend(quat,angle)
 
 
-#class BranchNode():
-#    def __init__(self,l=1,rad=1,Q=Quat(),pos=Vec3(0,0,0)):
-#        self.radius = rad            # radius of child end (parent end will obvious have it's radius)
-#        self.quat = Q         # orientation quaternion; which way am I pointing?
-#        self.pos = pos     # center point of this branch node
-#        self.gen = 0               # generation ID
-#
-#        self.length = l            # MOVE TO GENERATION ROUTINE. DON'T NEED LENGTHS, ONLY POSITIONS; redundant with child positions
-#        self.children = []         # list of children from THIS branch's end
 
-BranchNode = namedtuple('BranchNode','pos quat radius gen')
 
 class FractalTree(NodePath):
     __format = None
@@ -171,7 +159,7 @@ class FractalTree(NodePath):
     #triangles to form the body.
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
-    def drawBody(self, pos, quat, radius=1, keepDrawing=True, numVertices=_polySize):
+    def drawBody(self, pos, quat, radius=1, keepDrawing=True, numVertices=_polySize,sCoord=0):
         vdata = self.bodydata
         circleGeom = Geom(vdata)
         vertWriter = GeomVertexWriter(vdata, "vertex")
@@ -185,13 +173,14 @@ class FractalTree(NodePath):
         #colorWriter.setRow(startRow)
         normalWriter.setRow(startRow)       
 
-        sCoord = 0   
-        if (startRow != 0):
-            texReWriter.setRow(startRow - numVertices) #go back numVert in the vert list
-            sCoord = texReWriter.getData2f().getX() + _Vscale           # UV SCALE HERE!
-            drawReWriter.setRow(startRow - numVertices)
-            if(drawReWriter.getData1f() == False):
-                sCoord -= _Vscale                                # UV SCALE HERE!
+#        sCoord = 0   
+#        if (startRow != 0):
+#            texReWriter.setRow(startRow - numVertices) #go back numVert in the vert list
+#            sCoord = texReWriter.getData2f().getX() + _Vscale           # UV SCALE HERE!
+#            print sCoord
+#            drawReWriter.setRow(startRow - numVertices)
+#            if(drawReWriter.getData1f() == False):
+#                sCoord -= _Vscale                                # UV SCALE HERE!
         drawReWriter.setRow(startRow)
         texReWriter.setRow(startRow)   
        
@@ -200,14 +189,13 @@ class FractalTree(NodePath):
         #axisAdj=Mat4.rotateMat(45, axis)*Mat4.scaleMat(radius)*Mat4.translateMat(pos)
         perp1 = quat.getRight()
         perp2 = quat.getForward()   
-        
         #vertex information is written here
-        for i in xrange(numVertices+1): #doubles the last vertex to fix UV seam
+        for i in xrange(numVertices): 
             adjCircle = pos + (perp1 * math.cos(currAngle) + perp2 * math.sin(currAngle)) * radius
             normal = perp1 * math.cos(currAngle) + perp2 * math.sin(currAngle)       
             normalWriter.addData3f(normal)
             vertWriter.addData3f(adjCircle)
-            texReWriter.addData2f(_Uscale*i / numVertices,sCoord)            # UV SCALE HERE!
+            texReWriter.addData2f(1.0*i / numVertices,sCoord)            # UV SCALE HERE!
             #colorWriter.addData4f(0.5, 0.5, 0.5, 1)
             drawReWriter.addData1f(keepDrawing)
             currAngle += angleSlice 
@@ -217,9 +205,9 @@ class FractalTree(NodePath):
         #we cant draw quads directly so we use Tristrips
         if (startRow != 0) and (drawReader.getData1f() != False):
             lines = GeomTristrips(Geom.UHStatic)         
-            for i in xrange(numVertices+1):
+            for i in xrange(numVertices):
                 lines.addVertex(i + startRow)
-                lines.addVertex(i + startRow - numVertices-1)
+                lines.addVertex(i + startRow - numVertices)
             lines.addVertex(startRow)
             lines.addVertex(startRow - numVertices)
             lines.closePrimitive()
@@ -263,7 +251,7 @@ class FractalTree(NodePath):
 
 FractalTree.makeFMT()
 
-class sTree(FractalTree):
+class flexibleTree(FractalTree):
     def __init__(self, numIterations=1,branchEvery=20,numBranches=2,maxAngle=None,maxBend=None,lenScale=None,radScale=None):       
         if maxAngle: self.maxAngle = maxAngle
         if maxBend: self.maxBend = maxBend
@@ -275,102 +263,69 @@ class sTree(FractalTree):
         leafModel.setTexture(leafTexture, 1) 
         leafModel.setScale(0.1)
         leafModel.setTransparency(1)
-        
-        lengthList = self.makeLengthList(1, numIterations,lenScale or None)
-        numCopiesList = self.makeNumCopiesList(numBranches, branchEvery, numIterations)
-        radiusList = self.makeRadiusList(0.25, numIterations, numCopiesList,radScale)
-        
-        FractalTree.__init__(self, barkTexture, leafModel, lengthList, numCopiesList, radiusList)
+                
+        FractalTree.__init__(self, barkTexture, leafModel, [1], [1], [1])
        
     def branchFromNodes(self,nodeList):
-#        endNode = nodeList.pop() # need to set keepDraw False on last node
+        endNode = nodeList.pop() # need to set keepDraw False on last node
         for node in nodeList:
             self.drawBody(node.pos, node.quat, node.radius)
-#        self.drawBody(endNode.pos,endNode.quat,endNode.radius,False) # tell drawBody this is the end of the branch
+        self.drawBody(endNode.pos,endNode.quat,endNode.radius,sCoord=1) # tell drawBody this is the end of the branch
 
         
 
-    @staticmethod
-    def makeRadiusList(radius, iterations, numCopiesList, scale=1.5):
-        l = [radius]
-        for i in xrange(1, iterations):
-            #if i % 3 == 0:
-            if i != 1 and numCopiesList[i - 2]:
-                radius /= numCopiesList[i - 2] ** 0.5
-            else:
-                radius /= scale ** (1.0 / 3)
-            l.append(radius)
-        return l
-   
-    @staticmethod
-    def makeLengthList(length, iterations, sz=1.0):
-        l = [length]
-        for i in xrange(1, iterations):
-            #if i % 3 == 0:
-                #decrease dimensions when we branch
-                #length = Vec3(length.getX() / 2, length.getY() / 2, length.getZ() / 1.1)
-            length = length / sz ** (1.0 / 3)
-            l.append(length)
-        return l
-   
-    @staticmethod
-    def makeNumCopiesList(numCopies, branchAt, iterations):
-        nBranch = int( iterations / branchAt )
-        l = [0]*iterations
-        for b in xrange(nBranch):
-            l[b] = numCopies
-#            
-#        l = list()
-#        for i in xrange(iterations):
-#            if i % int(branchAt) == 0:
-##            if random.random() <= branchAt:    # go with a probability of a branching occuring 
-##                l.append(random.randint(2,numCopies))
-#                l.append(numCopies)
-#            else:
-#                l.append(0)
-        return l
+BranchNode = namedtuple('BranchNode','pos quat radius texV')
 
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
     from direct.showbase.ShowBase import ShowBase
     base = ShowBase()
-    base.cam.setPos(0, -10, 2)
+    base.cam.setPos(0, -2, .5)
 #    base.cam.lookAt(base.render)
     base.setFrameRateMeter(1)
-    tree = sTree(numIterations=64,branchEvery=600,numBranches=2,maxAngle=40, maxBend=5, lenScale = 2,radScale=3)
+    tree = flexibleTree(numIterations=64,branchEvery=600,numBranches=2,maxAngle=40, maxBend=5, lenScale = 2,radScale=3)
     tree.reparentTo(base.render)
     #make an optimized snapshot of the current tree
 #    np = t.getStatic()
 #    np.setPos(2, -10, 0)
 #    np.reparentTo(base.render)
-
+    
+    root = []
+    lfact = 0.75
     numGens = 8
     thisBranch = [BranchNode._make([Vec3(0,0,0),Quat(),.1,0])] # initial node      # make a starting node flat at 0,0,0
-    for b in range(3):
-
-        L=1.0
+    trunk = thisBranch
+    for b in range(1):
+        L=1.0 *lfact**b
+        if b== 0:
+            maxA = 0.0 # trunk
+        else:
+            maxA = 40.0 # branchs
+            thisBranch = [trunk[b]]# test just walk up 1 node of trunk and start over
         for i in range(1,numGens+1):
 #            print [x.quat for x in thisBranch] # DEBUG        
             curQ = thisBranch[i-1].quat
             curP = thisBranch[i-1].pos
-            
+            # make a new point w.r.t. the current
             quat = Quat()
-            quat.setHpr(Vec3(0,random.randint(-10,10),random.randint(-10,10)))
-            quat *= curQ
+            quat.setHpr(Vec3(0,random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
+            quat *= curQ #rotate curQ by newQ and put in newQ
             pos = curP + quat.getUp() * L 
-            radius = .8*thisBranch[i-1].radius
-            L *= 0.7
-            newNode = BranchNode._make([pos,quat,radius,0])
+            radius = .7*thisBranch[i-1].radius
+            L *= lfact
+            Vcoord = pos - curP # This will keep the texture scale per unit length constant
+            newNode = BranchNode._make([pos,quat,radius,Vcoord])
             thisBranch.append(newNode)        
     
         tree.branchFromNodes(thisBranch[0:])
-        thisBranch = [thisBranch[1]] # test just walk up 1 node and start over
+        if b==0: trunk = thisBranch 
         numGens -= 1
 
 #
 #
 #    #demonstrate growing
+#    _Nstep = 12
 #    last = [0] # a bit hacky
 #    dt = .01
 #    def grow(task):
@@ -386,9 +341,14 @@ if __name__ == "__main__":
 #            return task.done
 #        return task.cont
 #    base.taskMgr.add(grow, "growTask")
-
+    def rotateTree(task):
+        phi = 30*task.time
+        tree.setH(phi)
+        return task.cont
+#    base.taskMgr.add(rotateTree,"merrygorouhnd")
+    
 #    t.grow(_Nstep,removeLeaves=1,leavesScale=1.0,trunkRate = 1.0)
-    base.toggleWireframe()
+#    base.toggleWireframe()
     base.accept('escape',sys.exit)
     base.accept('z',base.toggleWireframe)
     base.run()

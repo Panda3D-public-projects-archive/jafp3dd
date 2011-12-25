@@ -239,7 +239,7 @@ class DefaultTree(FractalTree):
     def __init__(self, numIterations=64,branchEvery=20,numBranches=2,maxAngle=None,maxBend=None,lenScale=None):       
         if maxAngle: self.maxAngle = maxAngle
         if maxBend: self.maxBend = maxBend
-        barkTexture = base.loader.loadTexture("../resources/models/barkTexture.jpg")
+        barkTexture = base.loader.loadTexture("../resources/models/barkTexture-1y.jpg")
         leafModel = base.loader.loadModel('../resources/models/shrubbery')
         leafModel.clearModelNodes()
         leafModel.flattenStrong()
@@ -248,7 +248,6 @@ class DefaultTree(FractalTree):
         leafModel.setScale(0.045)
         
         lengthList = self.makeLengthList(Vec3(0, 0, 1), numIterations,lenScale[0] or None, lenScale[1] or None, lenScale[2] or None)
-        print lengthList
         numCopiesList = self.makeNumCopiesList(numBranches, branchEvery, numIterations)
         radiusList = self.makeRadiusList(0.25, numIterations, numCopiesList)
         
@@ -283,65 +282,7 @@ class DefaultTree(FractalTree):
         for i in xrange(iterations):
             if i % int(branchAt) == 0:
 #            if random.random() <= branchAt:    # go with a probability of a branching occuring 
-                l.append(random.randint(2,numCopies))
-            else:
-                l.append(0)
-        return l
-
-class ComplexTree(FractalTree):
-    def __init__(self, numIterations=64,branchEvery=20,numBranches=2,maxAngle=None,maxBend=None,lenScale=None):       
-        if maxAngle: self.maxAngle = maxAngle
-        if maxBend: self.maxBend = maxBend
-        barkTexture = base.loader.loadTexture("../resources/models/barkTexture.jpg")
-        leafModel = base.loader.loadModel('../resources/models/shrubbery')
-        leafModel.clearModelNodes()
-        leafModel.flattenStrong()
-        leafTexture = base.loader.loadTexture('../resources/models/material-10-cl.png')
-        leafModel.setTexture(leafTexture, 1) 
-        leafModel.setScale(0.045)
-        
-        lengthList = self.makeLengthList(Vec3(0, 0, 1), numIterations,lenScale[0] or None, lenScale[1] or None, lenScale[2] or None)
-        numCopiesList = self.makeNumCopiesList(numBranches, branchEvery, numIterations)
-        radiusList = self.makeRadiusList(0.25, numIterations, numCopiesList)
-        
-        FractalTree.__init__(self, barkTexture, leafModel, lengthList, numCopiesList, radiusList)
-
-## Algorithm
-## ***Think in terms of generations. Each gen has siblings whose parent(s) are the previous generation
-## numCopiesList[i] identifies how many children each sibling has -> this should change to a list of tuples; 
-##     each *tuple* lists the current generations splits PER entity in this generation. (i.e the tuple will be N siblings long)
-## 
-       
-    @staticmethod
-    def makeRadiusList(radius, iterations, numCopiesList, scale=1.5):
-        l = [radius]
-        for i in xrange(1, iterations):
-            #if i % 3 == 0:
-            if i != 1 and numCopiesList[i - 2]:
-                radius /= numCopiesList[i - 2] ** 0.5
-            else:
-                radius /= scale ** (1.0 / 3)
-            l.append(radius)
-        return l
-   
-    @staticmethod
-    def makeLengthList(length, iterations, sx=2.0, sy=2.0, sz=1.0):
-        l = [length]
-        for i in xrange(1, iterations):
-            #if i % 3 == 0:
-                #decrease dimensions when we branch
-                #length = Vec3(length.getX() / 2, length.getY() / 2, length.getZ() / 1.1)
-            length = Vec3(length.getX() / sx ** (1.0 / 3), length.getY() / sy ** (1.0 / 3), length.getZ() / sz ** (1.0 / 3))
-            l.append(length)
-        return l
-   
-    @staticmethod
-    def makeNumCopiesList(numCopies, branchAt, iterations):
-        l = list()
-        for i in xrange(iterations):
-            if i % int(branchAt) == 0:
-#            if random.random() <= branchAt:    # go with a probability of a branching occuring 
-                l.append(random.randint(2,numCopies))
+                l.append(numCopies)
             else:
                 l.append(0)
         return l
@@ -354,8 +295,8 @@ if __name__ == "__main__":
     base.cam.setPos(0, -20, 2)
 #    base.cam.lookAt(base.render)
     base.setFrameRateMeter(1)
-    _Nstep = 12
-    t = DefaultTree(numIterations=64,branchEvery=2,numBranches=4,maxAngle=60, maxBend=20, lenScale = (1.0,1.0,2))
+    _Nstep = 1
+    t = DefaultTree(numIterations=64,branchEvery=200,numBranches=0,maxAngle=60, maxBend=20, lenScale = (1.0,1.0,2))
     t.reparentTo(base.render)
     #make an optimized snapshot of the current tree
 #    np = t.getStatic()

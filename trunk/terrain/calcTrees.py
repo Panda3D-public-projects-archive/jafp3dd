@@ -106,3 +106,4 @@ if __name__ == '__main__':
     fip = open('../resources/map1/treeList.dat','wb')
     pickle.dump(treeLocs,fip)
     fip.close()
+    print "Done"
