@@ -57,11 +57,11 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-#_AVMODEL_ = 'models/cone2.dae'
-_AVMODEL_ = 'models/MrStix.x'
+_AVMODEL_ = 'models/char0.bam'
+#_AVMODEL_ = 'models/MrStix.x'
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
-_WALKRATE_ = 38
+_WALKRATE_ = 5
 _MINCAMDIST_ = 1
 _MaxCamDist = 15
  
@@ -260,10 +260,10 @@ class World(ShowBase):
 
         self.aVmodel = loader.loadModel(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel.reparentTo(self.avnp)
-        self.aVmodel.setScale(.5,.5,1)
-#        self.aVmodel.setScale(.00225)
+#        self.aVmodel.setScale(.5,.5,1)
+        self.aVmodel.setScale(.01)
 #        self.aVmodel.setZ(.29)
-#        self.aVmodel.setH(180)
+        self.aVmodel.setH(180)
 #        self.aVmodel.setColor(.9,1,.9)
         avMat = Material()
         avMat.setShininess(0)

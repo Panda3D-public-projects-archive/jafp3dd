@@ -24,7 +24,7 @@ from panda3d.core import *
     
 class netClient(ShowBase):
     port_address=9099  # same for client and server
-     
+    ct = 0 
      # a valid server URL. You can also use a DNS name
      # if the server has one, such as "localhost" or "panda3d.org"
     ip_address="127.0.0.1"
@@ -63,6 +63,7 @@ class netClient(ShowBase):
                  print datagram
                  I = DatagramIterator(datagram)
                  if I.getString() == 'pong':
+                     self.ct += 1
                      self.write('ping',datagram.getConnection())
                  
         return task.cont
@@ -73,10 +74,16 @@ class netClient(ShowBase):
         self.cWriter.send(datagram, toConnection)
         
 
-client = netClient('127.0.0.1')
-from time import sleep
+if __name__ == '__main__':
+    
+    if len(sys.argv) > 1:
+        addr = sys.argv[1]
+    else:
+        addr = '127.0.0.1'
+    client = netClient(addr)
 
-client.write('ping',client.myConnection)
-client.run()
-print "out of the loop somehow!"
-client.cManager.closeConnection(myConnection)
+    
+    client.write('ping',client.myConnection)
+    client.run()
+    print "out of the loop somehow!"
+    client.cManager.closeConnection(myConnection)
