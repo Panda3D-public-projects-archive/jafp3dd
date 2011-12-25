@@ -205,12 +205,13 @@ class FractalTree(NodePath):
     def drawLeaf(self, pos=Vec3(0, 0, 0), quat=None, scale=0.125):
         #use the vectors that describe the direction the branch grows to make the right
         #rotation matrix
-        newCs = Mat4()#0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        #0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 #         newCs.setRow(0, vecList[2]) #right
 #         newCs.setRow(1, vecList[1]) #up
 #         newCs.setRow(2, vecList[0]) #forward
 #         newCs.setRow(3, Vec3(0, 0, 0))
 #         newCs.setCol(3, Vec4(0, 0, 0, 1))   
+        newCs = Mat4()
         quat.extractToMatrix(newCs)
         axisAdj = Mat4.scaleMat(scale) * newCs * Mat4.translateMat(pos)       
         leafModel = NodePath("leaf")
@@ -256,16 +257,18 @@ class flexibleTree(FractalTree):
         for i,node in enumerate(nodeList):
             if i == 0: isRoot = True
             else: isRoot = False
-            if i == len(nodeList): keepDrawing = True
-            else: keepDrawing = False
+#            if i == len(nodeList)-1: keepDrawing = True
+#            else: 
+            keepDrawing = False
             self.drawBody(node.pos, node.quat, node.radius,node.texUV,keepDrawing,isRoot)
+            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
     #this draws the body of the tree. This draws a ring of vertices and connects the rings with
     #triangles to form the body.
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
-    def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), keepDrawing=True, isRoot=False, numVertices=_polySize):
+    def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), keepDrawing=False, isRoot=False, numVertices=_polySize):
         print "subclass"
         if isRoot:
             self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)
@@ -318,6 +321,7 @@ class flexibleTree(FractalTree):
    
     #this draws leafs when we reach an end       
     def drawLeaf(self, pos=Vec3(0, 0, 0), quat=None, scale=0.125):
+        print "drawLeaf subclass"
         #use the vectors that describe the direction the branch grows to make the right
         #rotation matrix
         newCs = Mat4()#0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
@@ -345,9 +349,9 @@ if __name__ == "__main__":
     R0 = 1
     lfact = 0.75
     rfact = .7
-    numGens = 6
-    _uvScale = (2,1) #repeats per unit length (around perimeter, along the tree axis) 
-    _BarkTex_ = "../resources/models/barkTexture-1.jpg"
+    numGens = 10
+    _uvScale = (1,.2) #repeats per unit length (around perimeter, along the tree axis) 
+    _BarkTex_ = "../resources/models/barkTexture.jpg"
     _LeafTex_ = '../resources/models/material-12.png'
    
     from direct.showbase.ShowBase import ShowBase
@@ -362,12 +366,12 @@ if __name__ == "__main__":
 
     thisBranch = [BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale])] # initial node      # make a starting node flat at 0,0,0
     trunk = thisBranch
-    for b in range(3):
+    for b in range(numGens-1):
         L=L0 *lfact**b
         if b== 0:
             maxA = 5.0 # trunk
         else:
-            maxA = int(200.0 / L) # branchs
+            maxA = min(40,int(150.0 / L)) # branchs
             thisBranch = [trunk[b]]# test just walk up 1 node of trunk and start over
         for i in range(1,numGens+1):
 #            print [x.quat for x in thisBranch] # DEBUG        
@@ -389,6 +393,7 @@ if __name__ == "__main__":
             thisBranch.append(newNode)        
     
         tree.branchFromNodes(thisBranch[0:])
+#        tree.drawLeaf()
         if b==0: trunk = thisBranch 
         numGens -= 1
 
