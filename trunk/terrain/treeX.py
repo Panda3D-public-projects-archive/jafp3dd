@@ -241,7 +241,7 @@ class flexibleTree(FractalTree):
 #        if maxAngle: self.maxAngle = maxAngle
 #        if maxBend: self.maxBend = maxBend
         barkTexture = base.loader.loadTexture(_BarkTex_)
-        leafModel = base.loader.loadModel('../resources/models/shrubbery')
+        leafModel = base.loader.loadModel(_LeafModel)
         leafModel.clearModelNodes()
         leafModel.flattenStrong()
         leafTexture = base.loader.loadTexture(_LeafTex_)
@@ -259,16 +259,15 @@ class flexibleTree(FractalTree):
             else: isRoot = False
 #            if i == len(nodeList)-1: keepDrawing = True
 #            else: 
-            keepDrawing = False
-            self.drawBody(node.pos, node.quat, node.radius,node.texUV,keepDrawing,isRoot)
-            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat)
+            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
+            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
     #this draws the body of the tree. This draws a ring of vertices and connects the rings with
     #triangles to form the body.
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
-    def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), keepDrawing=False, isRoot=False, numVertices=_polySize):
+    def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), isRoot=False, numVertices=_polySize):
         print "subclass"
         if isRoot:
             self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)
@@ -299,11 +298,10 @@ class flexibleTree(FractalTree):
             vertWriter.addData3f(adjCircle)
             texReWriter.addData2f(float(UVcoord[0]*i) / numVertices,UVcoord[1])            # UV SCALE HERE!
             #colorWriter.addData4f(0.5, 0.5, 0.5, 1)
-#            drawReWriter.addData1f(keepDrawing)
             currAngle += angleSlice 
         
         #we cant draw quads directly so we use Tristrips
-        if (startRow != 0) and (keepDrawing == False):
+        if (startRow != 0):
             lines = GeomTristrips(Geom.UHStatic)         
             for i in xrange(numVertices+1):
                 lines.addVertex(i + startRow)
@@ -345,15 +343,18 @@ BranchNode = namedtuple('BranchNode','pos quat radius texUV')
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
-    L0 = 5
-    R0 = 1
-    lfact = 0.75
-    rfact = .7
-    numGens = 10
+    L0 = 2.0
+    R0 = 1.0
+    Rf = .020
+    numGens = 20
+    lfact = .85
+    rfact = (Rf/R0)**(1.0/numGens) # fixed start and end radii
+    
     _uvScale = (1,.2) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "../resources/models/barkTexture.jpg"
-    _LeafTex_ = '../resources/models/material-12.png'
-   
+    _LeafTex_ = '../resources/models/material-10-cl.png'
+    _LeafModel = '../resources/models/shrubbery'
+    
     from direct.showbase.ShowBase import ShowBase
     base = ShowBase()
     base.cam.setPos(0, -30, 10)
@@ -363,7 +364,8 @@ if __name__ == "__main__":
     tree.reparentTo(base.render)
     
     root = []
-
+#TODO: make parameters: lfact, rfact, and angle picking, point to functions that 
+# take a function that will define the result of each
     thisBranch = [BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale])] # initial node      # make a starting node flat at 0,0,0
     trunk = thisBranch
     for b in range(numGens-1):
@@ -371,7 +373,7 @@ if __name__ == "__main__":
         if b== 0:
             maxA = 5.0 # trunk
         else:
-            maxA = min(40,int(150.0 / L)) # branchs
+            maxA = min(30,int(90.0 / L)) # branchs
             thisBranch = [trunk[b]]# test just walk up 1 node of trunk and start over
         for i in range(1,numGens+1):
 #            print [x.quat for x in thisBranch] # DEBUG        
@@ -396,6 +398,7 @@ if __name__ == "__main__":
 #        tree.drawLeaf()
         if b==0: trunk = thisBranch 
         numGens -= 1
+    tree.flattenStrong()
 
 #
 #
@@ -420,7 +423,7 @@ if __name__ == "__main__":
         phi = 30*task.time
         tree.setH(phi)
         return task.cont
-#    base.taskMgr.add(rotateTree,"merrygorouhnd")
+    base.taskMgr.add(rotateTree,"merrygorouhnd")
     
 #    t.grow(_Nstep,removeLeaves=1,leavesScale=1.0,trunkRate = 1.0)
 #    base.toggleWireframe()
