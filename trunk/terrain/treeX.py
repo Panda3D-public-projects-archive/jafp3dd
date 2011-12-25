@@ -23,7 +23,7 @@ from collections import namedtuple
 #PStatClient.connect()
 
 _DoLeaves_ = 0
-_polySize = 5
+_polySize = 16
 
 def _randomBend(inQuat, maxAngle=20):
     q=Quat()
@@ -147,7 +147,7 @@ class FractalTree(NodePath):
         vertWriter = GeomVertexWriter(vdata, "vertex")
         #colorWriter = GeomVertexWriter(vdata, "color")
         normalWriter = GeomVertexWriter(vdata, "normal")
-        drawReWriter = GeomVertexRewriter(vdata, "drawFlag")
+#        drawReWriter = GeomVertexRewriter(vdata, "drawFlag")
         texReWriter = GeomVertexRewriter(vdata, "texcoord")
 
         startRow = vdata.getNumRows()
@@ -163,7 +163,7 @@ class FractalTree(NodePath):
 #            drawReWriter.setRow(startRow - numVertices)
 #            if(drawReWriter.getData1f() == False):
 #                sCoord -= _Vscale                                # UV SCALE HERE!
-        drawReWriter.setRow(startRow)
+#        drawReWriter.setRow(startRow)
         texReWriter.setRow(startRow)   
        
         angleSlice = 2 * pi / numVertices
@@ -232,10 +232,11 @@ class FractalTree(NodePath):
             self.bodies.setTexture(self.barkTexture)         
             num -= 1
 
-FractalTree.makeFMT()
 
 class flexibleTree(FractalTree):
     def __init__(self):       
+        self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)
+
 #        if maxAngle: self.maxAngle = maxAngle
 #        if maxBend: self.maxBend = maxBend
         barkTexture = base.loader.loadTexture(_BarkTex_)
@@ -246,23 +247,30 @@ class flexibleTree(FractalTree):
         leafModel.setTexture(leafTexture, 1) 
         leafModel.setScale(0.1)
         leafModel.setTransparency(1)
-                
+
+        FractalTree.makeFMT()                
         FractalTree.__init__(self, barkTexture, leafModel, [1], [1], [1])
        
     def branchFromNodes(self,nodeList):
-        endNode = nodeList.pop() # need to set keepDraw False on last node
-        for node in nodeList:
-            self.drawBody(node.pos, node.quat, node.radius,node.texUV,keepDrawing=False)
-        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=False) # tell drawBody this is the end of the branch
+#        endNode = nodeList.pop() # need to set keepDraw False on last node
+        for i,node in enumerate(nodeList):
+            if i == 0: isRoot = True
+            else: isRoot = False
+            if i == len(nodeList): keepDrawing = True
+            else: keepDrawing = False
+            self.drawBody(node.pos, node.quat, node.radius,node.texUV,keepDrawing,isRoot)
+#        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
     #this draws the body of the tree. This draws a ring of vertices and connects the rings with
     #triangles to form the body.
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
-    def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), keepDrawing=True, numVertices=_polySize):
+    def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), keepDrawing=True, isRoot=False, numVertices=_polySize):
         print "subclass"
+        if isRoot:
+            self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)
         vdata = self.bodydata
-        circleGeom = Geom(vdata)
+        circleGeom = Geom(vdata) # this was originally a copy of all previous geom in vdata...
         vertWriter = GeomVertexWriter(vdata, "vertex")
         #colorWriter = GeomVertexWriter(vdata, "color")
         normalWriter = GeomVertexWriter(vdata, "normal")
@@ -273,16 +281,6 @@ class flexibleTree(FractalTree):
         vertWriter.setRow(startRow)
         #colorWriter.setRow(startRow)
         normalWriter.setRow(startRow)       
-
-#        sCoord = 0   
-#        if (startRow != 0):
-#            texReWriter.setRow(startRow - numVertices) #go back numVert in the vert list
-#            sCoord = texReWriter.getData2f().getX() + _Vscale           # UV SCALE HERE!
-#            print sCoord
-#            drawReWriter.setRow(startRow - numVertices)
-#            if(drawReWriter.getData1f() == False):
-#                sCoord -= _Vscale                                # UV SCALE HERE!
-#        drawReWriter.setRow(startRow)
         texReWriter.setRow(startRow)   
        
         angleSlice = 2 * pi / numVertices
@@ -297,7 +295,6 @@ class flexibleTree(FractalTree):
             normalWriter.addData3f(normal)
             vertWriter.addData3f(adjCircle)
             texReWriter.addData2f(float(UVcoord[0]*i) / numVertices,UVcoord[1])            # UV SCALE HERE!
-            print UVcoord
             #colorWriter.addData4f(0.5, 0.5, 0.5, 1)
 #            drawReWriter.addData1f(keepDrawing)
             currAngle += angleSlice 
@@ -317,6 +314,7 @@ class flexibleTree(FractalTree):
             circleGeomNode.addGeom(circleGeom)   
             self.numPrimitives += numVertices * 2
             self.bodies.attachNewNode(circleGeomNode)
+            
    
     #this draws leafs when we reach an end       
     def drawLeaf(self, pos=Vec3(0, 0, 0), quat=None, scale=0.125):
@@ -337,9 +335,9 @@ class flexibleTree(FractalTree):
         
     def addBranch(self, rootNode, branchNodes):
         pass
-    
-BranchNode = namedtuple('BranchNode','pos quat radius texUV')
 
+FractalTree.makeFMT()
+BranchNode = namedtuple('BranchNode','pos quat radius texUV')
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
@@ -347,9 +345,9 @@ if __name__ == "__main__":
     R0 = 1
     lfact = 0.75
     rfact = .7
-    numGens = 8
+    numGens = 6
     _uvScale = (2,1) #repeats per unit length (around perimeter, along the tree axis) 
-    _BarkTex_ = "../resources/models/barkTexture-1z.jpg"
+    _BarkTex_ = "../resources/models/barkTexture-1.jpg"
     _LeafTex_ = '../resources/models/material-12.png'
    
     from direct.showbase.ShowBase import ShowBase
@@ -364,12 +362,12 @@ if __name__ == "__main__":
 
     thisBranch = [BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale])] # initial node      # make a starting node flat at 0,0,0
     trunk = thisBranch
-    for b in range(4):
+    for b in range(3):
         L=L0 *lfact**b
         if b== 0:
             maxA = 5.0 # trunk
         else:
-            maxA = 40.0 # branchs
+            maxA = int(200.0 / L) # branchs
             thisBranch = [trunk[b]]# test just walk up 1 node of trunk and start over
         for i in range(1,numGens+1):
 #            print [x.quat for x in thisBranch] # DEBUG        
