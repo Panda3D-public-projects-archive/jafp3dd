@@ -233,9 +233,10 @@ class FractalTree(NodePath):
             self.makeFromStack()
             self.bodies.setTexture(self.barkTexture)         
             num -= 1
+FractalTree.makeFMT()
 
 
-class flexibleTree(FractalTree):
+class flexTree(FractalTree):
     def __init__(self):       
         self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)
 
@@ -250,7 +251,6 @@ class flexibleTree(FractalTree):
         leafModel.setScale(0.1)
         leafModel.setTransparency(1)
 
-        FractalTree.makeFMT()                
         FractalTree.__init__(self, barkTexture, leafModel, [1], [1], [1])
 
     #this draws the body of the tree. This draws a ring of vertices and connects the rings with
@@ -258,7 +258,7 @@ class flexibleTree(FractalTree):
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
     def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), isRoot=False, numVertices=_polySize):
-        print "subclass"
+        print "drawBody subclass"
         if isRoot:
             self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)
         vdata = self.bodydata
@@ -312,12 +312,7 @@ class flexibleTree(FractalTree):
         print "drawLeaf subclass"
         #use the vectors that describe the direction the branch grows to make the right
         #rotation matrix
-        newCs = Mat4()#0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-#         newCs.setRow(0, vecList[2]) #right
-#         newCs.setRow(1, vecList[1]) #up
-#         newCs.setRow(2, vecList[0]) #forward
-#         newCs.setRow(3, Vec3(0, 0, 0))
-#         newCs.setCol(3, Vec4(0, 0, 0, 1))   
+        newCs = Mat4()
         quat.extractToMatrix(newCs)
         axisAdj = Mat4.scaleMat(scale) * newCs * Mat4.translateMat(pos)       
         leafModel = NodePath("leaf")
@@ -325,14 +320,15 @@ class flexibleTree(FractalTree):
         leafModel.reparentTo(self.leaves)
         leafModel.setTransform(TransformState.makeMat(axisAdj))
         
-    def addBranch(self, rootNode,  aFunc, aParam, L, rfact, lfact):
+    def addBranch(self, rootNode,  angFunc, aParam, L, rfact, lfact):
+        # defines a "branch" as a list of BranchNodes and then
+        # calls branchfromNodes
         thisBranch = [rootNode]
         prevNode = rootNode
         for i in range(1,numGens+1): # start a 1, 0 is root node, now previous
             # make a new point w.r.t. the current
-            quat = Quat()
-            quat.setHpr(aFunc(**aParam))
-            quat *= prevNode.quat #rotate curQ by newQ and put in newQ
+            quat = angFunc(prevNode.quat,**aParam)#rotate curQ by newQ and put in newQ
+            
             pos = prevNode.pos + quat.getUp() * L 
             radius = rfact*prevNode.radius
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
@@ -347,6 +343,8 @@ class flexibleTree(FractalTree):
         return thisBranch
         
     def branchFromNodes(self,nodeList): # draws the actual geometry
+        # sends the BranchNode list to the drawBody function to generate the 
+        # actual geometry
 #        endNode = nodeList.pop() # need to set keepDraw False on last node
         for i,node in enumerate(nodeList):
             if i == 0: isRoot = True
@@ -357,16 +355,22 @@ class flexibleTree(FractalTree):
             if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
-def AngleFunc(*args,**kwargs):
+def AngleFunc(curQuat,*args,**kwargs):
+    # Takes current quaterion and list of kwargs
+    # returns a new quaterion by what ever function
+    # you want to define in here
+    # (i.e. overload this method)
+    quat = Quat()
     if kwargs['it'] == 0:
         maxA = kwargs['trunkLim'] # trunk
     else:
         maxA = min(kwargs['absLim'],int(kwargs['Ldiv'] / kwargs['length'])) # branchs
-    hpr = Vec3(0, 0*random.randint(-maxA,maxA),random.randint(-maxA,maxA))
-    return hpr
+        quat.setHpr(Vec3(0,45+random.randint(-15,15),45+random.randint(-15,15)))
+#    quat.setHpr(Vec3(0, 0*random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
+#    quat *= curQuat 
+    return quat
 
 
-FractalTree.makeFMT()
 BranchNode = namedtuple('BranchNode','pos quat radius texUV')
 
 if __name__ == "__main__":
@@ -387,7 +391,7 @@ if __name__ == "__main__":
     base = ShowBase()
     base.cam.setPos(0, -30, 5)
     base.setFrameRateMeter(1)
-    tree = flexibleTree()
+    tree = flexTree()
     tree.setTwoSided(1)    
     tree.reparentTo(base.render)
     
@@ -401,7 +405,6 @@ if __name__ == "__main__":
             root= trunk[b]# test just walk up 1 node of trunk and start over
 
         Aparams = {'trunkLim':0.0,'absLim':40,'Ldiv':90.0,'it':b,'length':L}   
-        maxA = AngleFunc(**Aparams)
         cb = tree.addBranch(root,  AngleFunc, Aparams,  L,  rfact,  lfact)
         
 #        tree.drawLeaf()
