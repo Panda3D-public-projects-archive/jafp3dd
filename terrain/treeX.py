@@ -13,6 +13,7 @@ based on the above authors and editors
 
 import sys
 
+from direct.showbase.ShowBase import ShowBase
 from panda3d.core import NodePath, Geom, GeomNode, GeomVertexArrayFormat, TransformState, GeomVertexWriter, GeomTristrips, GeomVertexRewriter, GeomVertexReader, GeomVertexData, GeomVertexFormat, InternalName
 from panda3d.core import Mat4, Vec3, CollisionNode, CollisionTube, Point3, Quat
 from math import sin,cos,pi
@@ -251,17 +252,6 @@ class flexibleTree(FractalTree):
 
         FractalTree.makeFMT()                
         FractalTree.__init__(self, barkTexture, leafModel, [1], [1], [1])
-       
-    def branchFromNodes(self,nodeList):
-#        endNode = nodeList.pop() # need to set keepDraw False on last node
-        for i,node in enumerate(nodeList):
-            if i == 0: isRoot = True
-            else: isRoot = False
-#            if i == len(nodeList)-1: keepDrawing = True
-#            else: 
-            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
-            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
-#        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
     #this draws the body of the tree. This draws a ring of vertices and connects the rings with
     #triangles to form the body.
@@ -335,8 +325,38 @@ class flexibleTree(FractalTree):
         leafModel.reparentTo(self.leaves)
         leafModel.setTransform(TransformState.makeMat(axisAdj))
         
-    def addBranch(self, rootNode, branchNodes):
-        pass
+    def addBranch(self, rootNode,  maxA, L, rfact, lfact):
+        thisBranch = rootNode
+        for i in range(1,numGens+1):
+            curQ = thisBranch[i-1].quat
+            curP = thisBranch[i-1].pos
+            # make a new point w.r.t. the current
+            quat = Quat()
+            quat.setHpr(Vec3(0,random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
+            quat *= curQ #rotate curQ by newQ and put in newQ
+            pos = curP + quat.getUp() * L 
+            radius = rfact*thisBranch[i-1].radius
+            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
+            perim = 1 # integer tiling of uScale
+            
+#            IS it better to keep integer U scale around for tiling???
+            UVcoord = (_uvScale[0]*perim, thisBranch[i-1].texUV[1] + L*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
+            L *= lfact
+            newNode = BranchNode._make([pos,quat,radius,UVcoord])
+            thisBranch.append(newNode)        
+        self.branchFromNodes(thisBranch) # draws the actual geometry
+        return thisBranch
+        
+    def branchFromNodes(self,nodeList):
+#        endNode = nodeList.pop() # need to set keepDraw False on last node
+        for i,node in enumerate(nodeList):
+            if i == 0: isRoot = True
+            else: isRoot = False
+#            if i == len(nodeList)-1: keepDrawing = True
+#            else: 
+            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
+            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
+#        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
 FractalTree.makeFMT()
 BranchNode = namedtuple('BranchNode','pos quat radius texUV')
@@ -354,8 +374,7 @@ if __name__ == "__main__":
     _BarkTex_ = "../resources/models/barkTexture.jpg"
     _LeafTex_ = '../resources/models/material-10-cl.png'
     _LeafModel = '../resources/models/shrubbery'
-    
-    from direct.showbase.ShowBase import ShowBase
+
     base = ShowBase()
     base.cam.setPos(0, -30, 10)
     base.setFrameRateMeter(1)
@@ -363,69 +382,31 @@ if __name__ == "__main__":
     tree.setTwoSided(1)    
     tree.reparentTo(base.render)
     
-    root = []
 #TODO: make parameters: lfact, rfact, and angle picking, point to functions that 
 # take a function that will define the result of each
-    thisBranch = [BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale])] # initial node      # make a starting node flat at 0,0,0
-    trunk = thisBranch
-    for b in range(numGens-1):
+    root = [BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale])] # initial node      # make a starting node flat at 0,0,0
+    trunk = root
+    for b in range(4):
         L=L0 *lfact**b
         if b== 0:
             maxA = 5.0 # trunk
         else:
             maxA = min(30,int(90.0 / L)) # branchs
-            thisBranch = [trunk[b]]# test just walk up 1 node of trunk and start over
-        for i in range(1,numGens+1):
-#            print [x.quat for x in thisBranch] # DEBUG        
-            curQ = thisBranch[i-1].quat
-            curP = thisBranch[i-1].pos
-            # make a new point w.r.t. the current
-            quat = Quat()
-            quat.setHpr(Vec3(0,random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
-            quat *= curQ #rotate curQ by newQ and put in newQ
-            pos = curP + quat.getUp() * L 
-            radius = rfact*thisBranch[i-1].radius
-            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
-            perim = 1
-            
-#            IS it better to keep integer U scale around for tiling???
-            UVcoord = (_uvScale[0]*perim, thisBranch[i-1].texUV[1] + L*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
-            L *= lfact
-            newNode = BranchNode._make([pos,quat,radius,UVcoord])
-            thisBranch.append(newNode)        
+            root= [trunk[b]]# test just walk up 1 node of trunk and start over
     
-        tree.branchFromNodes(thisBranch[0:])
+        cb = tree.addBranch(root,  maxA,  L,  rfact,  lfact)
+        
 #        tree.drawLeaf()
-        if b==0: trunk = thisBranch 
+        if b==0: trunk = cb
         numGens -= 1
     tree.flattenStrong()
 
-#
-#
-#    #demonstrate growing
-#    _Nstep = 12
-#    last = [0] # a bit hacky
-#    dt = .01
-#    def grow(task):
-#        if task.time > last[0] + dt:
-#            t.grow(removeLeaves=1,leavesScale=1.0,trunkRate = 0)
-#            last[0] = task.time
-#            #t.leaves.detachNode()
-#        if last[0] > _Nstep*dt:
-#            print('grow done')
-#            t.setScale(1)
-#            t.flattenStrong()
-#            t.write_bam_file('sampleTree.bam')
-#            return task.done
-#        return task.cont
-#    base.taskMgr.add(grow, "growTask")
     def rotateTree(task):
         phi = 30*task.time
         tree.setH(phi)
         return task.cont
     base.taskMgr.add(rotateTree,"merrygorouhnd")
     
-#    t.grow(_Nstep,removeLeaves=1,leavesScale=1.0,trunkRate = 1.0)
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)
     base.accept('z',base.toggleWireframe)
