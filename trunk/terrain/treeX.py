@@ -325,25 +325,24 @@ class flexibleTree(FractalTree):
         leafModel.reparentTo(self.leaves)
         leafModel.setTransform(TransformState.makeMat(axisAdj))
         
-    def addBranch(self, rootNode,  maxA, L, rfact, lfact):
-        thisBranch = rootNode
-        for i in range(1,numGens+1):
-            curQ = thisBranch[i-1].quat
-            curP = thisBranch[i-1].pos
+    def addBranch(self, rootNode,  aFunc, aParam, L, rfact, lfact):
+        thisBranch = [rootNode]
+        prevNode = rootNode
+        for i in range(1,numGens+1): # start a 1, 0 is root node, now previous
             # make a new point w.r.t. the current
             quat = Quat()
-            quat.setHpr(Vec3(0, 0*random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
-            quat *= curQ #rotate curQ by newQ and put in newQ
-            pos = curP + quat.getUp() * L 
-            radius = rfact*thisBranch[i-1].radius
+            quat.setHpr(aFunc(**aParam))
+            quat *= prevNode.quat #rotate curQ by newQ and put in newQ
+            pos = prevNode.pos + quat.getUp() * L 
+            radius = rfact*prevNode.radius
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
             perim = 1 # integer tiling of uScale
             
-#            IS it better to keep integer U scale around for tiling???
-            UVcoord = (_uvScale[0]*perim, thisBranch[i-1].texUV[1] + L*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
+            UVcoord = (_uvScale[0]*perim, prevNode.texUV[1] + L*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
             L *= lfact
             newNode = BranchNode._make([pos,quat,radius,UVcoord])
-            thisBranch.append(newNode)        
+            thisBranch.append(newNode)
+            prevNode = newNode # this is now the starting point on the next iteration
         self.branchFromNodes(thisBranch) 
         return thisBranch
         
@@ -363,7 +362,8 @@ def AngleFunc(*args,**kwargs):
         maxA = kwargs['trunkLim'] # trunk
     else:
         maxA = min(kwargs['absLim'],int(kwargs['Ldiv'] / kwargs['length'])) # branchs
-    return maxA
+    hpr = Vec3(0, 0*random.randint(-maxA,maxA),random.randint(-maxA,maxA))
+    return hpr
 
 
 FractalTree.makeFMT()
@@ -393,16 +393,16 @@ if __name__ == "__main__":
     
 #TODO: make parameters: lfact, rfact, and angle picking, point to functions that 
 # take a function that will define the result of each
-    root = [BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale])] # initial node      # make a starting node flat at 0,0,0
+    root = BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale]) # initial node      # make a starting node flat at 0,0,0
     trunk = root
     for b in range(nBranches):
         L=L0 *lfact**b
         if b>0:
-            root= [trunk[b]]# test just walk up 1 node of trunk and start over
+            root= trunk[b]# test just walk up 1 node of trunk and start over
 
         Aparams = {'trunkLim':0.0,'absLim':40,'Ldiv':90.0,'it':b,'length':L}   
         maxA = AngleFunc(**Aparams)
-        cb = tree.addBranch(root,  maxA,  L,  rfact,  lfact)
+        cb = tree.addBranch(root,  AngleFunc, Aparams,  L,  rfact,  lfact)
         
 #        tree.drawLeaf()
         if b==0: trunk = cb
