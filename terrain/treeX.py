@@ -358,6 +358,14 @@ class flexibleTree(FractalTree):
             if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
+def AngleFunc(*args,**kwargs):
+    if kwargs['it'] == 0:
+        maxA = kwargs['trunkLim'] # trunk
+    else:
+        maxA = min(kwargs['absLim'],int(kwargs['Ldiv'] / kwargs['length'])) # branchs
+    return maxA
+
+
 FractalTree.makeFMT()
 BranchNode = namedtuple('BranchNode','pos quat radius texUV')
 
@@ -389,12 +397,11 @@ if __name__ == "__main__":
     trunk = root
     for b in range(nBranches):
         L=L0 *lfact**b
-        if b== 0:
-            maxA = 0.0 # trunk
-        else:
-            maxA = min(40,int(90.0 / L)) # branchs
+        if b>0:
             root= [trunk[b]]# test just walk up 1 node of trunk and start over
-    
+
+        Aparams = {'trunkLim':0.0,'absLim':40,'Ldiv':90.0,'it':b,'length':L}   
+        maxA = AngleFunc(**Aparams)
         cb = tree.addBranch(root,  maxA,  L,  rfact,  lfact)
         
 #        tree.drawLeaf()
