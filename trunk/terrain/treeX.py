@@ -24,7 +24,7 @@ from collections import namedtuple
 #PStatClient.connect()
 
 _DoLeaves_ = 0
-_polySize = 16
+_polySize =8
 
 def _randomBend(inQuat, maxAngle=20):
     q=Quat()
@@ -332,11 +332,11 @@ class flexibleTree(FractalTree):
             curP = thisBranch[i-1].pos
             # make a new point w.r.t. the current
             quat = Quat()
-            quat.setHpr(Vec3(0,random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
+            quat.setHpr(Vec3(0, 0*random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
             quat *= curQ #rotate curQ by newQ and put in newQ
             pos = curP + quat.getUp() * L 
             radius = rfact*thisBranch[i-1].radius
-            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
+#            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
             perim = 1 # integer tiling of uScale
             
 #            IS it better to keep integer U scale around for tiling???
@@ -344,10 +344,10 @@ class flexibleTree(FractalTree):
             L *= lfact
             newNode = BranchNode._make([pos,quat,radius,UVcoord])
             thisBranch.append(newNode)        
-        self.branchFromNodes(thisBranch) # draws the actual geometry
+        self.branchFromNodes(thisBranch) 
         return thisBranch
         
-    def branchFromNodes(self,nodeList):
+    def branchFromNodes(self,nodeList): # draws the actual geometry
 #        endNode = nodeList.pop() # need to set keepDraw False on last node
         for i,node in enumerate(nodeList):
             if i == 0: isRoot = True
@@ -363,10 +363,11 @@ BranchNode = namedtuple('BranchNode','pos quat radius texUV')
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
-    L0 = 2.0
-    R0 = 1.0
-    Rf = .020
-    numGens = 20
+    L0 = 2.0 # initial length
+    R0 = 1.0 #initial radius
+    Rf = .080 # final radius
+    numGens = 10
+    nBranches = 9
     lfact = .85
     rfact = (Rf/R0)**(1.0/numGens) # fixed start and end radii
     
@@ -376,7 +377,7 @@ if __name__ == "__main__":
     _LeafModel = '../resources/models/shrubbery'
 
     base = ShowBase()
-    base.cam.setPos(0, -30, 10)
+    base.cam.setPos(0, -30, 5)
     base.setFrameRateMeter(1)
     tree = flexibleTree()
     tree.setTwoSided(1)    
@@ -386,12 +387,12 @@ if __name__ == "__main__":
 # take a function that will define the result of each
     root = [BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale])] # initial node      # make a starting node flat at 0,0,0
     trunk = root
-    for b in range(4):
+    for b in range(nBranches):
         L=L0 *lfact**b
         if b== 0:
-            maxA = 5.0 # trunk
+            maxA = 0.0 # trunk
         else:
-            maxA = min(30,int(90.0 / L)) # branchs
+            maxA = min(40,int(90.0 / L)) # branchs
             root= [trunk[b]]# test just walk up 1 node of trunk and start over
     
         cb = tree.addBranch(root,  maxA,  L,  rfact,  lfact)
@@ -405,7 +406,7 @@ if __name__ == "__main__":
         phi = 30*task.time
         tree.setH(phi)
         return task.cont
-    base.taskMgr.add(rotateTree,"merrygorouhnd")
+    base.taskMgr.add(rotateTree,"merrygoround")
     
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)
