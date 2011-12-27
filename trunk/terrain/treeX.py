@@ -23,7 +23,6 @@ from collections import namedtuple
 #from panda3d.core import PStatClient
 #PStatClient.connect()
 
-_DoLeaves_ = 0
 _polySize =8
 
 def _randomBend(inQuat, maxAngle=20):
@@ -350,7 +349,7 @@ class flexTree(FractalTree):
 #            if i == len(nodeList)-1: keepDrawing = True
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
-#            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
+            if i==len(nodeList)-1 and _DoLeaves: self.drawLeaf(node.pos,node.quat,.5)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
 def AngleFunc(curQuat,*args,**kwargs):
@@ -383,6 +382,7 @@ if __name__ == "__main__":
     _BarkTex_ = "../resources/models/barkTexture.jpg"
     _LeafTex_ = '../resources/models/material-10-cl.png'
     _LeafModel = '../resources/models/shrubbery'
+    _DoLeaves = 1
 
     base = ShowBase()
     base.cam.setPos(0, -30, 5)
