@@ -403,7 +403,7 @@ if __name__ == "__main__":
     R0 = 1.0 #initial radius
     Rf = .10 # final radius
     numGens = 2
-    numSegs = 4 # number of nodes per branch; 2 ends and n-2 body nodes
+    numSegs = 2 # number of nodes per branch; 2 ends and n-2 body nodes
     lfact = .85
     rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
     
@@ -411,7 +411,7 @@ if __name__ == "__main__":
     _BarkTex_ = "../resources/models/barkTexture.jpg"
     _LeafTex_ = '../resources/models/material-10-cl.png'
     _LeafModel = '../resources/models/shrubbery'
-    _LeafScale = .25
+    _LeafScale = .125
     _DoLeaves = 1
     _relAng = 0    # ang function is a relative adjustment if true. absolute orientation otherwise
     
@@ -432,7 +432,6 @@ if __name__ == "__main__":
     children = trunk[1:-2] # each node in the trunk will span a branch
     nextChildren = [] 
     while numGens>0:
-        L = L0*lfact**2
         for root in children:
 #            Aparams = {'absLim':45,'Ldiv':90.0,'length':L}   
             Aparams = {'H':0,'dh':0,'P':67,'dp':23,'R':0,'dr':0}
