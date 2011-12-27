@@ -15,7 +15,7 @@ import sys
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import NodePath, Geom, GeomNode, GeomVertexArrayFormat, TransformState, GeomVertexWriter, GeomTristrips, GeomVertexRewriter, GeomVertexReader, GeomVertexData, GeomVertexFormat, InternalName
-from panda3d.core import Mat4, Vec3, CollisionNode, CollisionTube, Point3, Quat
+from panda3d.core import Mat4, Vec4, Vec3, CollisionNode, CollisionTube, Point3, Quat
 from math import sin,cos,pi
 import random
 from collections import namedtuple
@@ -316,38 +316,32 @@ class flexTree(FractalTree):
         self.leafModel.instanceTo(leafModel)
         leafModel.reparentTo(self.leaves)
         leafModel.setTransform(TransformState.makeMat(axisAdj))
+    
+    def defineCircumVerts():
+        pass
+    
+    def genBranch(self, rootNode,  angFunc, aParam, radFunc, rParam, branchlen,branchSegs):
+        # defines a "branch" as a list of BranchNodes and then calls branchfromNodes        
         
-    def addBranch(self, rootNode,  angFunc, aParam, radFunc, rParam, lfact):
-        # defines a "branch" as a list of BranchNodes and then
-        # calls branchfromNodes
-        
-        #12.27 new approach for start: 
-            # take rootNode pos, assign NEW branch radius as start
-            # Rotate new rootNode heading to populate around the tree/branch            
-            # rotate new rootNode to match second Node angle
+        # other notes: a tree cares about absolute "up" and left and right are
+        # relateive to abs "up" cross product branches "up" (forward along the branch)
             
-            # other notes: a tree cares about absolute "up" and left and right are
-            # relateive to abs "up" cross product branches "up" (forward along the branch)
-            
-        pos,radius,L,quat,UV = rootNode
+        rootPos,rootRad,rootL,rootQuat,rootUV = rootNode
 #        radius = rfact*radius # SHOULD BE radFunc CALL HERE
-        adj = Quat()
-        adj.setHpr(Vec3(90,90,0))
-        quat *= adj
-        prevNode = BranchNode._make([pos,radius,L,quat,UV])
+        quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
+        prevNode = BranchNode._make([rootPos,.9*rootRad,rootL,quat,rootUV])
         thisBranch = [prevNode] # start new branch list with newly created rootNode
-        for i in range(1,numSegs+1): # start a 1, 0 is root node, now previous
-            # make a new point w.r.t. the current
-            quat = angFunc(prevNode.quat,**aParam)#rotate curQ by newQ and put in newQ
-            
-            pos = prevNode.pos + quat.getUp() * L 
+
+        # lParams = (Length, number of segs; excluding root)            
+        Lseg = float(branchlen/branchSegs)        
+        for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
+            pos = prevNode.pos + quat.getUp() * Lseg
             radius = radFunc(prevNode,**rParam)
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
             perim = 1 # integer tiling of uScale
             
-            UVcoord = (_uvScale[0]*perim, prevNode.texUV[1] + L*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
-            L *= lfact
-            newNode = BranchNode._make([pos,radius,L,quat,UVcoord])
+            UVcoord = (_uvScale[0]*perim, prevNode.texUV[1] + Lseg*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
+            newNode = BranchNode._make([pos,radius,Lseg,quat,UVcoord])
             thisBranch.append(newNode)
             prevNode = newNode # this is now the starting point on the next iteration
         self.branchFromNodes(thisBranch) 
@@ -387,8 +381,7 @@ def AngleFunc(curQuat,*args,**kwargs):
     
 #    quat.setHpr(Vec3(random.randint(-180, 180)*0, 0*random.randint(-maxA,maxA),random.randint(maxA,maxA)))
     quat.setHpr(Vec3(H0 + random.randint(-dh, dh), P0+random.randint(-dp,dp),R0 + random.randint(-dr,dr)))
-    if _relAng:
-        quat *= curQuat # this applies a  relative change. Otherwise, quat is absolute(?)
+    quat *= curQuat # this applies a  relative change. Otherwise, quat is absolute(?)
     return quat
 
 def RadiusFunc(curNode,*args,**kwargs):
@@ -399,22 +392,22 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV') # len is TO ne
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
-    L0 = 2.0 # initial length
+    L0 = 10.0 # initial length
     R0 = 1.0 #initial radius
-    Rf = .10 # final radius
+    Rf = .14 # final radius
     numGens = 2
-    numSegs = 2 # number of nodes per branch; 2 ends and n-2 body nodes
-    lfact = .85
+    numSegs = 8 # number of nodes per branch; 2 ends and n-2 body nodes
+    lfact = .33
     rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
     
     _uvScale = (1,.2) #repeats per unit length (around perimeter, along the tree axis) 
-    _BarkTex_ = "../resources/models/barkTexture.jpg"
+    _BarkTex_ = "../resources/models/barkTexture-1z.jpg"
     _LeafTex_ = '../resources/models/material-10-cl.png'
     _LeafModel = '../resources/models/shrubbery'
-    _LeafScale = .125
-    _DoLeaves = 1
+    _LeafScale = .1
+    _DoLeaves = 0
     _relAng = 0    # ang function is a relative adjustment if true. absolute orientation otherwise
-    
+    _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
     base = ShowBase()
     base.cam.setPos(0, -30, 5)
     base.setFrameRateMeter(1)
@@ -424,25 +417,24 @@ if __name__ == "__main__":
     
 #TODO: make parameters: lfact, rfact, and angle picking, point to functions that 
 # take a function that will define the result of each
-    root = BranchNode._make([Vec3(0,0,0),R0,L0,Quat(),_uvScale]) # initial node      # make a starting node flat at 0,0,0
+    root = BranchNode._make([Vec3(0,0,0),R0,L0,Quat(1,0,0,1),_uvScale]) # initial node      # make a starting node flat at 0,0,0
 #    Aparams = {'absLim':0,'Ldiv':90.0,'length':L} 
-    Aparams = {'H':0,'dh':0,'P':0,'dp':5,'R':0,'dr':0}  
+    Aparams = {'H':0,'dh':180,'P':0,'dp':5,'R':0,'dr':0}  
     Rparams = {'rfact':rfact}
-    trunk = tree.addBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, lfact)
-    children = trunk[1:-2] # each node in the trunk will span a branch
+    trunk = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0, numSegs)
+    children = trunk[_skipChildren:-1] # each node in the trunk will span a branch
     nextChildren = [] 
-    while numGens>0:
+    for gen in range(1,numGens):
         for root in children:
 #            Aparams = {'absLim':45,'Ldiv':90.0,'length':L}   
-            Aparams = {'H':0,'dh':0,'P':67,'dp':23,'R':0,'dr':0}
-            curBr = tree.addBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, lfact) # return the current branch node list
-            nextChildren += curBr
+            Aparams = {'H':0,'dh':0,'P':45,'dp':23,'R':0,'dr':0}
+            curBr = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs) # return the current branch node list
+            nextChildren += curBr[_skipChildren:] # don'tinclude the root
             
         # IMPLEMENT A "SELECT CHILDREN" FUNC SO NOT ALL NODES ARE BRANCHES
         # CAN ALSO DUPLICATE NODES FOR MULTIPLE BRANCHES PER NODE
         children = nextChildren
         nextChildren = []
-        numGens -= 1
             
     tree.flattenStrong()
 
