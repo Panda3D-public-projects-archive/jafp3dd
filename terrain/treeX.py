@@ -347,8 +347,11 @@ class flexTree(FractalTree):
         prevNode = BranchNode._make([rootPos,.9*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
         thisBranch = [prevNode] # start new branch list with newly created rootNode
 
-        Lseg = float(branchlen/branchSegs)        
+        Lseg = float(branchlen/branchSegs)   
         for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
+            aParam = {'H':0,'dh':0,'P':0,'dp':5.0,'R':0,'dr':0}        
+            quat = angFunc(prevNode.quat,**aParam) #rotate branch to a new direction
+
             pos = prevNode.pos + quat.getUp() * Lseg
             radius = radFunc(prevNode,**rParam)
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
@@ -380,7 +383,7 @@ def AngleFunc(curQuat,*args,**kwargs):
     R0 = kwargs['R']
     dr = kwargs['dr']
     
-    quat.setHpr(Vec3(H0 + random.randint(-dh, dh), P0+random.randint(-dp,dp),R0 + random.randint(-dr,dr)))
+    quat.setHpr(Vec3(H0 + random.randint(-dh, dh), P0-dp+2*dp*random.random(),R0 + random.randint(-dr,dr)))
     quat *= curQuat # this applies a  relative change. Otherwise, quat is absolute(?)
     return quat
 
@@ -402,7 +405,7 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len i
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
     numGens = 4
-    numSegs = 8 # number of nodes per branch; 2 ends and n-2 body nodes
+    numSegs = 6 # number of nodes per branch; 2 ends and n-2 body nodes
     lfact = .33
 
     L0 = 10.0 # initial length
@@ -416,9 +419,10 @@ if __name__ == "__main__":
     _BarkTex_ = "../resources/models/barkTexture.jpg"
     _LeafTex_ = '../resources/models/material-10-cl.png'
     _LeafModel = '../resources/models/shrubbery'
-    _LeafScale = .21
+    _LeafScale = .1
     _DoLeaves = 1
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
+ 
     base = ShowBase()
     base.cam.setPos(0, -30, 5)
     base.setFrameRateMeter(1)
@@ -433,19 +437,19 @@ if __name__ == "__main__":
     Aparams = {'H':0,'dh':0,'P':0,'dp':0,'R':0,'dr':0}  
     Rparams = {'rfact':rfact,'power':pwr}
     trunk = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0, numSegs)
-    children = trunk[_skipChildren:-1] # each node in the trunk will span a branch
+    children = trunk[_skipChildren:] # each node in the trunk will span a branch
     nextChildren = [] 
     for gen in range(1,numGens):
         print "Generation: ", gen, " children: ", len(children)
         for root in children:
 #            Aparams = {'absLim':45,'Ldiv':90.0,'length':L}   
             Aparams = {'H':0,'dh':180,'P':67,'dp':33,'R':0,'dr':0}
-            curBr = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs) # return the current branch node list
+            curBr = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs+1-gen) # return the current branch node list
             nextChildren += curBr[_skipChildren:] # don'tinclude the root
             
         # IMPLEMENT A "SELECT CHILDREN" FUNC SO NOT ALL NODES ARE BRANCHES
         # CAN ALSO DUPLICATE NODES FOR MULTIPLE BRANCHES PER NODE
-        children = nextChildren
+        children = nextChildren*2 # poor man's multiple branch/node
         nextChildren = []
             
     tree.flattenStrong()
