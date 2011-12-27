@@ -16,7 +16,7 @@ import sys
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import NodePath, Geom, GeomNode, GeomVertexArrayFormat, TransformState, GeomVertexWriter, GeomTristrips, GeomVertexRewriter, GeomVertexReader, GeomVertexData, GeomVertexFormat, InternalName
 from panda3d.core import Mat4, Vec4, Vec3, CollisionNode, CollisionTube, Point3, Quat
-from math import sin,cos,pi
+from math import sin,cos,pi, sqrt
 import random
 from collections import namedtuple
 
@@ -316,7 +316,20 @@ class flexTree(FractalTree):
         self.leafModel.instanceTo(leafModel)
         leafModel.reparentTo(self.leaves)
         leafModel.setTransform(TransformState.makeMat(axisAdj))
-    
+ 
+    def branchFromNodes(self,nodeList): # draws the actual geometry
+        # sends the BranchNode list to the drawBody function to generate the 
+        # actual geometry
+#        endNode = nodeList.pop() # need to set keepDraw False on last node
+        for i,node in enumerate(nodeList):
+            if i == 0: isRoot = True
+            else: isRoot = False
+#            if i == len(nodeList)-1: keepDrawing = True
+#            else: 
+            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
+            if i==len(nodeList)-1 and _DoLeaves: self.drawLeaf(node.pos,node.quat,_LeafScale)
+#        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
+   
     def defineCircumVerts():
         pass
     
@@ -329,6 +342,8 @@ class flexTree(FractalTree):
         rootPos,rootRad,rootL,rootQuat,rootUV = rootNode
 #        radius = rfact*radius # SHOULD BE radFunc CALL HERE
         quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
+#        quat = rootQuat
+#        quat.setFromAxisAngle(random.randint(0,30),Vec3(0,sqrt(.5),sqrt(.5)))
         prevNode = BranchNode._make([rootPos,.9*rootRad,rootL,quat,rootUV])
         thisBranch = [prevNode] # start new branch list with newly created rootNode
 
@@ -347,18 +362,6 @@ class flexTree(FractalTree):
         self.branchFromNodes(thisBranch) 
         return thisBranch
         
-    def branchFromNodes(self,nodeList): # draws the actual geometry
-        # sends the BranchNode list to the drawBody function to generate the 
-        # actual geometry
-#        endNode = nodeList.pop() # need to set keepDraw False on last node
-        for i,node in enumerate(nodeList):
-            if i == 0: isRoot = True
-            else: isRoot = False
-#            if i == len(nodeList)-1: keepDrawing = True
-#            else: 
-            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
-            if i==len(nodeList)-1 and _DoLeaves: self.drawLeaf(node.pos,node.quat,_LeafScale)
-#        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
 def AngleFunc(curQuat,*args,**kwargs):
     # Takes current quaterion and list of kwargs
@@ -381,6 +384,8 @@ def AngleFunc(curQuat,*args,**kwargs):
     
 #    quat.setHpr(Vec3(random.randint(-180, 180)*0, 0*random.randint(-maxA,maxA),random.randint(maxA,maxA)))
     quat.setHpr(Vec3(H0 + random.randint(-dh, dh), P0+random.randint(-dp,dp),R0 + random.randint(-dr,dr)))
+#    quat.setFromAxisAngle(P0+random.randint(-dp,dp),Vec3(1,0,0))    
+#    quat.setFromAxisAngle(H0+random.randint(-dh,dh),Vec3(0,0,1))
     quat *= curQuat # this applies a  relative change. Otherwise, quat is absolute(?)
     return quat
 
@@ -396,7 +401,7 @@ if __name__ == "__main__":
     R0 = 1.0 #initial radius
     Rf = .14 # final radius
     numGens = 2
-    numSegs = 8 # number of nodes per branch; 2 ends and n-2 body nodes
+    numSegs = 6 # number of nodes per branch; 2 ends and n-2 body nodes
     lfact = .33
     rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
     
@@ -417,9 +422,9 @@ if __name__ == "__main__":
     
 #TODO: make parameters: lfact, rfact, and angle picking, point to functions that 
 # take a function that will define the result of each
-    root = BranchNode._make([Vec3(0,0,0),R0,L0,Quat(1,0,0,1),_uvScale]) # initial node      # make a starting node flat at 0,0,0
+    root = BranchNode._make([Vec3(0,0,0),R0,L0,Quat(),_uvScale]) # initial node      # make a starting node flat at 0,0,0
 #    Aparams = {'absLim':0,'Ldiv':90.0,'length':L} 
-    Aparams = {'H':0,'dh':180,'P':0,'dp':5,'R':0,'dr':0}  
+    Aparams = {'H':0,'dh':0,'P':0,'dp':5,'R':0,'dr':0}  
     Rparams = {'rfact':rfact}
     trunk = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0, numSegs)
     children = trunk[_skipChildren:-1] # each node in the trunk will span a branch
@@ -427,7 +432,7 @@ if __name__ == "__main__":
     for gen in range(1,numGens):
         for root in children:
 #            Aparams = {'absLim':45,'Ldiv':90.0,'length':L}   
-            Aparams = {'H':0,'dh':0,'P':45,'dp':23,'R':0,'dr':0}
+            Aparams = {'H':0,'dh':180,'P':45,'dp':23,'R':0,'dr':0}
             curBr = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs) # return the current branch node list
             nextChildren += curBr[_skipChildren:] # don'tinclude the root
             
