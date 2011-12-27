@@ -258,7 +258,6 @@ class flexTree(FractalTree):
     #this keepDrawing paramter tells the function wheter or not we're at an end
     #if the vertices before you were an end, dont draw branches to it
     def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), isRoot=False, numVertices=_polySize):
-        print "drawBody subclass"
         if isRoot:
             self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)
         vdata = self.bodydata
@@ -309,7 +308,6 @@ class flexTree(FractalTree):
    
     #this draws leafs when we reach an end       
     def drawLeaf(self, pos=Vec3(0, 0, 0), quat=None, scale=0.125):
-        print "drawLeaf subclass"
         #use the vectors that describe the direction the branch grows to make the right
         #rotation matrix
         newCs = Mat4()
@@ -325,9 +323,9 @@ class flexTree(FractalTree):
         # calls branchfromNodes
         thisBranch = [rootNode]
         prevNode = rootNode
-        for i in range(1,numGens+1): # start a 1, 0 is root node, now previous
+        for i in range(1,numSegs+1): # start a 1, 0 is root node, now previous
             # make a new point w.r.t. the current
-            quat = angFunc(prevNode.quat,**aParam)#rotate curQ by newQ and put in newQ
+            if i==1: quat = angFunc(prevNode.quat,**aParam)#rotate curQ by newQ and put in newQ
             
             pos = prevNode.pos + quat.getUp() * L 
             radius = rfact*prevNode.radius
@@ -352,7 +350,7 @@ class flexTree(FractalTree):
 #            if i == len(nodeList)-1: keepDrawing = True
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
-            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
+#            if i==len(nodeList)-1: self.drawLeaf(node.pos,node.quat,.5)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
 
 def AngleFunc(curQuat,*args,**kwargs):
@@ -361,13 +359,11 @@ def AngleFunc(curQuat,*args,**kwargs):
     # you want to define in here
     # (i.e. overload this method)
     quat = Quat()
-    if kwargs['it'] == 0:
-        maxA = kwargs['trunkLim'] # trunk
-    else:
-        maxA = min(kwargs['absLim'],int(kwargs['Ldiv'] / kwargs['length'])) # branchs
-        quat.setHpr(Vec3(0,45+random.randint(-15,15),45+random.randint(-15,15)))
-#    quat.setHpr(Vec3(0, 0*random.randint(-maxA,maxA),random.randint(-maxA,maxA)))
-#    quat *= curQuat 
+    maxA = min(kwargs['absLim'], int(kwargs['Ldiv'] / kwargs['length'])) # branchs
+        
+    quat.setHpr(Vec3(random.randint(-180, 180), 0*random.randint(-maxA,maxA),random.randint(maxA,maxA)))
+    print "debug in angle func setting hdging for root of branch only"
+    quat *= curQuat 
     return quat
 
 
@@ -378,10 +374,10 @@ if __name__ == "__main__":
     L0 = 2.0 # initial length
     R0 = 1.0 #initial radius
     Rf = .080 # final radius
-    numGens = 10
-    nBranches = 9
+    numGens = 2
+    numSegs = 10 # number of nodes per branch; 2 ends and n-2 body nodes
     lfact = .85
-    rfact = (Rf/R0)**(1.0/numGens) # fixed start and end radii
+    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
     
     _uvScale = (1,.2) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "../resources/models/barkTexture.jpg"
@@ -398,25 +394,30 @@ if __name__ == "__main__":
 #TODO: make parameters: lfact, rfact, and angle picking, point to functions that 
 # take a function that will define the result of each
     root = BranchNode._make([Vec3(0,0,0),Quat(),R0,_uvScale]) # initial node      # make a starting node flat at 0,0,0
-    trunk = root
-    for b in range(nBranches):
-        L=L0 *lfact**b
-        if b>0:
-            root= trunk[b]# test just walk up 1 node of trunk and start over
-
-        Aparams = {'trunkLim':0.0,'absLim':40,'Ldiv':90.0,'it':b,'length':L}   
-        cb = tree.addBranch(root,  AngleFunc, Aparams,  L,  rfact,  lfact)
-        
-#        tree.drawLeaf()
-        if b==0: trunk = cb
+    L=L0
+    Aparams = {'absLim':0,'Ldiv':90.0,'length':L}   
+    trunk = tree.addBranch(root,  AngleFunc, Aparams,  L,  rfact,  lfact)
+    children = trunk[1:] # each node in the trunk will span a branch
+    nextChildren = []
+    L*=lfact 
+    while numGens>0:
+        L = L0*lfact
+        for root in children:
+            L*= lfact
+            Aparams = {'absLim':45,'Ldiv':90.0,'length':L}   
+            curBr = tree.addBranch(root,  AngleFunc, Aparams,  L,  rfact,  lfact) # return the current branch node list
+            nextChildren += curBr
+        children = nextChildren
+        nextChildren = []
         numGens -= 1
+            
     tree.flattenStrong()
 
     def rotateTree(task):
         phi = 30*task.time
         tree.setH(phi)
         return task.cont
-    base.taskMgr.add(rotateTree,"merrygoround")
+#    base.taskMgr.add(rotateTree,"merrygoround")
     
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)
