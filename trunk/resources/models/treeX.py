@@ -277,7 +277,8 @@ class flexTree(FractalTree):
         perp1 = quat.getRight()
         perp2 = quat.getForward()   
         
-        dr = 1.0 # EXPERIMENTAL: ADDING RADIAL NOISE
+        dr = 0.0 # EXPERIMENTAL: ADDING RADIAL NOISE
+        print "Experimental noise off"
         #vertex information is written here
         angleSlice = 2 * pi / numVertices
         currAngle = 0
@@ -334,41 +335,76 @@ class flexTree(FractalTree):
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
-   
-    def defineCircumVerts():
-        pass
     
+#    def genBranch(self, rootNode,  angFunc, aParam, radFunc, rParam, branchlen,branchSegs):
+#        # defines a "branch" as a list of BranchNodes and then calls branchfromNodes        
+#        
+#        # other notes: a tree cares about absolute "up" and left and right are
+#        # relateive to abs "up" cross product branches "up" (forward along the branch)
+#            
+#        rootPos,rootRad,rootL,rootQuat,rootUV, rootDL = rootNode
+##        radius = rfact*radius # SHOULD BE radFunc CALL HERE
+#        quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
+##        quat = rootQuat
+##        quat.setFromAxisAngle(random.randint(0,30),Vec3(0,sqrt(.5),sqrt(.5)))
+#        prevNode = BranchNode._make([rootPos,.5*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
+#        thisBranch = [prevNode] # start new branch list with newly created rootNode
+#
+#        Lseg = float(branchlen/branchSegs)   
+#        for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
+#            aParam = {'H':0,'dh':0,'P':0,'dp':5.0,'R':0,'dr':5}        
+#            quat = angFunc(prevNode.quat,**aParam) #rotate branch to a new direction
+#
+#            pos = prevNode.pos + quat.getUp() * Lseg
+#            radius = radFunc(prevNode,**rParam)
+##            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
+#            perim = 1 # integer tiling of uScale; looks better
+#            
+#            UVcoord = (_uvScale[0]*perim, prevNode.texUV[1] + Lseg*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
+#            newNode = BranchNode._make([pos,radius,Lseg,quat,UVcoord,branchlen-i*Lseg]) # i*Lseg = distance from root
+#            thisBranch.append(newNode)
+#            prevNode = newNode # this is now the starting point on the next iteration
+#        self.branchFromNodes(thisBranch) 
+#        return thisBranch
+        
     def genBranch(self, rootNode,  angFunc, aParam, radFunc, rParam, branchlen,branchSegs):
         # defines a "branch" as a list of BranchNodes and then calls branchfromNodes        
+        # returns geom node, untransformed,
         
-        # other notes: a tree cares about absolute "up" and left and right are
-        # relateive to abs "up" cross product branches "up" (forward along the branch)
-            
-        rootPos,rootRad,rootL,rootQuat,rootUV, rootDL = rootNode
-#        radius = rfact*radius # SHOULD BE radFunc CALL HERE
-        quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
-#        quat = rootQuat
-#        quat.setFromAxisAngle(random.randint(0,30),Vec3(0,sqrt(.5),sqrt(.5)))
-        prevNode = BranchNode._make([rootPos,.5*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
-        thisBranch = [prevNode] # start new branch list with newly created rootNode
-
+#        rootPos,rootRad,rootL,rootQuat,rootUV, rootDL = rootNode
+#        quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
+#        prevNode = BranchNode._make([rootPos,.5*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
+        thisBranch = [rootNode] # start new branch list with newly created rootNode
+        prevNode = rootNode
+        _UP_ = Vec3(0,0,1) # grow along Z axis
+        
         Lseg = float(branchlen/branchSegs)   
         for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
-            aParam = {'H':0,'dh':0,'P':0,'dp':5.0,'R':0,'dr':5}        
-            quat = angFunc(prevNode.quat,**aParam) #rotate branch to a new direction
 
-            pos = prevNode.pos + quat.getUp() * Lseg
-            radius = radFunc(prevNode,**rParam)
+            pos = rootNode.pos + _UP_ * Lseg * i # + NOISE IN XY (since we are growing up Z)
+            dL = prevNode.deltaL + (pos-prevNode.pos).length()
+            radius = radFunc(position=dL,curNode=rootNode,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
+
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
-            perim = 1 # integer tiling of uScale; looks better
+            perim = 1 # integer tiling of uScale; looks better            
+            UVcoord = (_uvScale[0]*perim, rootNode.texUV[1] + dL*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
             
-            UVcoord = (_uvScale[0]*perim, prevNode.texUV[1] + Lseg*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
-            newNode = BranchNode._make([pos,radius,Lseg,quat,UVcoord,branchlen-i*Lseg]) # i*Lseg = distance from root
+            newNode = BranchNode._make([pos,radius,Lseg,rootNode.quat,UVcoord,dL]) # i*Lseg = distance from root
             thisBranch.append(newNode)
             prevNode = newNode # this is now the starting point on the next iteration
-        self.branchFromNodes(thisBranch) 
-        return thisBranch
-        
+
+#        self.branchFromNodes(thisBranch) 
+        # sends the BranchNode list to the drawBody function to generate the 
+        # actual geometry
+#        endNode = nodeList.pop() # need to set keepDraw False on last node
+        for i,node in enumerate(thisBranch):
+            if i == 0: isRoot = True
+            else: isRoot = False
+#            if i == len(nodeList)-1: keepDrawing = True
+#            else: 
+            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
+
+        return thisBranch        
 
 def AngleFunc(curQuat,*args,**kwargs):
     # Takes current quaterion and list of kwargs
@@ -392,11 +428,14 @@ def AngleFunc(curQuat,*args,**kwargs):
     quat *= curQuat # this applies a  relative change. Otherwise, quat is absolute(?)
     return quat
 
-def RadiusFunc(curNode,*args,**kwargs):
+def RadiusFunc(*args,**kwargs):
     # radius proportional to length from root of this branch to some power
     rfact = kwargs['rfact']
-    power = kwargs['power']
-    newRad = rfact*curNode.radius
+#    power = kwargs['power']
+#    curNode = kwargs['curNode']
+#    newRad = rfact*curNode.radius
+    position = kwargs['position']
+    newRad = 1 - position*rfact
 #    if curNode.deltaL > 0:
 #        newRad = rfact*(-curNode.deltaL**power)
 #    else:
@@ -409,15 +448,15 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len i
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
-    numGens = 4
+    numGens = 0
     numSegs = 5 # number of nodes per branch; 2 ends and n-2 body nodes
     lfact = .3    # length ratio between branch generations
 
     L0 = 5.0 # initial length
     R0 = .5 #initial radius
     Rf = .1 # final radius
-    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
-#    rfact = .85
+#    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
+    rfact = .05
     pwr = 1
     
     _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
@@ -425,7 +464,7 @@ if __name__ == "__main__":
     _LeafTex_ = 'Green Leaf.png'
     _LeafModel = 'myLeafModel.x'
     _LeafScale = .75
-    _DoLeaves = 1
+    _DoLeaves = 0
     _skipChildren = 1 # how many nodes in from the base; including the base, to exclude from children list
  
     base = ShowBase()
