@@ -22,6 +22,8 @@ from direct.showbase.ShowBase import ShowBase
 #import direct.directbase.DirectStart
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
+from panda3d.core import loadPrcFileData
+loadPrcFileData( '', 'sync-video 0' ) 
 
 from CelestialBody import CelestialBody
 from tileManager import *
@@ -30,7 +32,7 @@ import pickle
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 0
+_DoFog = 1
 _ShowOcean = 0
 _ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
@@ -92,9 +94,9 @@ class World(ShowBase):
         
     def __init__(self):
         ShowBase.__init__(self)
-        initText = OnscreenText(text = str("Starting the world..."), pos = (0, 0.5), scale = 0.1, fg = (.8,.8,1,.5))       
+#        initText = OnscreenText(text = str("Starting the world..."), pos = (0, 0.5), scale = 0.1, fg = (.8,.8,1,.5))       
         self.setBackgroundColor(_SKYCOLOR_)
-        self.setFrameRateMeter(1)
+        self.setFrameRateMeter(0)
         #app.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
 #        render.setShaderAuto()
@@ -108,26 +110,26 @@ class World(ShowBase):
         treefile = open(os.path.join(_DATAPATH_,_treePath))        
         treeLocs = pickle.load(treefile)
         treefile.close()
-        initText.setText("Starting Terrain Manager...")       
+#        initText.setText("Starting Terrain Manager...")       
         tileInfo = enumerateMapTiles(_mapName,16)              
         self.ttMgr = terrainManager(parentNode=self.terraNode, tileScale=_terraScale, \
         focusNode=self.avnp, infoDict=tileInfo, objDict=treeLocs)
   
-        initText.setText("Checking the time...")
+#        initText.setText("Checking the time...")
         self.initTime = time.time()
         self.worldTime = self.initTime
         
         if _DoLights: self.setupLights()
-        initText.setText("setting key mapping...")        
+#        initText.setText("setting key mapping...")        
         self.setupKeys()
-        initText.setText("Create an Avatar...")
+#        initText.setText("Create an Avatar...")
         self.setupAvatar()     
         
         if _ShowSky: 
-            initText.setText("We need a sky!...")            
+#            initText.setText("We need a sky!...")            
             self.setupSky() # must occur after setupAvatar    
        
-        initText.setText("The sun, the moon, and someday the stars...")
+#        initText.setText("The sun, the moon, and someday the stars...")
         self.sun = CelestialBody(self.render, self.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
         self.sun.period = 3600
@@ -149,7 +151,7 @@ class World(ShowBase):
 #            
 
         if _ShowOcean:
-            initText.setText("Filling the swimming pool...")
+#            initText.setText("Filling the swimming pool...")
             self.oceanNode = render.attachNewNode('ocean plane')        
 #            oceanPlane = loader.loadModel(os.path.join(_DATAPATH_,'models','plane')) #plane model -.5,.5 corners
 #            oceanPlane.setPos(.5,.5,0)
@@ -179,7 +181,7 @@ class World(ShowBase):
             oceanPlane.reparentTo(self.oceanNode)
 
         if _DoFog:
-            initText.setText("A hazy day...")
+#            initText.setText("A hazy day...")
             self.terraFog = Fog("Fog Name")
             self.terraFog.setColor(_SKYCOLOR_)
 #            self.terraFog.setExpDensity(fogPm[0])
@@ -202,8 +204,8 @@ class World(ShowBase):
         taskMgr.add(self.updateCamera,"UpdateCamera")
         taskMgr.setupTaskChain('TileUpdates',numThreads=16,threadPriority=2,frameBudget=0.01,frameSync=True)
         taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
-        initText.setText("Done with init...")
-        initText.destroy()
+#        initText.setText("Done with init...")
+#        initText.destroy()
 ###############
         render.analyze()
     def setupSky(self):
@@ -272,7 +274,7 @@ class World(ShowBase):
         self.camera.reparentTo(self.avnp)
         self.camera.setY(-10)
         self.camera.lookAt(self.avnp)
-        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+#        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 
     def setupTrees(self):
                 
@@ -421,7 +423,7 @@ class World(ShowBase):
         # POSSIBLE PERFOMANCE ISSUE HERE. Couldget the current tile once and only call a new one at boundary
         
         self.ttMgr.updatePos(self.avnp.getPos())
-        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
+#        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
     
     
