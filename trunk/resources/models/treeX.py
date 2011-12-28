@@ -324,16 +324,16 @@ class flexTree(FractalTree):
         leafModel.reparentTo(self.leaves)
         leafModel.setTransform(TransformState.makeMat(axisAdj))
  
-    def branchFromNodes(self,nodeList): # draws the actual geometry
-        # sends the BranchNode list to the drawBody function to generate the 
-        # actual geometry
-#        endNode = nodeList.pop() # need to set keepDraw False on last node
-        for i,node in enumerate(nodeList):
-            if i == 0: isRoot = True
-            else: isRoot = False
-#            if i == len(nodeList)-1: keepDrawing = True
-#            else: 
-            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
+#    def branchFromNodes(self,nodeList): # draws the actual geometry
+#        # sends the BranchNode list to the drawBody function to generate the 
+#        # actual geometry
+##        endNode = nodeList.pop() # need to set keepDraw False on last node
+#        for i,node in enumerate(nodeList):
+#            if i == 0: isRoot = True
+#            else: isRoot = False
+##            if i == len(nodeList)-1: keepDrawing = True
+##            else: 
+#            self.drawBody(node.pos, node.quat, node.radius,node.texUV,isRoot)
 #        self.drawBody(endNode.pos,endNode.quat,endNode.radius,endNode.texUV,keepDrawing=1) # tell drawBody this is the end of the branch
     
 #    def genBranch(self, rootNode,  angFunc, aParam, radFunc, rParam, branchlen,branchSegs):
@@ -368,22 +368,22 @@ class flexTree(FractalTree):
 #        return thisBranch
         
     def genBranch(self, rootNode,  angFunc, aParam, radFunc, rParam, branchlen,branchSegs):
-        # defines a "branch" as a list of BranchNodes and then calls branchfromNodes        
-        # returns geom node, untransformed,
+        # defines a "branch" as a list of BranchNodes and then calls branchfromNodes
+        # Creates a scaled length,width, height geometry to be later
+        # otherwise can not maintain UV per unit length (if that's desired)
+        # returns non-rotated, unpositioned geom node
         
-#        rootPos,rootRad,rootL,rootQuat,rootUV, rootDL = rootNode
-#        quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
-#        prevNode = BranchNode._make([rootPos,.5*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
         thisBranch = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         _UP_ = Vec3(0,0,1) # grow along Z axis
         
-        Lseg = float(branchlen/branchSegs)   
+        Lseg = branchlen/branchSegs
         for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
-
-            pos = rootNode.pos + _UP_ * Lseg * i # + NOISE IN XY (since we are growing up Z)
-            dL = prevNode.deltaL + (pos-prevNode.pos).length()
-            radius = radFunc(position=dL,curNode=rootNode,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
+            nAmp = .1
+            noise = Vec3(-1+2*random.random(),-1+2*random.random(),0)*nAmp 
+            pos = Vec3(0,0,0) + _UP_ * Lseg * i  +noise
+            dL = prevNode.deltaL + (pos-prevNode.pos).length() # cumulative length accounts for off axis node lengths
+            radius = radFunc(position=dL/L0,R0=rootNode.radius,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
 
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
             perim = 1 # integer tiling of uScale; looks better            
@@ -434,8 +434,9 @@ def RadiusFunc(*args,**kwargs):
 #    power = kwargs['power']
 #    curNode = kwargs['curNode']
 #    newRad = rfact*curNode.radius
-    position = kwargs['position']
-    newRad = 1 - position*rfact
+    relPos = kwargs['position']
+    R0 = kwargs['R0']
+    newRad = R0*(1 - relPos*rfact)
 #    if curNode.deltaL > 0:
 #        newRad = rfact*(-curNode.deltaL**power)
 #    else:
@@ -449,14 +450,14 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len i
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
     numGens = 0
-    numSegs = 5 # number of nodes per branch; 2 ends and n-2 body nodes
+    numSegs = 10 # number of nodes per branch; 2 ends and n-2 body nodes
     lfact = .3    # length ratio between branch generations
 
     L0 = 5.0 # initial length
     R0 = .5 #initial radius
     Rf = .1 # final radius
 #    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
-    rfact = .05
+    rfact = .95
     pwr = 1
     
     _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
@@ -468,7 +469,7 @@ if __name__ == "__main__":
     _skipChildren = 1 # how many nodes in from the base; including the base, to exclude from children list
  
     base = ShowBase()
-    base.cam.setPos(0, -10, 5)
+    base.cam.setPos(0, -2*L0, L0/2)
     base.setFrameRateMeter(1)
     tree = flexTree()
     tree.setTwoSided(1)    
