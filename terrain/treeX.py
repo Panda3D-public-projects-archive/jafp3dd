@@ -432,8 +432,12 @@ if __name__ == "__main__":
     tree.setTwoSided(1)    
     tree.reparentTo(base.render)
     
-#TODO: make parameters: lfact, rfact, and angle picking, point to functions that 
-# take a function that will define the result of each
+#TODO: make parameters: probably still need a good Lfunc. 
+# need angle picking# such that branchs tend to lie flat, slight "up" and out. 
+# Distribute branches uniform around radius. 
+# "Crown" the trunk; possibly branches. 
+# choose "bud" locations other than branch nodes.
+
     root = BranchNode._make([Vec3(0,0,0),R0,L0,Quat(),_uvScale,0]) # initial node      # make a starting node flat at 0,0,0
 #    Aparams = {'absLim':0,'Ldiv':90.0,'length':L} 
     Aparams = {'H':0,'dh':0,'P':0,'dp':0,'R':0,'dr':0}  
@@ -454,8 +458,10 @@ if __name__ == "__main__":
         children = nextChildren 
         nextChildren = []
             
+    tree.setScale(1)        
     tree.flattenStrong()
-
+    tree.write_bam_file('sampleTree.bam')
+    
     def rotateTree(task):
         phi = 15*task.time
         tree.setH(phi)
