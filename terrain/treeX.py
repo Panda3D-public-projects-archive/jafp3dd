@@ -278,9 +278,11 @@ class flexTree(FractalTree):
         #axisAdj=Mat4.rotateMat(45, axis)*Mat4.scaleMat(radius)*Mat4.translateMat(pos)
         perp1 = quat.getRight()
         perp2 = quat.getForward()   
+        
+        dr = 1.0 # EXPERIMENTAL: ADDING RADIAL NOISE
         #vertex information is written here
         for i in xrange(numVertices+1): 
-            adjCircle = pos + (perp1 * cos(currAngle) + perp2 * sin(currAngle)) * radius
+            adjCircle = pos + (perp1 * cos(currAngle) + perp2 * sin(currAngle)) * radius * (1+dr*random.random())
             normal = perp1 * cos(currAngle) + perp2 * sin(currAngle)       
             normalWriter.addData3f(normal)
             vertWriter.addData3f(adjCircle)
@@ -344,7 +346,7 @@ class flexTree(FractalTree):
         quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
 #        quat = rootQuat
 #        quat.setFromAxisAngle(random.randint(0,30),Vec3(0,sqrt(.5),sqrt(.5)))
-        prevNode = BranchNode._make([rootPos,.9*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
+        prevNode = BranchNode._make([rootPos,.5*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
         thisBranch = [prevNode] # start new branch list with newly created rootNode
 
         Lseg = float(branchlen/branchSegs)   
@@ -405,8 +407,8 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len i
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
     numGens = 4
-    numSegs = 6 # number of nodes per branch; 2 ends and n-2 body nodes
-    lfact = .33
+    numSegs = 10 # number of nodes per branch; 2 ends and n-2 body nodes
+    lfact = .3    # length ratio between branch generations
 
     L0 = 10.0 # initial length
     R0 = .5 #initial radius
@@ -421,7 +423,7 @@ if __name__ == "__main__":
     _LeafModel = '../resources/models/shrubbery'
     _LeafScale = .1
     _DoLeaves = 1
-    _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
+    _skipChildren = 1 # how many nodes in from the base; including the base, to exclude from children list
  
     base = ShowBase()
     base.cam.setPos(0, -30, 5)
@@ -437,19 +439,19 @@ if __name__ == "__main__":
     Aparams = {'H':0,'dh':0,'P':0,'dp':0,'R':0,'dr':0}  
     Rparams = {'rfact':rfact,'power':pwr}
     trunk = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0, numSegs)
-    children = trunk[_skipChildren:] # each node in the trunk will span a branch
+    children = trunk[_skipChildren:-1]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
     nextChildren = [] 
     for gen in range(1,numGens):
         print "Generation: ", gen, " children: ", len(children)
         for root in children:
 #            Aparams = {'absLim':45,'Ldiv':90.0,'length':L}   
-            Aparams = {'H':0,'dh':180,'P':67,'dp':33,'R':0,'dr':0}
+            Aparams = {'H':0,'dh':180,'P':67,'dp':22,'R':0,'dr':0}
             curBr = tree.genBranch(root, AngleFunc, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs+1-gen) # return the current branch node list
-            nextChildren += curBr[_skipChildren:] # don'tinclude the root
+            nextChildren += curBr[_skipChildren:-1] # don'tinclude the root
             
         # IMPLEMENT A "SELECT CHILDREN" FUNC SO NOT ALL NODES ARE BRANCHES
         # CAN ALSO DUPLICATE NODES FOR MULTIPLE BRANCHES PER NODE
-        children = nextChildren*2 # poor man's multiple branch/node
+        children = nextChildren 
         nextChildren = []
             
     tree.flattenStrong()
