@@ -22,6 +22,8 @@ from collections import namedtuple
 
 #from panda3d.core import PStatClient
 #PStatClient.connect()
+import pycallgraph
+pycallgraph.start_trace()
 
 _polySize = 8
 
@@ -234,4 +236,5 @@ if __name__ == "__main__":
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)
     base.accept('z',base.toggleWireframe)
+    pycallgraph.make_dot_graph('treeXpcg.png')
     base.run()
