@@ -14,16 +14,12 @@ Edited by Craig Macomber
 
 '''
 import sys
-sys.path.append('/usr/lib/panda3d')
-sys.path.append('/usr/share/panda3d')
+#sys.path.append('/usr/lib/panda3d')
+#sys.path.append('/usr/share/panda3d')
 
 from panda3d.core import NodePath, Geom, GeomNode, GeomVertexArrayFormat, TransformState, GeomVertexWriter, GeomTristrips, GeomVertexRewriter, GeomVertexReader, GeomVertexData, GeomVertexFormat, InternalName
 from panda3d.core import Mat4, Vec3, Vec4, CollisionNode, CollisionTube, Point3, Quat
 import math, random
-
-from panda3d.core import PStatClient
-PStatClient.connect()
-
 
 #this is for making the tree not too straight
 #def _randomBend(inQuat, maxAngle=20):
@@ -43,7 +39,7 @@ def _randomBend(inQuat, maxAngle=20):
    
     #power of 2 here makes distrobution even withint a circle
     # (makes larger bends are more likley as they are further spread)
-    ammount=(random.random()**2)*maxAngle
+#    ammount=(random.random()**2)*maxAngle
     q.setHpr((theta,phi,0))
     return inQuat*q
 
@@ -221,14 +217,15 @@ class FractalTree(NodePath):
         leafModel.setTransform(TransformState.makeMat(axisAdj))
 
        
-    def grow(self, num=1, removeLeaves=0, leavesScale=1):
+    def grow(self, num=1, removeLeaves=0, leavesScale=1, trunkRate = 1.0):
         self.iterations += num
         while num > 0:
-            self.setScale(self, 1.1)
-            self.leafModel.setScale(self.leafModel, leavesScale / 1.1)
+            self.setScale(self, trunkRate)
+            self.leafModel.setScale(self.leafModel, leavesScale / trunkRate )
             if removeLeaves:
                 for i,c in enumerate(self.leaves.getChildren()):
-                    if i%removeLeaves==0: c.removeNode()
+#                    print self.numCopiesList[i]
+                    c.removeNode()
             self.makeFromStack()
             self.bodies.setTexture(self.barkTexture)         
             num -= 1
@@ -236,20 +233,20 @@ FractalTree.makeFMT()
 
 
 class DefaultTree(FractalTree):
-    def __init__(self, numIterations=64,branchEvery=1,numBranches=2,maxAngle=None,maxBend=None,lenScale=None):       
+    def __init__(self, numIterations=64,branchEvery=20,numBranches=2,maxAngle=None,maxBend=None,lenScale=None):       
         if maxAngle: self.maxAngle = maxAngle
         if maxBend: self.maxBend = maxBend
-        barkTexture = base.loader.loadTexture("resources/models/barkTexture.jpg")
-        leafModel = base.loader.loadModel('resources/models/shrubbery')
+        barkTexture = base.loader.loadTexture("../resources/models/barkTexture-1y.jpg")
+        leafModel = base.loader.loadModel('../resources/models/shrubbery')
         leafModel.clearModelNodes()
         leafModel.flattenStrong()
-        leafTexture = base.loader.loadTexture('resources/models/material-10-cl.png')
+        leafTexture = base.loader.loadTexture('../resources/models/material-10-cl.png')
         leafModel.setTexture(leafTexture, 1) 
         leafModel.setScale(0.045)
         
         lengthList = self.makeLengthList(Vec3(0, 0, 1), numIterations,lenScale[0] or None, lenScale[1] or None, lenScale[2] or None)
         numCopiesList = self.makeNumCopiesList(numBranches, branchEvery, numIterations)
-        radiusList = self.makeRadiusList(0.5, numIterations, numCopiesList)
+        radiusList = self.makeRadiusList(0.25, numIterations, numCopiesList)
         
         FractalTree.__init__(self, barkTexture, leafModel, lengthList, numCopiesList, radiusList)
        
@@ -280,8 +277,8 @@ class DefaultTree(FractalTree):
     def makeNumCopiesList(numCopies, branchAt, iterations):
         l = list()
         for i in xrange(iterations):
-#            if i % int(branchAt) == 0:
-            if random.random() <= branchAt:    # go with a probability of a branching occuring 
+            if i % int(branchAt) == 0:
+#            if random.random() <= branchAt:    # go with a probability of a branching occuring 
                 l.append(numCopies)
             else:
                 l.append(0)
@@ -292,11 +289,11 @@ if __name__ == "__main__":
 #    random.seed(2000*math.pi)
     from direct.showbase.ShowBase import ShowBase
     base = ShowBase()
-    base.cam.setPos(0, -20, 5)
+    base.cam.setPos(0, -20, 2)
 #    base.cam.lookAt(base.render)
     base.setFrameRateMeter(1)
-    
-    t = DefaultTree(numIterations=64,branchEvery=.35,numBranches=4,maxAngle=60, maxBend=20, lenScale = (1.0,1.0,1.5))
+    _Nstep = 12
+    t = DefaultTree(numIterations=64,branchEvery=3,numBranches=3,maxAngle=60, maxBend=20, lenScale = (1.0,1.0,2))
     t.reparentTo(base.render)
     #make an optimized snapshot of the current tree
 #    np = t.getStatic()
@@ -304,13 +301,13 @@ if __name__ == "__main__":
 #    np.reparentTo(base.render)
     #demonstrate growing
     last = [0] # a bit hacky
-    dt = .1
+    dt = .05
     def grow(task):
         if task.time > last[0] + dt:
-            t.grow(removeLeaves=0,leavesScale=1.2)
+            t.grow(removeLeaves=1,leavesScale=1.1,trunkRate = 1.0)
             last[0] = task.time
             #t.leaves.detachNode()
-        if last[0] > 10*dt:
+        if last[0] > _Nstep*dt:
             t.setScale(1)
             t.flattenStrong()
             t.write_bam_file('sampleTree.bam')
