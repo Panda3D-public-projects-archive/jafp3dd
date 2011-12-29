@@ -104,24 +104,24 @@ class Branch(NodePath):
         # returns non-rotated, unpositioned geom node
         
         branchlen = pParam['L']
-        branchSegs = pParam['nSegs']
-
+        branchSegs = pParam['nSegs']        
         rootNode = BranchNode._make([Vec3(0,0,0),rParam['R0'],branchlen,Quat(),_uvScale,0]) # initial node      # make a starting node flat at 0,0,0        
         self.nodeList = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         
         for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
-#            nAmp = .05
-#            noise = Vec3(-1+2*random.random(),-1+2*random.random(),0)*nAmp 
-#            pos = Vec3(0,0,0) + _UP_ * Lseg * i  +noise
             pParam.update({'iSeg':i})
             pos = self.PositionFunc(**pParam)
             dL = prevNode.deltaL + (pos-prevNode.pos).length() # cumulative length accounts for off axis node lengths
             radius = self.RadiusFunc(position=dL/branchlen,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
 
+# MOVE TO UVfunc
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
-            perim = 1 # integer tiling of uScale; looks better            
+            # if going to use above perim calc, probably want a high number of BranchNodes to minimuze the Ushift at the nodes
+            perim = 1 # integer tiling of uScale; looks better; avoids U shifts at nodes     
             UVcoord = (_uvScale[0]*perim, rootNode.texUV[1] + dL*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
+##
+
             newNode = BranchNode._make([pos,radius,None,rootNode.quat,UVcoord,dL]) # i*Lseg = distance from root
             self.nodeList.append(newNode)
             prevNode = newNode # this is now the starting point on the next iteration
@@ -134,10 +134,13 @@ class Branch(NodePath):
 #            if i == len(nodeList)-1: keepDrawing = True
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV)
-            
-
         return self.nodeList
     
+    def UVfunc(*args,**kwargs):
+        pass # STUB
+    def Circumfunc(*args,**kwargs):
+        pass # STUB
+        
     def PositionFunc(*args,**kwargs):
         upVector = kwargs['upVector']
         iSeg = kwargs['iSeg']
@@ -166,18 +169,29 @@ class Branch(NodePath):
     #    print curNode.deltaL, newRad
         return newRad
 
+class Tree(list):
+    branchlist = []
+
+    def lengthFunc(self):
+        pass
+    
+    def __init__(self):
+        pass # STUB
+    
+    
 BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len is TO next node (delta pos vectors)
 # deltaL is cumulative distance from the branch root (sum of node lengths)
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 1    # number of branch generations to calculate (0=trunk only)
-    numSegs = 6 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numGens = 2    # number of branch generations to calculate (0=trunk only)
+    numSegs = 8 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
-
+    # often skipChildren works best as a function of total lenggth, not just node count
+    
     L0 = 5.0 # initial length
-    lfact = .3    # length ratio between branch generations
+    lfact = .7    # length ratio between branch generations
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
     
     R0 = .5 #initial radius
@@ -199,6 +213,7 @@ if __name__ == "__main__":
     base.setFrameRateMeter(1)
     bark = base.loader.loadTexture(_BarkTex_)    
     
+### GUTS OF "TREE" CLASS
 #TODO: make parameters: probably still need a good Lfunc. 
 # need angle picking# such that branchs tend to lie flat, slight "up" and out. 
 # Distribute branches uniform around radius. 
@@ -215,19 +230,20 @@ if __name__ == "__main__":
     trunk.generate(Pparams, Rparams)
     trunk.setTexture(bark)
     
-    children = [trunk]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
+    children = [trunk]*1 # each node in the trunk will span a branch # poor man's multiple branch/node
     nextChildren = []
     leafNodes = []
     for gen in range(1,numGens+1):
         print "Calculating branches..."
         print "Generation: ", gen, " children: ", len(children)
         for thisBranch in children:
-            for bud in thisBranch.nodeList[_skipChildren:-1]: # don't include the root
+            for ib,bud in enumerate(thisBranch.nodeList[_skipChildren:-1]): # don't include the root
                 newBr = Branch("Branch1") 
                 Rparams['R0']= .8*bud.radius
-                Pparams.update({'L':L0*lfact**gen,'nSegs':numSegs+1-gen})
+                print (L0*lfact**gen),(1.0-float(ib+1)/numSegs), ib
+                Pparams.update({'L':(L0*lfact**gen)*(1.0-float(ib+1)/numSegs),'nSegs':numSegs+1-gen})
                 newBr.generate(Pparams, Rparams) # return the current branch node list
-    #            B.setTexture(bark)
+#                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
                 newBr.setHpr(random.randint(-180,180),60,0)
                 newBr.setPos(bud.pos)
                 newBr.reparentTo(thisBranch)
@@ -241,7 +257,9 @@ if __name__ == "__main__":
         print "adding foliage"
         for node in leafNodes:
             trunk.drawLeaf(node.pos,node.quat,_LeafScale)
+##############################
 
+    # DONE GENERATING. WRITE OUT UNSCALED MODEL
     trunk.setScale(1)        
     trunk.flattenStrong()
     trunk.write_bam_file('sampleTree.bam')
