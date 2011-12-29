@@ -156,17 +156,9 @@ class Branch(NodePath):
     def RadiusFunc(*args,**kwargs):
         # radius proportional to length from root of this branch to some power
         rfact = kwargs['rfact']
-    #    power = kwargs['power']
-    #    curNode = kwargs['curNode']
-    #    newRad = rfact*curNode.radius
         relPos = kwargs['position']
         R0 = kwargs['R0']
-        newRad = R0*(1 - relPos*rfact)
-    #    if curNode.deltaL > 0:
-    #        newRad = rfact*(-curNode.deltaL**power)
-    #    else:
-    #        newRad = curNode.radius
-    #    print curNode.deltaL, newRad
+        newRad = R0*(1 - relPos*rfact) # linear taper Vs length. pretty typical        
         return newRad
 
 class Tree(list):
@@ -186,18 +178,19 @@ if __name__ == "__main__":
 #    random.seed(11*math.pi)
     # TRUNK AND BRANCH PARAMETERS
     numGens = 2    # number of branch generations to calculate (0=trunk only)
-    numSegs = 8 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 6 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
     
     L0 = 5.0 # initial length
-    lfact = .7    # length ratio between branch generations
+    lfact = .6    # length ratio between branch generations
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
+    posNoise = 0.1    # noise in The XY plane around the growth axis of a branch
     
     R0 = .5 #initial radius
 #    Rf = .1 # final radius
 #    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
-    rfact = .9
+    rfact = .9 # taper factor; % reduction in radius between tip and base ends of branch
   
     _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
@@ -206,7 +199,7 @@ if __name__ == "__main__":
     _LeafTex_ = 'Green Leaf.png'
     _LeafModel = 'myLeafModel.x'
     _LeafScale = .75
-    _DoLeaves = 0
+    _DoLeaves = 0 # not ready for prime time; need to add drawLeaf to Tree Class
  
     base = ShowBase()
     base.cam.setPos(0, -2*L0, L0/2)
@@ -221,7 +214,7 @@ if __name__ == "__main__":
 # choose "bud" locations other than branch nodes.
 # define circumference function (pull out of drawBody())
 
-    Pparams = {'L':L0,'nSegs':numSegs,'Anoise':0.05,'upVector':_UP_}
+    Pparams = {'L':L0,'nSegs':numSegs,'Anoise':posNoise*R0,'upVector':_UP_}
     Rparams = {'rfact':rfact,'R0':R0}
 
     trunk = Branch("Trunk")
@@ -230,7 +223,7 @@ if __name__ == "__main__":
     trunk.generate(Pparams, Rparams)
     trunk.setTexture(bark)
     
-    children = [trunk]*1 # each node in the trunk will span a branch # poor man's multiple branch/node
+    children = [trunk]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
     nextChildren = []
     leafNodes = []
     for gen in range(1,numGens+1):
@@ -239,12 +232,18 @@ if __name__ == "__main__":
         for thisBranch in children:
             for ib,bud in enumerate(thisBranch.nodeList[_skipChildren:-1]): # don't include the root
                 newBr = Branch("Branch1") 
-                Rparams['R0']= .8*bud.radius
-                print (L0*lfact**gen),(1.0-float(ib+1)/numSegs), ib
+                Rparams['R0']= .8*bud.radius    # Radius func of tree
+                Pparams['Anoise'] = .8*bud.radius*posNoise    # noise func of tree or branch?
                 Pparams.update({'L':(L0*lfact**gen)*(1.0-float(ib+1)/numSegs),'nSegs':numSegs+1-gen})
                 newBr.generate(Pparams, Rparams) # return the current branch node list
 #                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
-                newBr.setHpr(random.randint(-180,180),60,0)
+
+                if gen==1:
+                    newBr.setHpr(random.randint(-180,180),60+random.randint(-30,30),0)
+                else:
+                    side = random.choice((-1,1))
+                    newBr.setHpr(random.choice((-1,1))*105+0*random.randint(0,30),45+0*random.randint(-30,30),0)
+                            
                 newBr.setPos(bud.pos)
                 newBr.reparentTo(thisBranch)
                 nextChildren.append(newBr)
