@@ -54,7 +54,7 @@ _polySize = 8
 #
 #
 #
-#class FractalTree(NodePath):
+#class Fractaltrunk(NodePath):
 #    __format = None
 #    def __init__(self, barkTexture, leafModel, lengthList, numCopiesList, radiusList):
 #        NodePath.__init__(self, "Tree Holder")
@@ -236,8 +236,8 @@ _polySize = 8
 
 
 class Branch(NodePath):
-    def __init__(self):
-        NodePath.__init__(self, "Tree Holder")
+    def __init__(self, nodeName):
+        NodePath.__init__(self, nodeName)
         self.numPrimitives = 0
         self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)        
         self.bodies = NodePath("Bodies")
@@ -271,7 +271,7 @@ class Branch(NodePath):
         perp1 = quat.getRight()
         perp2 = quat.getForward()   
         
-        dr = 0.5 # EXPERIMENTAL: ADDING RADIAL NOISE
+        dr = 0.25 # EXPERIMENTAL: ADDING RADIAL NOISE
 #        print "Experimental noise off"
         #vertex information is written here
         angleSlice = 2 * pi / numVertices
@@ -335,13 +335,13 @@ class Branch(NodePath):
 #        self.branchFromNodes(thisBranch) 
 #        return thisBranch
         
-    def generate(self, angFunc, aParam, radFunc, rParam, branchlen,branchSegs):
+    def generate(self, posFunc, pParam, radFunc, rParam, branchlen,branchSegs):
         # defines a "branch" as a list of BranchNodes and then calls branchfromNodes
         # Creates a scaled length,width, height geometry to be later
         # otherwise can not maintain UV per unit length (if that's desired)
         # returns non-rotated, unpositioned geom node
         
-        rootNode = BranchNode._make([Vec3(0,0,0),R0,L0,Quat(),_uvScale,0]) # initial node      # make a starting node flat at 0,0,0        
+        rootNode = BranchNode._make([Vec3(0,0,0),rParam['R0'],branchlen,Quat(),_uvScale,0]) # initial node      # make a starting node flat at 0,0,0        
         thisBranch = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         _UP_ = Vec3(0,0,1) # grow along Z axis
@@ -352,7 +352,7 @@ class Branch(NodePath):
             noise = Vec3(-1+2*random.random(),-1+2*random.random(),0)*nAmp 
             pos = Vec3(0,0,0) + _UP_ * Lseg * i  +noise
             dL = prevNode.deltaL + (pos-prevNode.pos).length() # cumulative length accounts for off axis node lengths
-            radius = radFunc(position=dL/L0,R0=rootNode.radius,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
+            radius = radFunc(position=dL/branchlen,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
 
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
             perim = 1 # integer tiling of uScale; looks better            
@@ -365,35 +365,14 @@ class Branch(NodePath):
         # sends the BranchNode list to the drawBody function to generate the 
         # actual geometry
         for i,node in enumerate(thisBranch):
-            if i == 0: isRoot = True
-            else: isRoot = False
+#            if i == 0: isRoot = True
+#            else: isRoot = False
 #            if i == len(nodeList)-1: keepDrawing = True
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV)
             
         return thisBranch
 
-#def AngleFunc(curQuat,*args,**kwargs):
-#    # Takes current quaterion and list of kwargs
-#    # returns a new quaterion by what ever function
-#    # you want to define in here
-#    # (i.e. overload this method)
-#    
-#    # My method: per some reading, trees want maximum cross section to the sun
-#    # branches  tend to spread outwards from the trunk / parent branch
-#    # tips of branches tend to be higher (upward) from the rest of the branch
-#    
-#    quat = Quat()
-#    H0 = kwargs['H']
-#    dh = kwargs['dh']
-#    P0 = kwargs['P']
-#    dp = kwargs['dp']
-#    R0 = kwargs['R']
-#    dr = kwargs['dr']
-#    
-#    quat.setHpr(Vec3(H0 + random.randint(-dh, dh), P0-dp+2*dp*random.random(),R0 + random.randint(-dr,dr)))
-#    quat *= curQuat # this applies a  relative change. Otherwise, quat is absolute(?)
-#    return quat
 
 def RadiusFunc(*args,**kwargs):
     # radius proportional to length from root of this branch to some power
@@ -416,17 +395,18 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len i
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
-    numGens = 2
-    numSegs = 10 # number of nodes per branch; 2 ends and n-2 body nodes
-    lfact = .3    # length ratio between branch generations
+    numGens = 1
+    numSegs = 8 # number of nodes per branch; 2 ends and n-2 body nodes
+    _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
 
     L0 = 5.0 # initial length
+    lfact = .3    # length ratio between branch generations
+
     R0 = .5 #initial radius
-    Rf = .1 # final radius
+#    Rf = .1 # final radius
 #    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
     rfact = .9
-    pwr = 1
-    
+  
     _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
     
@@ -434,15 +414,10 @@ if __name__ == "__main__":
     _LeafModel = 'myLeafModel.x'
     _LeafScale = .75
     _DoLeaves = 0
-    _skipChildren = 1 # how many nodes in from the base; including the base, to exclude from children list
  
     base = ShowBase()
     base.cam.setPos(0, -2*L0, L0/2)
     base.setFrameRateMeter(1)
-    
-    tree = Branch()
-    tree.setTwoSided(1)    
-    tree.reparentTo(base.render)
     bark = base.loader.loadTexture(_BarkTex_)    
 #TODO: make parameters: probably still need a good Lfunc. 
 # need angle picking# such that branchs tend to lie flat, slight "up" and out. 
@@ -452,23 +427,29 @@ if __name__ == "__main__":
 # define circumference function (pull out of drawBody())
 
     Aparams = {'H':0,'dh':0,'P':0,'dp':0,'R':0,'dr':0}  
-    Rparams = {'rfact':rfact,'power':pwr}
+    Rparams = {'rfact':rfact,'R0':R0}
 
-    trunk = tree.generate(cos, Aparams, RadiusFunc, Rparams, L0, numSegs)
-    tree.setTexture(bark)
+    trunk = Branch("Trunk")
+    trunk.setTwoSided(1)    
+    trunk.reparentTo(base.render)
+    B0 = trunk.generate(cos, Aparams, RadiusFunc, Rparams, L0, numSegs)
+    trunk.setTexture(bark)
     
-    children = trunk[_skipChildren:-1]*3 # each node in the trunk will span a branch # poor man's multiple branch/node
+    children = B0[_skipChildren:-1]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
     nextChildren = []
     leafNodes = []
-    for gen in range(1,numGens):
+    for gen in range(1,numGens+1):
         print "Calculating branches..."
         print "Generation: ", gen, " children: ", len(children)
-        for root in children:
+        for bud in children:
             Aparams = {'H':180,'dh':180,'P':67,'dp':22,'R':0,'dr':0}
-            B = Branch()
+            B = Branch("Branch1")
+            Rparams['R0']= .8*bud.radius
             curBr = B.generate(cos, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs+1-gen) # return the current branch node list
 #            B.setTexture(bark)
-            B.setHpr(0,45,0)
+            B.setHpr(random.randint(-180,180),60,0)
+            B.setPos(bud.pos)
+            B.reparentTo(trunk)
             
             nextChildren += curBr[_skipChildren:-1] # don'tinclude the root
         children = nextChildren 
@@ -479,15 +460,15 @@ if __name__ == "__main__":
     if _DoLeaves:
         print "adding foliage"
         for node in leafNodes:
-            tree.drawLeaf(node.pos,node.quat,_LeafScale)
+            trunk.drawLeaf(node.pos,node.quat,_LeafScale)
 
-    tree.setScale(1)        
-    tree.flattenStrong()
-    tree.write_bam_file('sampleTree.bam')
+    trunk.setScale(1)        
+    trunk.flattenStrong()
+    trunk.write_bam_file('sampleTree.bam')
     
     def rotateTree(task):
         phi = 15*task.time
-        tree.setH(phi)
+        trunk.setH(phi)
         return task.cont
 #    base.taskMgr.add(rotateTree,"merrygoround")
     
