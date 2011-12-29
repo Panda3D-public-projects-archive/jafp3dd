@@ -25,216 +25,6 @@ from collections import namedtuple
 
 _polySize = 8
 
-#def _randomBend(inQuat, maxAngle=20):
-#    q=Quat()
-#    theta = random.randint(-maxAngle,maxAngle)
-#    phi = random.randint(-maxAngle,maxAngle)
-#   
-#    #power of 2 here makes distrobution even withint a circle
-#    # (makes larger bends are more likley as they are further spread)
-##    ammount=(random.random()**2)*maxAngle
-#    q.setHpr((0,theta,phi))
-#    return inQuat*q
-#
-#
-## TODO : This needs to get updated to work with quat. Using tmp hack.
-#def _angleRandomAxis(quat, angle):
-##     fwd = quat.getUp()
-##     perp1 = quat.getRight()   
-##     perp2 = quat.getForward() 
-##     nangle = angle + math.pi * (0.125 * random.random() - 0.0625)
-##     nfwd = fwd * (0.5 + 2 * random.random()) + perp1 * math.sin(nangle) + perp2 * math.cos(nangle)
-##     nfwd.normalize()
-##     nperp2 = nfwd.cross(perp1)
-##     nperp2.normalize()
-##     nperp1 = nfwd.cross(nperp2)
-##     nperp1.normalize()
-#    return _randomBend(quat,angle)
-#
-#
-#
-#
-#class Fractaltrunk(NodePath):
-#    __format = None
-#    def __init__(self, barkTexture, leafModel, lengthList, numCopiesList, radiusList):
-#        NodePath.__init__(self, "Tree Holder")
-#        self.numPrimitives = 0
-#        self.leafModel = leafModel
-#        self.barkTexture = barkTexture
-#        self.bodies = NodePath("Bodies")
-#        self.leaves = NodePath("Leaves")
-#        self.coll = self.attachNewNode(CollisionNode("Collision"))   
-#        self.bodydata = GeomVertexData("body vertices", self.__format, Geom.UHStatic)
-#        self.numCopiesList = list(numCopiesList)   
-#        self.radiusList = list(radiusList) 
-#        self.lengthList = list(lengthList) 
-#        self.iterations = 1
-#        
-##        self.makeEnds()
-##        self.makeFromStack(True)
-#        self.coll.show()       
-#        self.bodies.setTexture(barkTexture)
-#        self.coll.reparentTo(self)
-#        self.bodies.reparentTo(self)
-#        self.leaves.reparentTo(self)
-#       
-#    #this makes a flattened version of the tree for faster rendering...
-#    def getStatic(self):
-#        np = NodePath(self.node().copySubgraph())
-#        np.flattenStrong()
-#        return np       
-#   
-#    #this should make only one instance
-#    @classmethod
-#    def makeFMT(cls):
-#        if cls.__format is not None:
-#            return
-#        formatArray = GeomVertexArrayFormat()
-#        formatArray.addColumn(InternalName.make("drawFlag"), 1, Geom.NTUint8, Geom.COther)   
-#        format = GeomVertexFormat(GeomVertexFormat.getV3n3t2())
-#        format.addArray(formatArray)
-#        cls.__format = GeomVertexFormat.registerFormat(format)
-#   
-#    def makeEnds(self, pos=Vec3(0, 0, 0), quat=None):
-#        if quat is None: quat=Quat()
-#        self.ends = [(pos, quat, 0)]
-#       
-#    def makeFromStack(self, makeColl=False):
-#        stack = self.ends
-#        to = self.iterations
-#        lengthList = self.lengthList
-#        numCopiesList = self.numCopiesList
-#        radiusList = self.radiusList
-#        ends = []
-#        while stack:
-#            pos, quat, depth = stack.pop()
-#            print depth
-#            length = lengthList[depth]
-#            if depth != to and depth + 1 < len(lengthList):
-#                self.drawBody(pos, quat, radiusList[depth])     
-#                #move foward along the right axis
-#                newPos = pos + quat.getUp() * length
-#                if makeColl:
-#                    self.makeColl(pos, newPos, radiusList[depth])
-#                numCopies = numCopiesList[depth] 
-#                if numCopies:       
-#                    for i in xrange(numCopies):
-##                        stack.append((newPos, _angleRandomAxis(quat, 2 * math.pi * i / numCopies), depth + 1))
-#                        stack.append((newPos, _randomBend(quat, self.maxAngle), depth + 1))
-#                        # 
-#                        #stack.append((newPos, _randomAxis(vecList,3), depth + 1))
-#                else:
-#                    #just make another branch connected to this one with a small variation in direction
-#                    stack.append((newPos, _randomBend(quat, self.maxBend), depth + 1))
-#            else:
-#                self.drawBody(pos, quat, radiusList[depth], False)
-#                if _DoLeaves_: self.drawLeaf(pos, quat)
-#                ends.append((pos, quat, depth))
-#        self.ends = ends
-#        
-#       
-#    def makeColl(self, pos, newPos, radius):
-#        tube = CollisionTube(Point3(pos), Point3(newPos), radius)
-#        self.coll.node().addSolid(tube)
-#         
-#    #this draws the body of the tree. This draws a ring of vertices and connects the rings with
-#    #triangles to form the body.
-#    #this keepDrawing paramter tells the function wheter or not we're at an end
-#    #if the vertices before you were an end, dont draw branches to it
-#    def drawBody(self, pos, quat, radius=1,UVcoord=(1,1), keepDrawing=True, numVertices=_polySize):
-#        vdata = self.bodydata
-#        circleGeom = Geom(vdata)
-#        vertWriter = GeomVertexWriter(vdata, "vertex")
-#        #colorWriter = GeomVertexWriter(vdata, "color")
-#        normalWriter = GeomVertexWriter(vdata, "normal")
-##        drawReWriter = GeomVertexRewriter(vdata, "drawFlag")
-#        texReWriter = GeomVertexRewriter(vdata, "texcoord")
-#
-#        startRow = vdata.getNumRows()
-#        vertWriter.setRow(startRow)
-#        #colorWriter.setRow(startRow)
-#        normalWriter.setRow(startRow)       
-#
-##        sCoord = 0   
-##        if (startRow != 0):
-##            texReWriter.setRow(startRow - numVertices) #go back numVert in the vert list
-##            sCoord = texReWriter.getData2f().getX() + _Vscale           # UV SCALE HERE!
-##            print sCoord
-##            drawReWriter.setRow(startRow - numVertices)
-##            if(drawReWriter.getData1f() == False):
-##                sCoord -= _Vscale                                # UV SCALE HERE!
-##        drawReWriter.setRow(startRow)
-#        texReWriter.setRow(startRow)   
-#       
-#        angleSlice = 2 * pi / numVertices
-#        currAngle = 0
-#        #axisAdj=Mat4.rotateMat(45, axis)*Mat4.scaleMat(radius)*Mat4.translateMat(pos)
-#        perp1 = quat.getRight()
-#        perp2 = quat.getForward()   
-#        #vertex information is written here
-#        for i in xrange(numVertices): 
-#            adjCircle = pos + (perp1 * cos(currAngle) + perp2 * sin(currAngle)) * radius
-#            normal = perp1 * cos(currAngle) + perp2 * sin(currAngle)       
-#            normalWriter.addData3f(normal)
-#            vertWriter.addData3f(adjCircle)
-#            texReWriter.addData2f(float(UVcoord[0]*i) / numVertices,UVcoord[1])            # UV SCALE HERE!
-#            print UVcoord
-#            #colorWriter.addData4f(0.5, 0.5, 0.5, 1)
-##            drawReWriter.addData1f(keepDrawing)
-#            currAngle += angleSlice 
-#        drawReader = GeomVertexReader(vdata, "drawFlag")
-#        drawReader.setRow(startRow - numVertices)   
-#        
-#        #we cant draw quads directly so we use Tristrips
-#        if (startRow != 0) and (keepDrawing == False):
-#            lines = GeomTristrips(Geom.UHStatic)         
-#            for i in xrange(numVertices):
-#                lines.addVertex(i + startRow)
-#                lines.addVertex(i + startRow - numVertices)
-#            lines.addVertex(startRow)
-#            lines.addVertex(startRow - numVertices)
-#            lines.closePrimitive()
-#            #lines.decompose()
-#            circleGeom.addPrimitive(lines)           
-#            circleGeomNode = GeomNode("Debug")
-#            circleGeomNode.addGeom(circleGeom)   
-#            self.numPrimitives += numVertices * 2
-#            self.bodies.attachNewNode(circleGeomNode)
-#   
-#    #this draws leafs when we reach an end       
-#    def drawLeaf(self, pos=Vec3(0, 0, 0), quat=None, scale=0.125):
-#        #use the vectors that describe the direction the branch grows to make the right
-#        #rotation matrix
-#        #0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-##         newCs.setRow(0, vecList[2]) #right
-##         newCs.setRow(1, vecList[1]) #up
-##         newCs.setRow(2, vecList[0]) #forward
-##         newCs.setRow(3, Vec3(0, 0, 0))
-##         newCs.setCol(3, Vec4(0, 0, 0, 1))   
-#        newCs = Mat4()
-#        quat.extractToMatrix(newCs)
-#        axisAdj = Mat4.scaleMat(scale) * newCs * Mat4.translateMat(pos)       
-#        leafModel = NodePath("leaf")
-#        self.leafModel.instanceTo(leafModel)
-#        leafModel.reparentTo(self.leaves)
-#        leafModel.setTransform(TransformState.makeMat(axisAdj))
-#
-#       
-#    def grow(self, num=1, removeLeaves=0, leavesScale=0, trunkRate = 0):
-#        self.iterations += num
-#        while num > 0:
-#            self.setScale(self, 1+trunkRate/100)
-#            self.leafModel.setScale(self.leafModel, (1+leavesScale/100) / (1+trunkRate/100) )
-#            if removeLeaves:
-#                for i,c in enumerate(self.leaves.getChildren()):
-##                    print self.numCopiesList[i]
-#                    c.removeNode()
-#            self.makeFromStack()
-#            self.bodies.setTexture(self.barkTexture)         
-#            num -= 1
-#FractalTree.makeFMT()
-
-
 class Branch(NodePath):
     def __init__(self, nodeName):
         NodePath.__init__(self, nodeName)
@@ -302,38 +92,6 @@ class Branch(NodePath):
             self.numPrimitives += numVertices * 2
             self.bodies.attachNewNode(circleGeomNode)
             return circleGeomNode
- 
-    
-#    def genBranch(self, rootNode,  angFunc, aParam, radFunc, rParam, branchlen,branchSegs):
-#        # defines a "branch" as a list of BranchNodes and then calls branchfromNodes        
-#        
-#        # other notes: a tree cares about absolute "up" and left and right are
-#        # relateive to abs "up" cross product branches "up" (forward along the branch)
-#            
-#        rootPos,rootRad,rootL,rootQuat,rootUV, rootDL = rootNode
-##        radius = rfact*radius # SHOULD BE radFunc CALL HERE
-#        quat = angFunc(rootQuat,**aParam) #rotate branch to a new direction
-##        quat = rootQuat
-##        quat.setFromAxisAngle(random.randint(0,30),Vec3(0,sqrt(.5),sqrt(.5)))
-#        prevNode = BranchNode._make([rootPos,.5*rootRad,rootL,quat,rootUV,0]) # COULD SUM FROM BASE OF TRY BY USING rootDL instead of 0
-#        thisBranch = [prevNode] # start new branch list with newly created rootNode
-#
-#        Lseg = float(branchlen/branchSegs)   
-#        for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
-#            aParam = {'H':0,'dh':0,'P':0,'dp':5.0,'R':0,'dr':5}        
-#            quat = angFunc(prevNode.quat,**aParam) #rotate branch to a new direction
-#
-#            pos = prevNode.pos + quat.getUp() * Lseg
-#            radius = radFunc(prevNode,**rParam)
-##            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
-#            perim = 1 # integer tiling of uScale; looks better
-#            
-#            UVcoord = (_uvScale[0]*perim, prevNode.texUV[1] + Lseg*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
-#            newNode = BranchNode._make([pos,radius,Lseg,quat,UVcoord,branchlen-i*Lseg]) # i*Lseg = distance from root
-#            thisBranch.append(newNode)
-#            prevNode = newNode # this is now the starting point on the next iteration
-#        self.branchFromNodes(thisBranch) 
-#        return thisBranch
         
     def generate(self, posFunc, pParam, radFunc, rParam, branchlen,branchSegs):
         # defines a "branch" as a list of BranchNodes and then calls branchfromNodes
@@ -395,7 +153,7 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len i
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
-    numGens = 1
+    numGens = 2
     numSegs = 8 # number of nodes per branch; 2 ends and n-2 body nodes
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
 
@@ -419,6 +177,7 @@ if __name__ == "__main__":
     base.cam.setPos(0, -2*L0, L0/2)
     base.setFrameRateMeter(1)
     bark = base.loader.loadTexture(_BarkTex_)    
+    
 #TODO: make parameters: probably still need a good Lfunc. 
 # need angle picking# such that branchs tend to lie flat, slight "up" and out. 
 # Distribute branches uniform around radius. 
