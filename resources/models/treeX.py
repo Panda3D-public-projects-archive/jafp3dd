@@ -33,6 +33,8 @@ class Branch(NodePath):
         self.numPrimitives = 0
         self.bodydata = GeomVertexData("body vertices", GeomVertexFormat.getV3n3t2(), Geom.UHStatic)        
         self.bodies = NodePath("Bodies")
+        self.nodeList = []
+        
         self.coll = self.attachNewNode(CollisionNode("Collision"))       
         self.coll.show()       
         self.coll.reparentTo(self)
@@ -102,7 +104,7 @@ class Branch(NodePath):
         # returns non-rotated, unpositioned geom node
         
         rootNode = BranchNode._make([Vec3(0,0,0),rParam['R0'],branchlen,Quat(),_uvScale,0]) # initial node      # make a starting node flat at 0,0,0        
-        thisBranch = [rootNode] # start new branch list with newly created rootNode
+        self.nodeList = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         _UP_ = Vec3(0,0,1) # grow along Z axis
         
@@ -119,19 +121,19 @@ class Branch(NodePath):
             UVcoord = (_uvScale[0]*perim, rootNode.texUV[1] + dL*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
             
             newNode = BranchNode._make([pos,radius,Lseg,rootNode.quat,UVcoord,dL]) # i*Lseg = distance from root
-            thisBranch.append(newNode)
+            self.nodeList.append(newNode)
             prevNode = newNode # this is now the starting point on the next iteration
 
         # sends the BranchNode list to the drawBody function to generate the 
         # actual geometry
-        for i,node in enumerate(thisBranch):
+        for i,node in enumerate(self.nodeList):
 #            if i == 0: isRoot = True
 #            else: isRoot = False
 #            if i == len(nodeList)-1: keepDrawing = True
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV)
             
-        return thisBranch
+        return self.nodeList
 
 
 def RadiusFunc(*args,**kwargs):
@@ -193,29 +195,29 @@ if __name__ == "__main__":
     trunk = Branch("Trunk")
     trunk.setTwoSided(1)    
     trunk.reparentTo(base.render)
-    B0 = trunk.generate(cos, Aparams, RadiusFunc, Rparams, L0, numSegs)
+    trunk.generate(cos, Aparams, RadiusFunc, Rparams, L0, numSegs)
     trunk.setTexture(bark)
     
-    children = B0[_skipChildren:-1]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
+    children = [trunk]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
     nextChildren = []
     leafNodes = []
     for gen in range(1,numGens+1):
         print "Calculating branches..."
         print "Generation: ", gen, " children: ", len(children)
-        for bud in children:
-            Aparams = {'H':180,'dh':180,'P':67,'dp':22,'R':0,'dr':0}
-            B = Branch("Branch1")
-            Rparams['R0']= .8*bud.radius
-            curBr = B.generate(cos, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs+1-gen) # return the current branch node list
-#            B.setTexture(bark)
-            B.setHpr(random.randint(-180,180),60,0)
-            B.setPos(bud.pos)
-            B.reparentTo(trunk)
-            
-            nextChildren += curBr[_skipChildren:-1] # don'tinclude the root
-        children = nextChildren 
-        nextChildren = []
-#        if gen==numGens-1:
+        for thisBranch in children:
+            for bud in thisBranch.nodeList[_skipChildren:-1]: # don't include the root
+                Aparams = {'H':180,'dh':180,'P':67,'dp':22,'R':0,'dr':0}
+                newBr = Branch("Branch1") 
+                Rparams['R0']= .8*bud.radius
+                newBr.generate(cos, Aparams, RadiusFunc, Rparams, L0*lfact**gen, numSegs+1-gen) # return the current branch node list
+    #            B.setTexture(bark)
+                newBr.setHpr(random.randint(-180,180),60,0)
+                newBr.setPos(bud.pos)
+                newBr.reparentTo(thisBranch)
+                nextChildren.append(newBr)
+            children = nextChildren 
+            nextChildren = []
+    #        if gen==numGens-1:
     leafNodes = children
     
     if _DoLeaves:
@@ -231,7 +233,7 @@ if __name__ == "__main__":
         phi = 15*task.time
         trunk.setH(phi)
         return task.cont
-#    base.taskMgr.add(rotateTree,"merrygoround")
+    base.taskMgr.add(rotateTree,"merrygoround")
     
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)
