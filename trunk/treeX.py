@@ -111,8 +111,9 @@ class Branch(NodePath):
         
         for i in range(1,branchSegs+1): # start a 1, 0 is root node, now previous
             pParam.update({'iSeg':i})
-            pos = self.PositionFunc(**pParam)
-            dL = prevNode.deltaL + (pos-prevNode.pos).length() # cumulative length accounts for off axis node lengths
+            newPos = self.PositionFunc(**pParam)
+            toVec = newPos - prevNode.pos # point
+            dL = prevNode.deltaL + toVec.length() # cumulative length accounts for off axis node lengths
             radius = self.RadiusFunc(position=dL/branchlen,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
 
 # MOVE TO UVfunc
@@ -122,7 +123,7 @@ class Branch(NodePath):
             UVcoord = (_uvScale[0]*perim, rootNode.texUV[1] + dL*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
 ##
 
-            newNode = BranchNode._make([pos,radius,None,rootNode.quat,UVcoord,dL]) # i*Lseg = distance from root
+            newNode = BranchNode._make([newPos,radius,toVec,rootNode.quat,UVcoord,dL]) # i*Lseg = distance from root
             self.nodeList.append(newNode)
             prevNode = newNode # this is now the starting point on the next iteration
 
@@ -184,13 +185,14 @@ class Tree(list):
     
     
     
-BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len is TO next node (delta pos vectors)
+BranchNode = namedtuple('BranchNode','pos radius toVector quat texUV deltaL') 
+# toVector is TO next node (delta of pos vectors)
 # deltaL is cumulative distance from the branch root (sum of node lengths)
 
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 4    # number of branch generations to calculate (0=trunk only)
+    numGens = 3    # number of branch generations to calculate (0=trunk only)
     numSegs = 8 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
@@ -249,26 +251,35 @@ if __name__ == "__main__":
         for thisBranch in children:
             [gH,gP,gR] = thisBranch.getHpr(base.render) # get global Hpr for later
             for ib,bud in enumerate(thisBranch.nodeList[_skipChildren:-1]): # don't include the root
+                # Create Child instance
                 newBr = Branch("Branch1") 
-                Rparams['R0']= .8*bud.radius    # Radius func of tree
-                Pparams['Anoise'] = .8*bud.radius*posNoise    # noise func of tree or branch?
-                Pparams.update({'L':(L0*lfact**gen)*(1.0-float(ib+1)/numSegs),'nSegs':numSegs+1-gen})
-                newBr.generate(Pparams, Rparams) # return the current branch node list
-#                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
                 newBr.reparentTo(thisBranch)
+#                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
+                nextChildren.append(newBr) # add this branch (nodeList really) to the new Children
+                
+                # Radius func of tree
+                Rparams['R0']= .8*bud.radius    
 
+                # Child branch position Func
+                newBr.setPos(bud.pos)
+                Pparams['Anoise'] = .8*bud.radius*posNoise    # noise func of tree or branch?
+                lFunc = (L0*lfact**gen)*(1.0-float(ib+1)/numSegs)
+                Pparams.update({'L':lFunc,'nSegs':numSegs+1-gen})
+
+                #Child branch Ang func - orient the node after creation
                 ang = 67 + random.randint(-23,23)
                 if gen==1:
                     newBr.setHpr(ib*(360/numSegs)+random.randint(-30,30),0,ang)
                 else:
                     side = random.choice((-1,1))
                     newBr.setHpr(base.render,gH+side*ang,0,gR)
-#                    newBr.setH(90)
-                newBr.setPos(bud.pos)
-                nextChildren.append(newBr)
+                    
+                newBr.generate(Pparams, Rparams)
+
+                
         children = nextChildren 
         nextChildren = []
-        leafNodes = thisBranch.nodeListleafNodes = thisBranch.nodeList
+#        leafNodes = thisBranch.nodeListleafNodes = thisBranch.nodeList
     #        if gen==numGens-1:2
     
     
