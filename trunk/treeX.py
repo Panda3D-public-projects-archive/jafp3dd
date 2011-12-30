@@ -135,7 +135,7 @@ class Branch(NodePath):
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV)
         return self.nodeList
-    
+
     def UVfunc(*args,**kwargs):
         pass # STUB
     def Circumfunc(*args,**kwargs):
@@ -169,6 +169,19 @@ class Tree(list):
     
     def __init__(self):
         pass # STUB
+
+    #this draws leafs when we reach an end       
+    def drawLeaf(self, pos=Vec3(0, 0, 0), quat=None, scale=0.125):
+        #use the vectors that describe the direction the branch grows to make the right
+        #rotation matrix
+#        newCs = Mat4()
+#        quat.extractToMatrix(newCs)
+        axisAdj = Mat4.scaleMat(scale) * Mat4.translateMat(pos)       
+        leafModel = NodePath("leaf")
+        self.leafModel.instanceTo(leafModel)
+        leafModel.reparentTo(self.leaves)
+        leafModel.setTransform(TransformState.makeMat(axisAdj))
+    
     
     
 BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len is TO next node (delta pos vectors)
@@ -178,7 +191,7 @@ if __name__ == "__main__":
 #    random.seed(11*math.pi)
     # TRUNK AND BRANCH PARAMETERS
     numGens = 4    # number of branch generations to calculate (0=trunk only)
-    numSegs = 6 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 8 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
     
@@ -194,7 +207,7 @@ if __name__ == "__main__":
   
     _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
-    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
+#    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
     
     # LEAF PARAMETERS
     _LeafTex_ = 'Green Leaf.png'
@@ -227,7 +240,7 @@ if __name__ == "__main__":
     trunk.generate(Pparams, Rparams)
     trunk.setTexture(bark)
     
-    children = [trunk]*1 # each node in the trunk will span a branch # poor man's multiple branch/node
+    children = [trunk]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
     nextChildren = []
     leafNodes = []
     for gen in range(1,numGens+1):
@@ -244,9 +257,9 @@ if __name__ == "__main__":
 #                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
                 newBr.reparentTo(thisBranch)
 
-                ang = 60 + random.randint(-30,30)
+                ang = 67 + random.randint(-23,23)
                 if gen==1:
-                    newBr.setHpr(random.randint(-180,180),0,ang)
+                    newBr.setHpr(ib*(360/numSegs)+random.randint(-30,30),0,ang)
                 else:
                     side = random.choice((-1,1))
                     newBr.setHpr(base.render,gH+side*ang,0,gR)
@@ -255,8 +268,9 @@ if __name__ == "__main__":
                 nextChildren.append(newBr)
         children = nextChildren 
         nextChildren = []
+        leafNodes = thisBranch.nodeListleafNodes = thisBranch.nodeList
     #        if gen==numGens-1:2
-    leafNodes = children
+    
     
     if _DoLeaves:
         print "adding foliage"
