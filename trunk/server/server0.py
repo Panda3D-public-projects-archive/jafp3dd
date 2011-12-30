@@ -17,18 +17,18 @@ else:
     sys.path.append('/usr/share/panda3d')
     _DATAPATH_ = "/home/shawn/Documents/project0/resources"
 
-from direct.showbase.ShowBase import ShowBase
-#from direct.showbase.DirectObject import DirectObject
+from direct.showbase.ShowBase import ShowBase, taskMgr
+from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 
 
-class serverApp(ShowBase):
+class serverApp(DirectObject):
     def __init__(self):
-        ShowBase.__init__(self)
-        self.OSD = OnscreenText(text = str("Starting the world..."), pos = (0.5, 0.5), scale = 0.5, fg = (.8,.8,1,.5))       
-
+        DirectObject.__init__(self)
+#        self.OSD = OnscreenText(text = str("Starting the world..."), pos = (0.5, 0.5), scale = 0.5, fg = (.8,.8,1,.5))       
+        print "Starting the world..."
         port_address = 9099
         backlog = 1000 
         self.activeConnections = []
@@ -62,7 +62,8 @@ class serverApp(ShowBase):
                 newConnection = newConnection.p()
                 self.activeConnections.append(newConnection)
                 self.cReader.addConnection(newConnection)
-        self.OSD.setText( "Open Connections: %d" % (len(self.activeConnections)) )
+#        self.OSD.setText( "Open Connections: %d" % (len(self.activeConnections)) )
+            print "Open Connections: %d" % (len(self.activeConnections))
         return task.cont
         
     def tskReaderPolling(self,task):
@@ -92,7 +93,8 @@ class serverApp(ShowBase):
         
 
 server = serverApp()
-server.run()
+#server.run()
+taskMgr.run()
         
         
                 
