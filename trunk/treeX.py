@@ -177,7 +177,7 @@ BranchNode = namedtuple('BranchNode','pos radius len quat texUV deltaL') # len i
 if __name__ == "__main__":
 #    random.seed(11*math.pi)
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 2    # number of branch generations to calculate (0=trunk only)
+    numGens = 4    # number of branch generations to calculate (0=trunk only)
     numSegs = 6 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
@@ -190,10 +190,11 @@ if __name__ == "__main__":
     R0 = .5 #initial radius
 #    Rf = .1 # final radius
 #    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
-    rfact = .9 # taper factor; % reduction in radius between tip and base ends of branch
+    rfact = .95 # taper factor; % reduction in radius between tip and base ends of branch
   
     _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
+    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
     
     # LEAF PARAMETERS
     _LeafTex_ = 'Green Leaf.png'
@@ -202,7 +203,10 @@ if __name__ == "__main__":
     _DoLeaves = 0 # not ready for prime time; need to add drawLeaf to Tree Class
  
     base = ShowBase()
-    base.cam.setPos(0, -2*L0, L0/2)
+    base.cam.setPos(0,-2*L0, L0/2)
+    base.cam.lookAt(base.render)
+    base.cam.printHpr()
+    
     base.setFrameRateMeter(1)
     bark = base.loader.loadTexture(_BarkTex_)    
     
@@ -223,13 +227,14 @@ if __name__ == "__main__":
     trunk.generate(Pparams, Rparams)
     trunk.setTexture(bark)
     
-    children = [trunk]*2 # each node in the trunk will span a branch # poor man's multiple branch/node
+    children = [trunk]*1 # each node in the trunk will span a branch # poor man's multiple branch/node
     nextChildren = []
     leafNodes = []
     for gen in range(1,numGens+1):
         print "Calculating branches..."
         print "Generation: ", gen, " children: ", len(children)
         for thisBranch in children:
+            [gH,gP,gR] = thisBranch.getHpr(base.render) # get global Hpr for later
             for ib,bud in enumerate(thisBranch.nodeList[_skipChildren:-1]): # don't include the root
                 newBr = Branch("Branch1") 
                 Rparams['R0']= .8*bud.radius    # Radius func of tree
@@ -237,19 +242,20 @@ if __name__ == "__main__":
                 Pparams.update({'L':(L0*lfact**gen)*(1.0-float(ib+1)/numSegs),'nSegs':numSegs+1-gen})
                 newBr.generate(Pparams, Rparams) # return the current branch node list
 #                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
+                newBr.reparentTo(thisBranch)
 
+                ang = 60 + random.randint(-30,30)
                 if gen==1:
-                    newBr.setHpr(random.randint(-180,180),60+random.randint(-30,30),0)
+                    newBr.setHpr(random.randint(-180,180),0,ang)
                 else:
                     side = random.choice((-1,1))
-                    newBr.setHpr(random.choice((-1,1))*105+0*random.randint(0,30),45+0*random.randint(-30,30),0)
-                            
+                    newBr.setHpr(base.render,gH+side*ang,0,gR)
+#                    newBr.setH(90)
                 newBr.setPos(bud.pos)
-                newBr.reparentTo(thisBranch)
                 nextChildren.append(newBr)
-            children = nextChildren 
-            nextChildren = []
-    #        if gen==numGens-1:
+        children = nextChildren 
+        nextChildren = []
+    #        if gen==numGens-1:2
     leafNodes = children
     
     if _DoLeaves:
@@ -261,13 +267,13 @@ if __name__ == "__main__":
     # DONE GENERATING. WRITE OUT UNSCALED MODEL
     trunk.setScale(1)        
     trunk.flattenStrong()
-    trunk.write_bam_file('sampleTree.bam')
+    trunk.write_bam_file('./resources/models/sampleTree.bam')
     
     def rotateTree(task):
         phi = 15*task.time
         trunk.setH(phi)
         return task.cont
-    base.taskMgr.add(rotateTree,"merrygoround")
+#    base.taskMgr.add(rotateTree,"merrygoround")
     
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)
