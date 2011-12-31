@@ -19,7 +19,6 @@ from panda3d.core import Mat4, Vec4, Vec3, CollisionNode, CollisionTube, Point3,
 from math import sin,cos,pi, sqrt
 import random
 from collections import namedtuple
-import pdb
 
 #from panda3d.core import PStatClient
 #PStatClient.connect()
@@ -116,7 +115,7 @@ class Branch(NodePath):
         branchSegs = pParam['nSegs']
         pParam.update({'iSeg':0})
         rootPos = Vec3(0,0,0) # + self.PositionFunc(**pParam) #add noise to root node; same as others in loop
-        rootNode = BranchNode._make([rootPos,rParam['R0'],self.length,Quat(),_uvScale,0,self.length]) # initial node      # make a starting node flat at 0,0,0        
+        rootNode = BranchNode._make([rootPos,self.R0,self.length,Quat(),_uvScale,0,self.length]) # initial node      # make a starting node flat at 0,0,0        
         self.nodeList = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         
@@ -160,17 +159,17 @@ class Branch(NodePath):
 #        branchlen = kwargs['L']
         branchSegs = kwargs['nSegs']
     
-        Lseg = float(self.length)/branchSegs
+        Lseg = float(self.length)/branchSegs # self.length set at init()
         noise = Vec3(-1+2*random.random(),-1+2*random.random(),0)*nAmp 
         newPos = Vec3(0,0,0) + upVector*Lseg*iSeg  + noise 
         return newPos
         
     def RadiusFunc(self,*args,**kwargs):
         # radius proportional to length from root of this branch to some power
-        rfact = kwargs['rfact']
+        rTaper = kwargs['rTaper']
         relPos = kwargs['position']
 #        R0 = kwargs['R0']
-        newRad = self.R0*(1 - relPos*rfact) # linear taper Vs length. pretty typical        
+        newRad = self.R0*(1 - relPos*rTaper) # linear taper Vs length. pretty typical        
         return newRad
 
 class Tree(list):
@@ -197,25 +196,29 @@ class Tree(list):
 def addNewBuds(branch): 
     budPos = budHpr = []
     rad = maxL = 0
+
+    # trunk bud multiple variables
     budsPerNode = 3
     hdg = range(0,360,360/budsPerNode)
+    
     [gH,gP,gR] = branch.getHpr(base.render) # get global Hpr for later
-    sampList = random.sample(branch.nodeList[_skipChildren:-1],6)
+    sampList = random.sample(branch.nodeList[_skipChildren:-1],5)
     for nd in sampList: # just use nodes for now
         budPos = nd.pos
-        maxL = nd.d2t
-        rad = .8*nd.radius
-        #Child branch Ang func - orient the node after creation
+        maxL = lfact*nd.d2t
+        rad = rfact*nd.radius # NEW GEN RADIUS - THIS SHOULD BE A PARAMETER!!!
 
-        if branch.gen<1: # trunk case
+        #Child branch Ang func - orient the node after creation
+        if branch.gen<1: # main trunk branches case
+            budRot = random.randint(-hdg[1],hdg[1]) # add some noise to the trunk bud angles
             for h in hdg:                        
-                ang = 90 + random.randint(-23,5)
-                budHpr = Vec3(h,0,ang)
+                angP = 90 + random.randint(-20,5)
+                budHpr = Vec3(h+budRot/2,0,angP)
                 branch.buds.append([budPos,rad,budHpr,maxL])
-        else:
-            ang = 90 + random.randint(-23,5)
+        else: # flat branches only
+            angP = 70 + random.randint(-25,20)
             side = random.choice((-1,1))
-            budHpr = Vec3(gH+side*ang,0,gR) 
+            budHpr = Vec3(gH+side*angP,0,gR) 
             branch.buds.append([budPos,rad,budHpr,maxL])
     return branch
     
@@ -228,22 +231,24 @@ if __name__ == "__main__":
 
     # TRUNK AND BRANCH PARAMETERS
     numGens = 2    # number of branch generations to calculate (0=trunk only)
-    numSegs = 10 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 8    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    # NEED A SIMILAR VAR AS numSegs but NumBuds per length. I think this will place things better along the branch
+    
     print numGens, numSegs
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
     
     L0 = 5.0 # initial length
-    lfact = 0.5    # length ratio between branch generations
-    Lnoise = 0.0    # percent(0-1) length variation of new branches
-    posNoise = 0.0    # noise in The XY plane around the growth axis of a branch
+    lfact = 0.7    # length ratio between branch generations
+    Lnoise = 0.10    # percent(0-1) length variation of new branches
+    posNoise = 0.15    # noise in The XY plane around the growth axis of a branch
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
     
-    R0 = .5 #initial radius
+    R0 = L0/10.0 #initial radius
 #    Rf = .1 # final radius
-#    rfact = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
-    rfact = .95 # taper factor; % reduction in radius between tip and base ends of branch
-  
+#    rTaper = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
+    rTaper = 0.95 # taper factor; % reduction in radius between tip and base ends of branch
+    rfact = lfact     # radius ratio between generations
     _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
@@ -272,7 +277,7 @@ if __name__ == "__main__":
 # define circumference function (pull out of drawBody())
 # 
     Pparams = {'L':L0,'nSegs':numSegs,'Anoise':posNoise*R0,'upVector':_UP_}
-    Rparams = {'rfact':rfact,'R0':R0}
+    Rparams = {'rTaper':rTaper,'R0':R0}
 
     trunk = Branch("Trunk",L0,R0)
     trunk.setTwoSided(1)    
@@ -287,7 +292,7 @@ if __name__ == "__main__":
     for gen in range(1,numGens+1):
         Lgen = L0*lfact**gen
         print "Calculating branches..."
-        print "Generation: ", gen, " children: ", len(children)
+        print "Generation: ", gen, " children: ", len(children), "Gen Len: ", Lgen,
         for thisBranch in children:
             for ib,bud in enumerate(thisBranch.buds): # don't include the root
                 # Create Child NodePath instance
@@ -301,8 +306,9 @@ if __name__ == "__main__":
 
                 # Child branch position Func
                 newBr.setPos(bud[0])                
-                lFunc = Lgen*(1.0-float(ib+1)/numSegs) #branch total length func
-                lFunc += lFunc*Lnoise*random.random()
+#                lFunc = Lgen*(1.0-float(ib+1)/numSegs) #branch total length func
+                lFunc = Lgen*(1-Lnoise/2 + Lnoise*random.random())
+                print lFunc
                 Pparams['Anoise'] = bud[1]*posNoise    # noise func of tree or branch?
                 Pparams.update({'L':lFunc,'nSegs':numSegs+1-gen})
 
