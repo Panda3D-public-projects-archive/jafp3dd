@@ -29,11 +29,13 @@ import pdb
 _polySize = 12
 
 class Branch(NodePath):
-    def __init__(self, nodeName):
+    def __init__(self, nodeName, L, initRadius):
         NodePath.__init__(self, nodeName)
         self.numPrimitives = 0
         self.nodeList = []    # for the branch geometry itself
         self.buds = []        # a list of children. "buds" for next gen of branchs
+        self.length = L            # total length of this branch; note Node scaling will mess this up! 
+        self.R0 = initRadius
         self.gen = 0        # ID's generation of this branch (trunk = 0, 1 = primary branches, ...)
         # contains 2 Vec3:[ position, and Hpr]. Nominally these are set by the parent Tree class
         # with it's add children function(s)
@@ -110,13 +112,11 @@ class Branch(NodePath):
         # otherwise can not maintain UV per unit length (if that's desired)
         # returns non-rotated, unpositioned geom node
         
-        
-#TODO: MAKE an "addNode" or 
-        branchlen = pParam['L']
+#        branchlen = pParam['L']
         branchSegs = pParam['nSegs']
         pParam.update({'iSeg':0})
         rootPos = Vec3(0,0,0) # + self.PositionFunc(**pParam) #add noise to root node; same as others in loop
-        rootNode = BranchNode._make([rootPos,rParam['R0'],branchlen,Quat(),_uvScale,0]) # initial node      # make a starting node flat at 0,0,0        
+        rootNode = BranchNode._make([rootPos,rParam['R0'],self.length,Quat(),_uvScale,0,self.length]) # initial node      # make a starting node flat at 0,0,0        
         self.nodeList = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         
@@ -124,8 +124,8 @@ class Branch(NodePath):
             pParam.update({'iSeg':i})
             newPos = self.PositionFunc(**pParam)
             toVec = newPos - prevNode.pos # point
-            dL = prevNode.deltaL + toVec.length() # cumulative length accounts for off axis node lengths
-            radius = self.RadiusFunc(position=dL/branchlen,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
+            dL = (prevNode.deltaL + toVec.length()) # cumulative length accounts for off axis node lengths; percent of total branch length
+            radius = self.RadiusFunc(position=dL/self.length,**rParam) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
 
 # MOVE TO UVfunc
 #            perim = 2*_polySize*radius*sin(pi/_polySize) # use perimeter to calc texture length/scale
@@ -134,7 +134,7 @@ class Branch(NodePath):
             UVcoord = (_uvScale[0]*perim, rootNode.texUV[1] + dL*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
 ##
 
-            newNode = BranchNode._make([newPos,radius,toVec,rootNode.quat,UVcoord,dL]) # i*Lseg = distance from root
+            newNode = BranchNode._make([newPos,radius,toVec,rootNode.quat,UVcoord,dL,self.length-dL]) # i*Lseg = distance from root
             self.nodeList.append(newNode)
             prevNode = newNode # this is now the starting point on the next iteration
 
@@ -153,24 +153,24 @@ class Branch(NodePath):
     def Circumfunc(*args,**kwargs):
         pass # STUB
         
-    def PositionFunc(*args,**kwargs):
+    def PositionFunc(self,*args,**kwargs):
         upVector = kwargs['upVector']
         iSeg = kwargs['iSeg']
         nAmp = kwargs['Anoise']    
-        branchlen = kwargs['L']
+#        branchlen = kwargs['L']
         branchSegs = kwargs['nSegs']
     
-        Lseg = float(branchlen)/branchSegs
+        Lseg = float(self.length)/branchSegs
         noise = Vec3(-1+2*random.random(),-1+2*random.random(),0)*nAmp 
         newPos = Vec3(0,0,0) + upVector*Lseg*iSeg  + noise 
         return newPos
         
-    def RadiusFunc(*args,**kwargs):
+    def RadiusFunc(self,*args,**kwargs):
         # radius proportional to length from root of this branch to some power
         rfact = kwargs['rfact']
         relPos = kwargs['position']
-        R0 = kwargs['R0']
-        newRad = R0*(1 - relPos*rfact) # linear taper Vs length. pretty typical        
+#        R0 = kwargs['R0']
+        newRad = self.R0*(1 - relPos*rfact) # linear taper Vs length. pretty typical        
         return newRad
 
 class Tree(list):
@@ -194,25 +194,32 @@ class Tree(list):
         leafModel.reparentTo(self.leaves)
         leafModel.setTransform(TransformState.makeMat(axisAdj))
 
-def addNewBuds(branch):
-    budPos = budHpr = rad = []
+def addNewBuds(branch): 
+    budPos = budHpr = []
+    rad = maxL = 0
+    budsPerNode = 3
+    hdg = range(0,360,360/budsPerNode)
     [gH,gP,gR] = branch.getHpr(base.render) # get global Hpr for later
-    for nd in branch.nodeList: # just use nodes for now
+    sampList = random.sample(branch.nodeList[_skipChildren:-1],6)
+    for nd in sampList: # just use nodes for now
         budPos = nd.pos
+        maxL = nd.d2t
         rad = .8*nd.radius
         #Child branch Ang func - orient the node after creation
-        ang = 90 + random.randint(-23,5)
-#        if branch.gen==0:
-#            budHpr = Vec3(gH,gP,gR)
+
         if branch.gen<1: # trunk case
-            budHpr = Vec3(random.randint(-180,180),0,ang)
+            for h in hdg:                        
+                ang = 90 + random.randint(-23,5)
+                budHpr = Vec3(h,0,ang)
+                branch.buds.append([budPos,rad,budHpr,maxL])
         else:
+            ang = 90 + random.randint(-23,5)
             side = random.choice((-1,1))
-            budHpr = Vec3(gH+side*ang,0,gR)    
-        branch.buds.append([budPos,rad,budHpr])
+            budHpr = Vec3(gH+side*ang,0,gR) 
+            branch.buds.append([budPos,rad,budHpr,maxL])
     return branch
     
-BranchNode = namedtuple('BranchNode','pos radius toVector quat texUV deltaL') 
+BranchNode = namedtuple('BranchNode','pos radius toVector quat texUV deltaL d2t') 
 # toVector is TO next node (delta of pos vectors)
 # deltaL is cumulative distance from the branch root (sum of node lengths)
 
@@ -221,15 +228,15 @@ if __name__ == "__main__":
 
     # TRUNK AND BRANCH PARAMETERS
     numGens = 2    # number of branch generations to calculate (0=trunk only)
-    numSegs = 12 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 10 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     print numGens, numSegs
     _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
     
     L0 = 5.0 # initial length
-    lfact = .6    # length ratio between branch generations
-    Lnoise = .1    # percent(0-1) length variation of new branches
-    posNoise = 0.1    # noise in The XY plane around the growth axis of a branch
+    lfact = 0.5    # length ratio between branch generations
+    Lnoise = 0.0    # percent(0-1) length variation of new branches
+    posNoise = 0.0    # noise in The XY plane around the growth axis of a branch
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
     
     R0 = .5 #initial radius
@@ -267,7 +274,7 @@ if __name__ == "__main__":
     Pparams = {'L':L0,'nSegs':numSegs,'Anoise':posNoise*R0,'upVector':_UP_}
     Rparams = {'rfact':rfact,'R0':R0}
 
-    trunk = Branch("Trunk")
+    trunk = Branch("Trunk",L0,R0)
     trunk.setTwoSided(1)    
     trunk.reparentTo(base.render)
     trunk.generate(Pparams, Rparams)
@@ -278,22 +285,23 @@ if __name__ == "__main__":
     nextChildren = []
     leafNodes = []
     for gen in range(1,numGens+1):
+        Lgen = L0*lfact**gen
         print "Calculating branches..."
         print "Generation: ", gen, " children: ", len(children)
         for thisBranch in children:
-            for ib,bud in enumerate(thisBranch.buds[_skipChildren:-1]): # don't include the root
+            for ib,bud in enumerate(thisBranch.buds): # don't include the root
                 # Create Child NodePath instance
-                newBr = Branch("Branch1") 
+                newBr = Branch("Branch1",bud[3],bud[1]) 
                 newBr.reparentTo(thisBranch)
 #                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
                 newBr.gen = gen
                 
                 # Child branch Radius func 
-                Rparams['R0']= bud[1]
+#                Rparams['R0']= bud[1]
 
                 # Child branch position Func
                 newBr.setPos(bud[0])                
-                lFunc = (L0*lfact**gen)*(1.0-float(ib+1)/numSegs) #branch total length func
+                lFunc = Lgen*(1.0-float(ib+1)/numSegs) #branch total length func
                 lFunc += lFunc*Lnoise*random.random()
                 Pparams['Anoise'] = bud[1]*posNoise    # noise func of tree or branch?
                 Pparams.update({'L':lFunc,'nSegs':numSegs+1-gen})
