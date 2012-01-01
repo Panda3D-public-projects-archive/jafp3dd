@@ -182,16 +182,13 @@ class Tree(list):
         pass # STUB
 
     #this draws leafs when we reach an end       
-    def drawLeaf(self, pos=Vec3(0, 0, 0), quat=None, scale=0.125):
-        #use the vectors that describe the direction the branch grows to make the right
-        #rotation matrix
-#        newCs = Mat4()
-#        quat.extractToMatrix(newCs)
-        axisAdj = Mat4.scaleMat(scale) * Mat4.translateMat(pos)       
-        leafModel = NodePath("leaf")
-        self.leafModel.instanceTo(leafModel)
-        leafModel.reparentTo(self.leaves)
-        leafModel.setTransform(TransformState.makeMat(axisAdj))
+def drawLeaf(parent,pos=Vec3(0, 0, 0), scale=0.125):
+    leafNode = NodePath("leaf")
+    leafNode.setTwoSided(1)
+    leafMod.instanceTo(leafNode)
+    leafNode.reparentTo(parent)
+    leafNode.setScale(scale)
+    leafNode.setHpr(0,0,0)
 
 def addNewBuds(branch): 
     budPos = budHpr = []
@@ -248,17 +245,17 @@ if __name__ == "__main__":
 #    Rf = .1 # final radius
 #    rTaper = (Rf/R0)**(1.0/numSegs) # fixed start and end radii
     rTaper = 0.95 # taper factor; % reduction in radius between tip and base ends of branch
-    rfact = lfact     # radius ratio between generations
-    _uvScale = (1,.4) #repeats per unit length (around perimeter, along the tree axis) 
+    rfact = .8*lfact     # radius ratio between generations
+    _uvScale = (1,1) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
     
 
     # LEAF PARAMETERS
-    _LeafTex_ = 'Green Leaf.png'
+    _LeafTex = 'Green Leaf.png'
     _LeafModel = 'myLeafModel.x'
-    _LeafScale = .75
-    _DoLeaves = 0 # not ready for prime time; need to add drawLeaf to Tree Class
+    _LeafScale = .07
+    _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     base = ShowBase()
     base.cam.setPos(0,-2*L0, L0/2)
@@ -267,7 +264,8 @@ if __name__ == "__main__":
     
     base.setFrameRateMeter(1)
     bark = base.loader.loadTexture(_BarkTex_)    
-    
+    leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
+    leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
 ### GUTS OF "TREE" CLASS
 #TODO: make parameters: probably still need a good Lfunc. 
 # need angle picking# such that branchs tend to lie flat, slight "up" and out. 
@@ -308,7 +306,6 @@ if __name__ == "__main__":
                 newBr.setPos(bud[0])                
 #                lFunc = Lgen*(1.0-float(ib+1)/numSegs) #branch total length func
                 lFunc = Lgen*(1-Lnoise/2 + Lnoise*random.random())
-                print lFunc
                 Pparams['Anoise'] = bud[1]*posNoise    # noise func of tree or branch?
                 Pparams.update({'L':lFunc,'nSegs':numSegs+1-gen})
 
@@ -316,23 +313,21 @@ if __name__ == "__main__":
                 
                 #Create the actual geometry now
                 newBr.generate(Pparams, Rparams)
-                newBr = addNewBuds(newBr)
+
                 # Create New Children Function
-                nextChildren.append(newBr) 
+                newBr = addNewBuds(newBr)
                 # just add this branch to the new Children;
-                # use it's nodeList for new children.
-                
-                
+                nextChildren.append(newBr)                 
+                # use it's bud List for new children branches.                
         children = nextChildren # assign Children for the next iteration
         nextChildren = []
-#        leafNodes = thisBranch.nodeListleafNodes = thisBranch.nodeList
-    #        if gen==numGens-1:2
-    
-    
+
     if _DoLeaves:
         print "adding foliage"
-        for node in leafNodes:
-            trunk.drawLeaf(node.pos,node.quat,_LeafScale)
+        for thisBranch in children:
+            for node in thisBranch.nodeList:
+                drawLeaf(node,_LeafScale)
+
 ##############################
 
     ruler = base.loader.loadModel('./resources/models/plane')
