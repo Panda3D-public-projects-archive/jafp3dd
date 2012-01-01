@@ -214,9 +214,7 @@ class Branch(NodePath):
         sampList = random.sample(self.nodeList[_skipChildren:-1],NS)
 
         for nd in sampList: # just use branch nodes for now
-            newBud = Bud("bud"+str(budGen))
-            newBud.reparentTo(self)
-            newBud.setPos(nd.pos)
+            
             
             maxL = lfact*nd.d2t    # NEW GEN's TOTAL Length
             rad = rfact*nd.radius  # NEW GENERATION's INIT RADIUS 
@@ -225,15 +223,21 @@ class Branch(NodePath):
             if budGen<1: # main trunk branches case
                 hdg = range(0,360,360/budsPerNode)         
                 budRot = random.randint(-hdg[1],hdg[1]) # add some noise to the trunk bud angles
-                for h in hdg:                        
+                for h in hdg:              
+                    newBud = Bud("bud"+str(budGen), budGen)
+                    newBud.reparentTo(self)
+                    newBud.setPos(nd.pos)        
                     angP = 135 + random.randint(-20,5)
-                    newBud.setHpr( Vec3(h+budRot/2,0,angP) )
+                    newBud.setHpr( Vec3(gH+h+budRot/2,0,angP) )
                     newBud.printHpr()
                     self.buds.append([maxL,rad,newBud])
             else: # flat branches only
+                newBud = Bud("bud"+str(budGen), budGen)
+                newBud.reparentTo(self)
+                newBud.setPos(nd.pos)
                 angP = 70 + random.randint(-25,20)
                 side = random.choice((-1,1))
-                newBud.Hpr(Vec3(gH+side*angP,0,gR))
+                newBud.setHpr(Vec3(gH+side*angP,0,gR))
                 self.buds.append([maxL,rad,newBud])
 #FIXME : I don't like packing newBud this way. call maxl and rad as funcs from
 # generate or sometihng else
@@ -280,15 +284,15 @@ if __name__ == "__main__":
 #    random.seed(11*math.pi)
     base = ShowBase()
     _UP_ = Vec3(0,0,1) # General axis of the model w.r.t render, the scene root
-    numGens = 2    # number of branch generations to calculate (0=trunk only)
+    numGens = 2 # number of branch generations to calculate (0=trunk only)
 
     # TRUNK AND BRANCH PARAMETERS
-    numSegs = 5    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 16 # number of nodes per branch; +1 root = 7 total BranchNodes per branch
 #TODO: NEED A SIMILAR VAR AS numSegs but NumBuds per length. I think this will place things better along the branch
-    _skipChildren = 1 # how many nodes in from the base; including the base, to exclude from children list
+    _skipChildren =2 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
     
-    L0 = 9.0 # initial length
+    L0 = 8.0 # initial length
     lfact = 0.25    # length ratio between branch generations
     Lnoise = 0.10    # percent(0-1) length variation of new branches
     posNoise = 0.45    # noise in The XY plane around the growth axis of a branch
@@ -299,13 +303,13 @@ if __name__ == "__main__":
     rfact = .8*lfact     # radius ratio between generations
 
     _uvScale = (1,1) #repeats per unit length (around perimeter, along the tree axis) 
-    _BarkTex_ = "barkTexture.jpg"
+    _BarkTex_ = "./resources/models/barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
     bark = base.loader.loadTexture(_BarkTex_)    
 
     # LEAF PARAMETERS
-    _LeafTex = 'Green Leaf.png'
-    _LeafModel = 'myLeafModel.x'
+    _LeafTex = './resources/models/Green Leaf.png'
+    _LeafModel = './resources/models/myLeafModel.x'
     _LeafScale = .07
     _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
@@ -324,8 +328,8 @@ if __name__ == "__main__":
     seed.reparentTo(base.render)
     trunk = Branch("Trunk",L0,R0)
 #    trunk.setTwoSided(1) # for making caves
-    trunk.reparentTo(seed)
     trunk.generate(Pparams, Rparams)
+    trunk.reparentTo(seed)
     trunk.setTexture(bark)
     trunk.addNewBuds()
 
@@ -342,7 +346,6 @@ if __name__ == "__main__":
             
                 # Create Child NodePath instance
                 newBr = Branch("Branch1",L=thisBud[0],initRadius=thisBud[1]) 
-                newBr.reparentTo(thisBud[2])
 #                newBr.setTexture(bark) # If you wanted to do each branch with a unqiue texture
                 newBr.gen = gen
                 
@@ -360,9 +363,10 @@ if __name__ == "__main__":
                 
                 #Create the actual geometry now
                 newBr.generate(Pparams, Rparams)
+                newBr.reparentTo(thisBud[2])
 
                 # Create New buds on this branch
-                newBr.addNewBuds()
+                newBr.addNewBuds(budGen=gen+1)
                 # add this branch to the new Children list;
                 nextGener.append(newBr)                 
                 # use it's bud List for new children branches.                
@@ -386,17 +390,16 @@ if __name__ == "__main__":
     # DONE GENERATING. WRITE OUT UNSCALED MODEL
     trunk.setScale(1)        
     trunk.flattenStrong()
-    trunk.write_bam_file('./resources/models/sampleTree.bam')
+#    trunk.write_bam_file('./resources/models/sampleTree.bam')
     
     def rotateTree(task):
         phi = 15*task.time
-        trunk.setH(phi)
+        seed.setH(phi)
         return task.cont
-#    base.taskMgr.add(rotateTree,"merrygoround")
+    base.taskMgr.add(rotateTree,"merrygoround")
 
     print numGens, numSegs # NOTING ON OUTPUT IF GENS=0 or othewise bad value
     base.cam.setPos(0,-2*L0, L0/2)
-#    base.cam.lookAt(base.render)
     base.cam.printHpr()    
     base.setFrameRateMeter(1)    
 #    base.toggleWireframe()
