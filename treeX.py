@@ -380,11 +380,12 @@ if __name__ == "__main__":
         thisGener = nextGener # assign Children for the next iteration
         nextGener = []
 
-    if _DoLeaves:
-        print "adding foliage"
-        for thisBranch in thisGener: # this will add leaves to the last last generation of branches
-            for bud in thisBranch.buds:
-                bud[2].attachLeaf(_LeafScale)
+#    if _DoLeaves:
+#        print "adding foliage"
+#        for thisBranch in children:
+#            for node in thisBranch.nodeList:
+#                drawLeaf(node,_LeafScale)
+
 
 ##############################
 
