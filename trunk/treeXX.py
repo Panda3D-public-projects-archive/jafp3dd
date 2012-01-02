@@ -150,11 +150,7 @@ class Branch(NodePath):
     def addNewBuds(self): 
         budPos = budHpr = []
         rad = maxL = 0
-    
-        # trunk bud multiple variables
-        budsPerNode = 4
-        hdg = range(0,360,360/budsPerNode)
-        
+            
         [gH,gP,gR] = self.getHpr(base.render) # get global Hpr for later
 #        sampList = random.sample(self.nodeList[_skipChildren:-1],5)
         sampList = self.nodeList[_skipChildren:-1]
@@ -165,19 +161,22 @@ class Branch(NodePath):
     
             #Child branch Ang func - orient the node after creation
             if self.gen<1: # main trunk branches case
+                # trunk bud multiple variables
+                budsPerNode = random.randint(2,4)
+                hdg = range(0,360,360/budsPerNode)
                 budRot = random.randint(-hdg[1],hdg[1]) # add some noise to the trunk bud angles
                 for h in hdg:                        
-#                    angP = 90 + random.randint(-10,5)
                     angP = random.gauss(90,5)
                     budHpr = Vec3(h+budRot/2,0,angP)
                     self.buds.append([budPos,rad,budHpr,maxL])
             else: # flat branches only
-#                angP = 45 + random.randint(-25,20)
                 angP = random.gauss(45,15)
                 side = random.choice((-1,1))
-                budHpr = Vec3(gH+side*angP,0,gR) 
+                budHpr = Vec3(gH+side*angP,0,random.gauss(gR,10)) 
                 self.buds.append([budPos,rad,budHpr,maxL])
-        
+                angP = random.gauss(45,15)
+                budHpr = Vec3(gH-side*angP,0,random.gauss(gR,10))  #lazy branch doubling...
+                self.buds.append([budPos,rad,budHpr,maxL])
     def UVfunc(*args,**kwargs):
         pass # STUB
     def Circumfunc(*args,**kwargs):
@@ -232,11 +231,11 @@ if __name__ == "__main__":
 
     # TRUNK AND BRANCH PARAMETERS
     numGens = 2    # number of branch generations to calculate (0=trunk only)
-    numSegs = 8    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 12    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     # NEED A SIMILAR VAR AS numSegs but NumBuds per length. I think this will place things better along the branch
     
     print numGens, numSegs
-    _skipChildren = 2 # how many nodes in from the base; including the base, to exclude from children list
+    _skipChildren = 1 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
     
     L0 = 4.0 # initial length
