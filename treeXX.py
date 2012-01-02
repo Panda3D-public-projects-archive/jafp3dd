@@ -27,6 +27,15 @@ from collections import namedtuple
 
 _polySize = 5
 
+
+class Bud(object):
+    # still need bud objects to pack info by name; easier that way
+    def __init__(self,position=Vec3(0,0,0),Hpr=Vec3(0,0,0),length=0,rad=0):
+        self.pos = position
+        self.Hpr = Hpr
+        self.maxL = length
+        self.maxRad = rad
+        
 class Branch(NodePath):
     def __init__(self, nodeName, L, initRadius):
         NodePath.__init__(self, nodeName)
@@ -146,10 +155,10 @@ class Branch(NodePath):
 #            else: 
             self.drawBody(node.pos, node.quat, node.radius,node.texUV)
         return self.nodeList
-
+        
     def addNewBuds(self): 
-        budPos = budHpr = []
-        rad = maxL = 0
+#        budPos = budHpr = []
+#        rad = maxL = 0
             
         [gH,gP,gR] = self.getHpr(base.render) # get global Hpr for later
 #        sampList = random.sample(self.nodeList[_skipChildren:-1],5)
@@ -168,6 +177,7 @@ class Branch(NodePath):
                 for h in hdg:                        
                     angP = random.gauss(90,5)
                     budHpr = Vec3(h+budRot/2,0,angP)
+                    newBud = Bud(budPos,budHpr,)
                     self.buds.append([budPos,rad,budHpr,maxL])
             else: # flat branches only
                 angP = random.gauss(45,15)
@@ -212,11 +222,12 @@ class Tree(list):
         pass # STUB
 
     #this draws leafs when we reach an end       
-def drawLeaf(parent,pos=Vec3(0, 0, 0), scale=0.125):
+def drawLeaf(parent,pos, scale=0.125):
     leafNode = NodePath("leaf")
     leafNode.setTwoSided(1)
     leafMod.instanceTo(leafNode)
     leafNode.reparentTo(parent)
+    leafNode.setPos(pos)
     leafNode.setScale(scale)
     leafNode.setHpr(0,0,0)
 
@@ -231,7 +242,7 @@ if __name__ == "__main__":
 
     # TRUNK AND BRANCH PARAMETERS
     numGens = 2    # number of branch generations to calculate (0=trunk only)
-    numSegs = 12    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 6    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     # NEED A SIMILAR VAR AS numSegs but NumBuds per length. I think this will place things better along the branch
     
     print numGens, numSegs
@@ -269,13 +280,7 @@ if __name__ == "__main__":
     leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
     leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
 ### GUTS OF "TREE" CLASS
-#TODO: make parameters: probably still need a good Lfunc. 
-# need angle picking# such that branchs tend to lie flat, slight "up" and out. 
-# Distribute branches uniform around radius. 
-# "Crown" the trunk; possibly branches. - single point; no rad func and connect all previous nodes to point
-# choose "bud" locations other than branch nodes.
-# define circumference function (pull out of drawBody())
-# 
+
     Pparams = {'L':L0,'nSegs':numSegs,'Anoise':posNoise*R0,'upVector':_UP_}
     Rparams = {'rTaper':rTaper,'R0':R0}
 
@@ -292,7 +297,7 @@ if __name__ == "__main__":
     for gen in range(1,numGens+1):
         Lgen = L0*lfact**gen
         print "Calculating branches..."
-        print "Generation: ", gen, " children: ", len(children), "Gen Len: ", Lgen,
+        print "Generation: ", gen, " children: ", len(children), "Gen Len: ", Lgen
         for thisBranch in children:
             for ib,bud in enumerate(thisBranch.buds): # don't include the root
                 # Create Child NodePath instance
@@ -324,11 +329,11 @@ if __name__ == "__main__":
         children = nextChildren # assign Children for the next iteration
         nextChildren = []
 
-#    if _DoLeaves:
-#        print "adding foliage"
-#        for thisBranch in children:
-#            for node in thisBranch.nodeList:
-#                drawLeaf(node,_LeafScale)
+    if _DoLeaves:
+        print "adding foliage...hack adding to nodes, not buds!"
+        for thisBranch in children:
+            for node in thisBranch.nodeList:
+                drawLeaf(thisBranch,node.pos,_LeafScale)
 
 ##############################
 
@@ -354,3 +359,15 @@ if __name__ == "__main__":
     base.accept('z',base.toggleWireframe)
 #    pycallgraph.make_dot_graph('treeXpcg.png')
     base.run()
+
+#TODO: 
+#    1) Implement leaves at buds
+#    2) choose "bud" locations other than branch nodes and random circumfrentially.
+#    - numSegs to parameter into branch; numSegs = f(generation), fewer on younger
+#    3) add curve term(s) to branches
+#     make parameters: probably still need a good Lfunc. 
+#     need angle picking# such that branchs tend to lie flat, slight "up" and out. 
+#     Distribute branches uniform around radius. 
+#     "Crown" the trunk; possibly branches. - single point; no rad func and connect all previous nodes to point
+#     define circumference function (pull out of drawBody())
+# 
