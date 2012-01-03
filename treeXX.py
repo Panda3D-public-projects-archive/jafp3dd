@@ -162,7 +162,7 @@ class Branch(NodePath):
             
         [gH,gP,gR] = self.getHpr(base.render) # get global Hpr for later
 #        sampList = random.sample(self.nodeList[_skipChildren:-1],5)
-        sampList = self.nodeList[_skipChildren:-1]
+        sampList = self.nodeList[_skipChildren:]
         for nd in sampList: # just use nodes for now
             budPos = nd.pos
             maxL = lfact*nd.d2t
@@ -209,7 +209,7 @@ class Branch(NodePath):
         rTaper = kwargs['rTaper']
         relPos = kwargs['position']
 #        R0 = kwargs['R0']
-        newRad = self.R0*(1 - relPos*rTaper) # linear taper Vs length. pretty typical        
+        newRad = rTaper*self.R0*(1 - relPos) # linear taper Vs length. pretty typical        
         return newRad
 
 class Tree(list):
@@ -241,16 +241,16 @@ if __name__ == "__main__":
 #    random.seed(11*math.pi)
 
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 2    # number of branch generations to calculate (0=trunk only)
-    numSegs = 6    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numGens = 3    # number of branch generations to calculate (0=trunk only)
+    numSegs = 5    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     # NEED A SIMILAR VAR AS numSegs but NumBuds per length. I think this will place things better along the branch
     
     print numGens, numSegs
     _skipChildren = 1 # how many nodes in from the base; including the base, to exclude from children list
     # often skipChildren works best as a function of total lenggth, not just node count
     
-    L0 = 4.0 # initial length
-    lfact = 0.5    # length ratio between branch generations
+    L0 = 2.0 # initial length
+    lfact = 0.75    # length ratio between branch generations
     Lnoise = 0.2    # percent(0-1) length variation of new branches
     posNoise = 0.2    # noise in The XY plane around the growth axis of a branch
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
@@ -258,7 +258,7 @@ if __name__ == "__main__":
     R0 = .2 #initial radius
     bNodeRadNoise = 0.4 # EXPERIMENTAL: ADDING RADIAL NOISE
     rTaper = 0.95 # taper factor; % reduction in radius between tip and base ends of branch
-    rfact = 1.0*lfact     # radius ratio between generations
+    rfact = .7*lfact     # radius ratio between generations
     _uvScale = (1,1) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
@@ -266,8 +266,8 @@ if __name__ == "__main__":
 
     # LEAF PARAMETERS
     _LeafTex = 'Green Leaf.png'
-    _LeafModel = 'myLeafModel.x'
-    _LeafScale = .07
+    _LeafModel = 'myLeafModel2.x'
+    _LeafScale = .25
     _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     base = ShowBase()
@@ -332,7 +332,7 @@ if __name__ == "__main__":
     if _DoLeaves:
         print "adding foliage...hack adding to nodes, not buds!"
         for thisBranch in children:
-            for node in thisBranch.nodeList:
+            for node in thisBranch.nodeList[_skipChildren:]:
                 drawLeaf(thisBranch,node.pos,_LeafScale)
 
 ##############################
@@ -358,15 +358,15 @@ if __name__ == "__main__":
     base.accept('escape',sys.exit)
     base.accept('z',base.toggleWireframe)
 #    pycallgraph.make_dot_graph('treeXpcg.png')
+    base.render.analyze()
     base.run()
 
 #TODO: 
-#    1) Implement leaves at buds
 #    2) choose "bud" locations other than branch nodes and random circumfrentially.
 #    - numSegs to parameter into branch; numSegs = f(generation), fewer on younger
+#        prob set a buds per length var
 #    3) add curve term(s) to branches
 #     make parameters: probably still need a good Lfunc. 
-#     need angle picking# such that branchs tend to lie flat, slight "up" and out. 
 #     Distribute branches uniform around radius. 
 #     "Crown" the trunk; possibly branches. - single point; no rad func and connect all previous nodes to point
 #     define circumference function (pull out of drawBody())
