@@ -6,11 +6,11 @@ import platform
 if platform.system() == 'Windows':
     sys.path.append('c:\Panda3D-1.7.2')
     sys.path.append('c:\Panda3D-1.7.2\\bin')
-    _DATAPATH_ = "./resources"
-else:
-    sys.path.append('/usr/lib/panda3d')
-    sys.path.append('/usr/share/panda3d')
-    _DATAPATH_ = "resources"
+#else:
+#    sys.path.append('/usr/lib/panda3d')
+#    sys.path.append('/usr/share/panda3d')
+
+_DATAPATH_ = "./resources"
 
 import os.path
 from math import *

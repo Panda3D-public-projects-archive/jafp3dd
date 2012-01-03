@@ -246,6 +246,7 @@ class terrainManager(tileManager):
 #            return []
 
 # TRY TO ADD TREES HERE
+#TODO: I STILL THINK NEED AN OBJMANAGER CLASS AND MOVE OUT OF HERE.
     def placeObjects(self,tileID):
         if self.objectInfo.has_key(tileID):
             for obj in self.objectInfo[tileID]:
@@ -254,6 +255,8 @@ class terrainManager(tileManager):
                 tmpModel = loader.loadModel(obj[2]) # name
                 tmpModel.reparentTo(self.parentNode)
                 obj_Z = self.getElevation(obj[0])
+#TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
+# only if valid obj_Z do the next part.
                 tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
                 tmpModel.setScale(obj[1])
                 tmpModel.setH(random.randint(0,360))
