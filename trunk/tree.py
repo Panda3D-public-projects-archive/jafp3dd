@@ -236,11 +236,11 @@ class DefaultTree(FractalTree):
     def __init__(self, numIterations=64,branchEvery=20,numBranches=2,maxAngle=None,maxBend=None,lenScale=None):       
         if maxAngle: self.maxAngle = maxAngle
         if maxBend: self.maxBend = maxBend
-        barkTexture = base.loader.loadTexture("../resources/models/barkTexture-1y.jpg")
-        leafModel = base.loader.loadModel('../resources/models/shrubbery')
+        barkTexture = base.loader.loadTexture("./resources/models/barkTexture.jpg")
+        leafModel = base.loader.loadModel('./resources/models/shrubbery')
         leafModel.clearModelNodes()
         leafModel.flattenStrong()
-        leafTexture = base.loader.loadTexture('../resources/models/material-10-cl.png')
+        leafTexture = base.loader.loadTexture('./resources/models/material-10-cl.png')
         leafModel.setTexture(leafTexture, 1) 
         leafModel.setScale(0.045)
         
