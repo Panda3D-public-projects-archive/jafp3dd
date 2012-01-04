@@ -127,15 +127,15 @@ class Branch(NodePath):
 #        branchSegs = Params['nSegs']
         Params.update({'iSeg':0})
         rootPos = Vec3(0,0,0) # + self.PositionFunc(**Params) #add noise to root node; same as others in loop
-        rootNode = BranchNode._make([rootPos,self.R0,self.length,Quat(),_uvScale,0,self.length]) # initial node      # make a starting node flat at 0,0,0        
+        rootNode = BranchNode._make([rootPos,self.R0,Vec3(0,0,0),Quat(),_uvScale,0,self.length]) # initial node      # make a starting node flat at 0,0,0        
         self.nodeList = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         
         for i in range(1,self.nSeg+1): # start a 1, 0 is root node, now previous
             Params.update({'iSeg':i})
             newPos = self.PositionFunc(**Params)
-            toVec = newPos - prevNode.pos # point
-            dL = (prevNode.deltaL + toVec.length()) # cumulative length accounts for off axis node lengths; percent of total branch length
+            fromVec = newPos - prevNode.pos # point
+            dL = (prevNode.deltaL + fromVec.length()) # cumulative length accounts for off axis node lengths; percent of total branch length
             radius = self.RadiusFunc(position=dL/self.length,**Params) # pos.length() wrt to root. if really curvy branch, may want the sum of segment lengths instead..
 
 # MOVE TO UVfunc
@@ -145,7 +145,7 @@ class Branch(NodePath):
             UVcoord = (_uvScale[0]*perim, rootNode.texUV[1] + dL*float(_uvScale[1]) ) # This will keep the texture scale per unit length constant
 ##
 
-            newNode = BranchNode._make([newPos,radius,toVec,rootNode.quat,UVcoord,dL,self.length-dL]) # i*Lseg = distance from root
+            newNode = BranchNode._make([newPos,radius,fromVec,rootNode.quat,UVcoord,dL,self.length-dL]) # i*Lseg = distance from root
             self.nodeList.append(newNode)
             prevNode = newNode # this is now the starting point on the next iteration
 
@@ -163,7 +163,11 @@ class Branch(NodePath):
 #        budPos = budHpr = []
 #        rad = maxL = 0
             
-        [gH,gP,gR] = self.getHpr(base.render) # get global Hpr for later
+        [gH,gP,gR] = self.getHpr(base.render) # get this branch global Hpr for later
+#        nbud = budPerLen * self.length
+#        budPosArr = [x*minBudSpacing for x in range(self.length/minBudSpacing)]
+#        sampList = random.choice(budPosArr,nbud)
+        
 #        sampList = random.sample(self.nodeList[_skipChildren:-1],5)
         sampList = self.nodeList[_skipChildren:-1]
         for nd in sampList: # just use nodes for now
@@ -191,7 +195,18 @@ class Branch(NodePath):
                 budHpr = Vec3(gH-side*angP,0,random.gauss(gR,10))  #lazy branch doubling...
                 self.buds.append([budPos,rad,budHpr,maxL])
                 
-
+    def interpLen(self,inLen):
+#BranchNode = namedtuple('BranchNode','pos radius fromVector quat texUV deltaL d2t') 
+        outLen = []        
+        for node in self.nodeList:
+            if node.deltaL >= inLen: 
+                prevNode = node
+                break
+        delta = inLen - prevNode.deltaL
+        outLen = prevNode.pos + prevNode.fromVector*delta 
+#TODO: TOVECTORS ARE WRONG> THEY ARE REALLY FROM VECTORS...need To's        
+        return outLen
+        
     def UVfunc(*args,**kwargs):
         pass # STUB
     def Circumfunc(*args,**kwargs):
@@ -255,8 +270,8 @@ def drawLeaf(parent,pos, scale=0.125):
 
 
     
-BranchNode = namedtuple('BranchNode','pos radius toVector quat texUV deltaL d2t') 
-# toVector is TO next node (delta of pos vectors)
+BranchNode = namedtuple('BranchNode','pos radius fromVector quat texUV deltaL d2t') 
+# fromVector is TO next node (delta of pos vectors)
 # deltaL is cumulative distance from the branch root (sum of node lengths)
 
 if __name__ == "__main__":
@@ -266,14 +281,16 @@ if __name__ == "__main__":
 
     # TRUNK AND BRANCH PARAMETERS
     numGens = 1    # number of branch generations to calculate (0=trunk only)
-    numSegs = 10    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
-    # NEED A SIMILAR VAR AS numSegs but NumBuds per length. I think this will place things better along the branch    
-    print numGens, numSegs
+    print numGens
     
     L0 = 10.0 # initial length
+    numSegs = 10    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    posNoise = 0.2    # random noise in The XY plane around the growth axis of a branch
+    budPerLen = 2
+    minBudSpacing = .2
+    
     lfact = 0.75    # length ratio between branch generations
     Lnoise = 0.2    # percent(0-1) length variation of new branches
-    posNoise = 0.2    # random noise in The XY plane around the growth axis of a branch
     _skipChildren = int(numSegs/5) + 1 # how many nodes in from the base to exclude from children list; +1 to always exclude base
     # often skipChildren works best as a function of total lenggth, not just node count    
     
