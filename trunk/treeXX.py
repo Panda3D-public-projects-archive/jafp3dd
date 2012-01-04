@@ -260,26 +260,28 @@ BranchNode = namedtuple('BranchNode','pos radius toVector quat texUV deltaL d2t'
 # deltaL is cumulative distance from the branch root (sum of node lengths)
 
 if __name__ == "__main__":
+    base = ShowBase()    
 #    random.seed(11*math.pi)
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
 
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 2    # number of branch generations to calculate (0=trunk only)
+    numGens = 1    # number of branch generations to calculate (0=trunk only)
     numSegs = 10    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     # NEED A SIMILAR VAR AS numSegs but NumBuds per length. I think this will place things better along the branch    
     print numGens, numSegs
     
-    L0 = 2.0 # initial length
+    L0 = 10.0 # initial length
     lfact = 0.75    # length ratio between branch generations
     Lnoise = 0.2    # percent(0-1) length variation of new branches
-    posNoise = 0.2    # noise in The XY plane around the growth axis of a branch
-    _skipChildren = numSegs/5 # how many nodes in from the base; including the base, to exclude from children list
+    posNoise = 0.2    # random noise in The XY plane around the growth axis of a branch
+    _skipChildren = int(numSegs/5) + 1 # how many nodes in from the base to exclude from children list; +1 to always exclude base
     # often skipChildren works best as a function of total lenggth, not just node count    
     
     R0 = .2 #initial radius
-    bNodeRadNoise = 0.4 # EXPERIMENTAL: ADDING RADIAL NOISE
+    rfact = 1*lfact     # radius ratio between generations
     rTaper = 0.8 # taper factor; % reduction in radius between tip and base ends of branch
-    rfact = .7*lfact     # radius ratio between generations
+    bNodeRadNoise = 0.4 # EXPERIMENTAL: ADDING RADIAL NOISE
+
     _uvScale = (1,1) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
@@ -288,10 +290,11 @@ if __name__ == "__main__":
     # LEAF PARAMETERS
     _LeafTex = 'Green Leaf.png'
     _LeafModel = 'myLeafModel2.x'
-    _LeafScale = .25
-    _DoLeaves = 0 # not ready for prime time; need to add drawLeaf to Tree Class
+    leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
+    leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
+    _LeafScale = 2
+    _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
-    base = ShowBase()
     base.cam.setPos(0,-2*L0, L0/2)
 #    base.cam.lookAt(base.render)
     base.cam.printHpr()
@@ -303,8 +306,8 @@ if __name__ == "__main__":
 
     Params = {'L':L0,'nSegs':numSegs,'Anoise':posNoise*R0,'upVector':_UP_}
     Params.update({'rTaper':rTaper,'R0':R0})
-    Params.update(cXfactors = [(.1*R0,1,0),(.1*R0,2,0)],cYfactors = [(.1*R0,1,0),(.1*R0,2,0)])
-    trunk = Branch("Trunk",L0,R0,numSegs)
+    Params.update(cXfactors = [(.05*R0,1,0),(.05*R0,2,0)],cYfactors = [(.05*R0,1,pi/2),(.05*R0,2,pi/2)])
+    trunk = Branch("Trunk",L0,R0,2*numSegs)
     trunk.setTwoSided(1)    
     trunk.reparentTo(base.render)
     trunk.generate(Params)
@@ -321,13 +324,13 @@ if __name__ == "__main__":
         for thisBranch in children:
             for ib,bud in enumerate(thisBranch.buds):
                 # Create Child NodePath instance
-                Params.update(cXfactors = [(.1*bud[3]*random.gauss(0,.333),0.25,0),
-                                              (.1*bud[3]*random.gauss(0,.333),.5,0),
-                                                (.1*bud[3]*random.gauss(0,.333),.75,0),
-                                                (.1*bud[3]*random.gauss(0,.333),1,0)])
-                Params.update(cYfactors = [(.1*bud[3]*random.gauss(0,.333),0.25,0),
-                                              (.1*bud[3]*random.gauss(0,.333),.5,0),
-                                                (.1*bud[3]*random.gauss(0,.333),.75,0),
+                Params.update(cXfactors = [(.05*bud[3]*random.gauss(0,.333),0.25,0),
+                                              (.05*bud[3]*random.gauss(0,.333),.5,0),
+                                                (.05*bud[3]*random.gauss(0,.333),.75,0),
+                                                (.05*bud[3]*random.gauss(0,.333),1,0)])
+                Params.update(cYfactors = [(.05*bud[3]*random.gauss(0,.333),0.25,0),
+                                              (.05*bud[3]*random.gauss(0,.333),.5,0),
+                                                (.05*bud[3]*random.gauss(0,.333),.75,0),
                                                 (.0*bud[3]*random.gauss(0,.333),1,0)])
                 
                                                 
@@ -342,7 +345,7 @@ if __name__ == "__main__":
                 # Child branch position Func
                 newBr.setPos(bud[0])                
 #                lFunc = Lgen*(1.0-float(ib+1)/numSegs) #branch total length func
-                lFunc = Lgen*(1-Lnoise/2 + Lnoise*random.random())
+                lFunc = Lgen*(1-Lnoise/2 - Lnoise*random.random())
                 Params['Anoise'] = bud[1]*posNoise    # noise func of tree or branch?
                 Params.update({'L':lFunc,'nSegs':numSegs+1-gen})
 
@@ -361,8 +364,6 @@ if __name__ == "__main__":
 
     if _DoLeaves:
         print "adding foliage...hack adding to nodes, not buds!"
-        leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
-        leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
         for thisBranch in children:
             for node in thisBranch.nodeList[_skipChildren:]:
                 drawLeaf(thisBranch,node.pos,_LeafScale)
@@ -398,7 +399,6 @@ if __name__ == "__main__":
 #    2) choose "bud" locations other than branch nodes and random circumfrentially.
 #    - numSegs to parameter into branch; numSegs = f(generation), fewer on younger
 #        prob set a buds per length var
-#    3) add curve term(s) to branches
 #     make parameters: probably still need a good Lfunc. 
 #     Distribute branches uniform around radius. 
 #     "Crown" the trunk; possibly branches. - single point; no rad func and connect all previous nodes to point
