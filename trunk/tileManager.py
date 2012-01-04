@@ -144,14 +144,14 @@ class terrainManager(tileManager):
     def __init__(self,parentNode,tileScale=(1,1,1), delay=1, **kwargs ):
         tileManager.__init__(self,parentNode,tileScale,delay=1,**kwargs)        
         self.LODfocusNode = kwargs['focusNode']
-        self.objectInfo = kwargs['objDict']
+#        self.objectInfo = kwargs['objDict']
         # COULD just init the addlist and let the task do the loading        
 #        for thisTile in tileInfo:    
         self.addTile(self.curIJ)            
     
-    def addTile(self,tileID):
-        tileManager.addTile(self,tileID)
-        self.placeObjects(tileID)    # HAACK FOR NOW
+#    def addTile(self,tileID):
+#        tileManager.addTile(self,tileID)
+#        self.placeObjects(tileID)    # HAACK FOR NOW
 
     def defo(self,xp,yp):
         nf = PNMImage(xp,yp,1,65535)
@@ -163,7 +163,8 @@ class terrainManager(tileManager):
         return nf
          
     def setupTile(self,tileID):
-#    GENERATE THE WORLD. GENERATE THE CHEERLEADER                
+#    GENERATE THE WORLD. GENERATE THE CHEERLEADER
+# Make an GeoMip Instance in this tile             
         HFname = self.tileInfo[tileID][0]
         texList = self.tileInfo[tileID][1]
 
@@ -244,22 +245,6 @@ class terrainManager(tileManager):
 #        except:
 #            print "  --> failed to setup terrain"
 #            return []
-
-# TRY TO ADD TREES HERE
-#TODO: I STILL THINK NEED AN OBJMANAGER CLASS AND MOVE OUT OF HERE.
-    def placeObjects(self,tileID):
-        if self.objectInfo.has_key(tileID):
-            for obj in self.objectInfo[tileID]:
-    #            obj[2] = 'resources/models/sampleTree.bam'    # DEBUG OVERRIDE TO TEST MODEL
-    #            obj[1] = 1.0
-                tmpModel = loader.loadModel(obj[2]) # name
-                tmpModel.reparentTo(self.parentNode)
-                obj_Z = self.getElevation(obj[0])
-#TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
-# only if valid obj_Z do the next part.
-                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
-                tmpModel.setScale(obj[1])
-                tmpModel.setH(random.randint(0,360))
                
     def getElevation(self,worldPos):
         ij = tileManager.ijTile(self,worldPos)
@@ -281,3 +266,23 @@ class terrainManager(tileManager):
 #            tile.setHeightfield(tile.heightfield()*nf)
                 tile.update()
         return task.cont
+
+class objectManager(tileManager):
+    def __init__(self):
+        tileManager.__init__(self,parentNode,tileScale,delay=1,**kwargs)        
+        self.objectInfo = kwargs['objDict']
+        self.addTile(self.curIJ)            
+
+    def setupTile(self,tileID):
+        if self.tileInfo.has_key(tileID):
+            for obj in self.tileInfo[tileID]:
+    #            obj[2] = 'resources/models/sampleTree.bam'    # DEBUG OVERRIDE TO TEST MODEL
+    #            obj[1] = 1.0
+                tmpModel = loader.loadModel(obj[2]) # name
+                tmpModel.reparentTo(self.parentNode)
+                obj_Z = self.getElevation(obj[0])
+#TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
+# only if valid obj_Z do the next part.
+                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
+                tmpModel.setScale(obj[1])
+                tmpModel.setH(random.randint(0,360))

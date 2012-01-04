@@ -113,8 +113,9 @@ class World(ShowBase):
 #        initText.setText("Starting Terrain Manager...")       
         tileInfo = enumerateMapTiles(_mapName,16)              
         self.ttMgr = terrainManager(parentNode=self.terraNode, tileScale=_terraScale, \
-        focusNode=self.avnp, infoDict=tileInfo, objDict=treeLocs)
-  
+        focusNode=self.avnp, infoDict=tileInfo)
+        self.objMgr = objectManager(infoDict=treeLocs)
+        
 #        initText.setText("Checking the time...")
         self.initTime = time.time()
         self.worldTime = self.initTime
