@@ -69,10 +69,7 @@ class tileManager:
     removeTileQueue = []
     lastAddTime = 0
     
-    def __init__(self,parentNode,tileScale=(1,1,1), delay=1, **kwargs ):
-        self.minAddDelay = delay
-        self.tileScale = tileScale # easiest if this is left smae for all tiles
-        self.parentNode = parentNode
+    def __init__(self, **kwargs ):
         self.tileInfo = kwargs['infoDict']
         self.tiles = {}
         self.refreshTileList() # need to initialize the addlist
@@ -142,7 +139,10 @@ class tileManager:
 class terrainManager(tileManager):
     
     def __init__(self,parentNode,tileScale=(1,1,1), delay=1, **kwargs ):
-        tileManager.__init__(self,parentNode,tileScale,delay=1,**kwargs)        
+        tileManager.__init__(self, **kwargs)
+        self.parentNode = parentNode
+        self.minAddDelay = delay
+        self.tileScale = tileScale
         self.LODfocusNode = kwargs['focusNode']
 #        self.objectInfo = kwargs['objDict']
         # COULD just init the addlist and let the task do the loading        
@@ -268,19 +268,22 @@ class terrainManager(tileManager):
         return task.cont
 
 class objectManager(tileManager):
-    def __init__(self):
-        tileManager.__init__(self,parentNode,tileScale,delay=1,**kwargs)        
-        self.objectInfo = kwargs['objDict']
+    def __init__(self,**kwargs):
+        tileManager.__init__(self,**kwargs)        
+        self.parentNode = kwargs['parentNode']
+        self.LODfocusNode = kwargs['focusNode']
+        self.zFunc = kwargs['zFunc']
         self.addTile(self.curIJ)            
 
     def setupTile(self,tileID):
         if self.tileInfo.has_key(tileID):
             for obj in self.tileInfo[tileID]:
     #            obj[2] = 'resources/models/sampleTree.bam'    # DEBUG OVERRIDE TO TEST MODEL
-    #            obj[1] = 1.0
+                print "overriding tree scales"
+                obj[1] = 1.0
                 tmpModel = loader.loadModel(obj[2]) # name
                 tmpModel.reparentTo(self.parentNode)
-                obj_Z = self.getElevation(obj[0])
+                obj_Z = self.zFunc(obj[0])
 #TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
 # only if valid obj_Z do the next part.
                 tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)

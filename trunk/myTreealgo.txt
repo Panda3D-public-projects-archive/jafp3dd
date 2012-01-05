@@ -7,6 +7,7 @@ Created on Wed Dec 28 10:05:47 2011
 
 a bud:
     is a nodepath
+    has a heading, wrt parent (using the "tree" angle Func (in main loop initially)
     has a position, wrt parent (use branch nodes initially)
     has a attachLeaf method
         creates/loads a leafModel and texture 
@@ -20,8 +21,7 @@ a branch:
     is a geometry node (to be attached to a bud)
     has a total length
     has a root/base radius
-    has a heading, wrt parent bud (using the "tree" angle Func (in main loop initially)
-    has a collection of nodes defining geometry (including the root/base)
+    has a collection of nodes, including the root/base defining geometry
         a node radius function (with kwargs input)
         a node length/pos func (kwargs)
     has a list of buds(children):

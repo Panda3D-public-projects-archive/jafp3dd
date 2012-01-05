@@ -2,15 +2,15 @@
 
 # SETUP SOME PATH's
 import sys
-import platform
-if platform.system() == 'Windows':
-    sys.path.append('c:\Panda3D-1.7.2')
-    sys.path.append('c:\Panda3D-1.7.2\\bin')
+#import platform
+#if platform.system() == 'Windows':
+#    sys.path.append('c:\Panda3D-1.7.2')
+#    sys.path.append('c:\Panda3D-1.7.2\\bin')
 #else:
 #    sys.path.append('/usr/lib/panda3d')
 #    sys.path.append('/usr/share/panda3d')
 
-_DATAPATH_ = "./resources"
+_DATAPATH_ = "resources"
 
 import os.path
 from math import *
@@ -59,8 +59,8 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = 'models/char0.bam'
-#_AVMODEL_ = 'models/MrStix.x'
+#_AVMODEL_ = os.path.join('models','char0.bam')
+_AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 5
@@ -105,7 +105,8 @@ class World(ShowBase):
         self.terraNode.flattenStrong()
         self.avnp = render.attachNewNode("Avatar")
         self.skynp = render.attachNewNode("SkyDome")               
-
+        self.floralNode = render.attachNewNode('TreesAndFlowers')
+        
         print "Getting Tree Loc's"       
         treefile = open(os.path.join(_DATAPATH_,_treePath))        
         treeLocs = pickle.load(treefile)
@@ -114,7 +115,8 @@ class World(ShowBase):
         tileInfo = enumerateMapTiles(_mapName,16)              
         self.ttMgr = terrainManager(parentNode=self.terraNode, tileScale=_terraScale, \
         focusNode=self.avnp, infoDict=tileInfo)
-        self.objMgr = objectManager(infoDict=treeLocs)
+        self.objMgr = objectManager(parentNode=self.floralNode, focusNode=self.avnp,\
+        infoDict=treeLocs,zFunc=self.ttMgr.getElevation)
         
 #        initText.setText("Checking the time...")
         self.initTime = time.time()
