@@ -156,6 +156,7 @@ class Branch(NodePath):
         return self.nodeList
         
     def addNewBuds(self): 
+#TODO: GENERALIZE THIS SECTION
 #        budPos = budHpr = []
 #        rad = maxL = 0
             
@@ -178,7 +179,7 @@ class Branch(NodePath):
 #            budRot = random.randint(-hdg[1],hdg[1]) # add some noise to the trunk bud angles
             for i,h in enumerate(hdg):                        
                 angP = random.gauss(budP0,budPnoise)
-                angR = 0*random.randint(-45,45)
+                angR = random.randint(-45,45)
                 if i==0:
                     budHpr = Vec3(gH,gP,gR) # at least 1 branch continues on current heading                    
                 else:
@@ -338,14 +339,14 @@ if __name__ == "__main__":
     print numGens
     
     L0 = 2      # initial length
-    R0 = .2        # initial radius
+    R0 = .25        # initial radius
     numSegs = 8    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
-    lfact = 0.5   # length ratio between branch generations
+    lfact = 0.65   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
-    rTaper = .5 # taper factor; % reduction in radius between tip and base ends of branch
+    rTaper = .4 # taper factor; % reduction in radius between tip and base ends of branch
     budP0 = 70    # a new bud's nominal pitch angle
     
     budPnoise = 10 # variation in bud's pitch angle
@@ -369,7 +370,7 @@ if __name__ == "__main__":
     leafMod.setScale(.01)
     leafMod.flattenStrong()
     _LeafScale = 2
-    _DoLeaves = 0 # not ready for prime time; need to add drawLeaf to Tree Class
+    _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     bark = base.loader.loadTexture(_BarkTex_)    
 
@@ -377,11 +378,24 @@ if __name__ == "__main__":
     Params.update({'rTaper':rTaper,'R0':R0})
     Params.update(cXfactors = [(.05*R0,1,0),(.05*R0,2,0)],cYfactors = [(.05*R0,1,pi/2),(.05*R0,2,pi/2)])
 
-### GUTS OF "TREE" CLASS  
-    tree = GeneralTree(L0,R0,numSegs,bark,"my tree")    
-    tree.generate(Params)
-    tree.reparentTo(base.render)
+    np = 6
+    plts = range(np**2) # 6x6 array
+    ds = 5.0
+    for it in range(10):
+        tree = GeneralTree(L0,R0,numSegs,bark,"my tree")    
+        tree.generate(Params)
+        tree.reparentTo(base.render)
 
+        # DONE GENERATING. WRITE OUT UNSCALED MODEL
+        print "writing out file"
+        base.render.setScale(1)        
+        base.render.flattenStrong()
+        base.render.writeBamFile('./resources/models/sampleTree'+str(it)+'.bam')
+
+        p = random.choice(plts)
+        tx = ds*(p/np)
+        ty = ds*(p%np)
+        tree.setPos(tx,ty,0)
 
 ##############################
 
@@ -390,11 +404,6 @@ if __name__ == "__main__":
     ruler.setScale(.05,1,2) #2 unit tall board
     ruler.setTwoSided(1)
     ruler.reparentTo(base.render)
-
-    # DONE GENERATING. WRITE OUT UNSCALED MODEL
-    tree.setScale(1)        
-    tree.flattenStrong()
-#    trunk.write_bam_file('./resources/models/sampleTree.bam')
     
     def rotateTree(task):
         phi = 10*task.time
@@ -402,7 +411,7 @@ if __name__ == "__main__":
         return task.cont
     base.taskMgr.add(rotateTree,"merrygoround")
 
-    base.cam.setPos(0,-2*L0, L0/2)    
+    base.cam.setPos(0,-4*L0, L0/2)    
     base.setFrameRateMeter(1)    
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)
@@ -413,9 +422,12 @@ if __name__ == "__main__":
     base.run()
 
 #TODO: 
-#    2) choose "bud" locations other than branch nodes and random circumfrentially.
+#   - clean up: move branch Hpr out of bud and into child branch property
+#    - choose "bud" locations other than branch nodes and random circumfrentially.
 #    - numSegs to parameter into branch; numSegs = f(generation), fewer on younger
 #        prob set a buds per length var
+#    - COULD do a render to texture for the last limbs and leaves; define multiple plane 
+        # cross sections, create them, then append them to the last real node before RTT
 #     make parameters: probably still need a good Lfunc. 
 #     Distribute branches uniform around radius. 
 #     "Crown" the trunk; possibly branches. - single point; no rad func and connect all previous nodes to point
