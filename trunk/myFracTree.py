@@ -165,30 +165,24 @@ class Branch(NodePath):
 #        sampList = random.choice(budPosArr,nbud)
         
 #        sampList = random.sample(self.nodeList[_skipChildren:-1],5)
-        sampList = self.nodeList[_skipChildren:-1]
+        sampList = [self.nodeList[-1]]
         for nd in sampList: # just use nodes for now
             budPos = nd.pos
-            maxL = lfact*nd.d2t
+            maxL = lfact*self.length
             rad = rfact*nd.radius # NEW GEN RADIUS - THIS SHOULD BE A PARAMETER!!!
     
             #Child branch Ang func - orient the node after creation
-            if self.gen<1: # main trunk branches case
-                # trunk bud multiple variables
-                budsPerNode = random.randint(2,4)
-                hdg = range(0,360,360/budsPerNode)
-                budRot = random.randint(-hdg[1],hdg[1]) # add some noise to the trunk bud angles
-                for h in hdg:                        
-                    angP = random.gauss(90,5)
-                    budHpr = Vec3(h+budRot/2,0,angP)
-                    newBud = Bud(budPos,budHpr,)
-                    self.buds.append([budPos,rad,budHpr,maxL])
-            else: # flat branches only
-                angP = random.gauss(45,15)
-                side = random.choice((-1,1))
-                budHpr = Vec3(gH+side*angP,0,random.gauss(gR,10)) 
-                self.buds.append([budPos,rad,budHpr,maxL])
-                angP = random.gauss(45,15)
-                budHpr = Vec3(gH-side*angP,0,random.gauss(gR,10))  #lazy branch doubling...
+            # trunk bud multiple variables
+            budsPerNode = random.randint(2,4) + 1     # +1 since 1 branch will always "continue"
+            hdg = range(0,360,360/budsPerNode)
+#            budRot = random.randint(-hdg[1],hdg[1]) # add some noise to the trunk bud angles
+            for i,h in enumerate(hdg):                        
+                angP = random.gauss(budP0,budPnoise)
+                angR = 0*random.randint(-45,45)
+                if i==0:
+                    budHpr = Vec3(gH,gP,gR) # at least 1 branch continues on current heading                    
+                else:
+                    budHpr = Vec3(gH+h,angP,angR)
                 self.buds.append([budPos,rad,budHpr,maxL])
                 
     def interpLen(self,inLen):
@@ -242,7 +236,7 @@ class Branch(NodePath):
         rTaper = kwargs['rTaper']
         relPos = kwargs['position']
 #        R0 = kwargs['R0']
-        newRad = rTaper*self.R0*(1 - relPos) # linear taper Vs length. pretty typical        
+        newRad = self.R0*(1 - rTaper*relPos) # linear taper Vs length. pretty typical        
         return newRad
 
 class Tree(list):
@@ -276,24 +270,24 @@ if __name__ == "__main__":
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
 
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 1    # number of branch generations to calculate (0=trunk only)
+    numGens = 3    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
-    L0 = 10.0 # initial length
-    numSegs = 10    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
-    posNoise = 0.2    # random noise in The XY plane around the growth axis of a branch
-    budPerLen = 2
-    minBudSpacing = .2
+    L0 = 1.7      # initial length
+    R0 = .2        # initial radius
+    numSegs = 8    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     
-    lfact = 0.5    # length ratio between branch generations
-    Lnoise = 0.2    # percent(0-1) length variation of new branches
-    _skipChildren = int(numSegs/5) + 1 # how many nodes in from the base to exclude from children list; +1 to always exclude base
-    # often skipChildren works best as a function of total lenggth, not just node count    
+    _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
+    lfact = 0.7   # length ratio between branch generations
+    # often skipChildren works best as a function of total lenggth, not just node count        
+    rfact = 1     # radius ratio between generations
+    rTaper = .33 # taper factor; % reduction in radius between tip and base ends of branch
+    budP0 = 70    # a new bud's nominal pitch angle
     
-    R0 = .2 #initial radius
-    rfact = 1*lfact     # radius ratio between generations
-    rTaper = 0.8 # taper factor; % reduction in radius between tip and base ends of branch
-    bNodeRadNoise = 0.4 # EXPERIMENTAL: ADDING RADIAL NOISE
+    budPnoise = 10 # variation in bud's pitch angle
+    bNodeRadNoise = 0.1 # EXPERIMENTAL: ADDING Vertex RADIAL NOISE for shape interest
+    posNoise = 0.0    # random noise in The XY plane around the growth axis of a branch
+    Lnoise = 0.7    # percent(0-1) length variation of new branches
 
     _uvScale = (1,1) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
@@ -308,7 +302,9 @@ if __name__ == "__main__":
     
     leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
     leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
-    _LeafScale = .02
+    leafMod.setScale(.01)
+    leafMod.flattenStrong()
+    _LeafScale = 2
     _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     base.cam.setPos(0,-2*L0, L0/2)
@@ -323,11 +319,11 @@ if __name__ == "__main__":
     Params = {'L':L0,'nSegs':numSegs,'Anoise':posNoise*R0,'upVector':_UP_}
     Params.update({'rTaper':rTaper,'R0':R0})
     Params.update(cXfactors = [(.05*R0,1,0),(.05*R0,2,0)],cYfactors = [(.05*R0,1,pi/2),(.05*R0,2,pi/2)])
+   
     trunk = Branch("Trunk",L0,R0,2*numSegs)
-    trunk.setTwoSided(1)    
+    trunk.setTexture(bark)
     trunk.reparentTo(base.render)
     trunk.generate(Params)
-    trunk.setTexture(bark)
     trunk.addNewBuds()
 
     children = [trunk] # each node in the trunk will span a branch 
@@ -340,6 +336,8 @@ if __name__ == "__main__":
         for thisBranch in children:
             for ib,bud in enumerate(thisBranch.buds):
                 # Create Child NodePath instance
+                
+                # experimental curvature terms
                 Params.update(cXfactors = [(.05*bud[3]*random.gauss(0,.333),0.25,0),
                                               (.05*bud[3]*random.gauss(0,.333),.5,0),
                                                 (.05*bud[3]*random.gauss(0,.333),.75,0),
@@ -381,8 +379,8 @@ if __name__ == "__main__":
     if _DoLeaves:
         print "adding foliage...hack adding to nodes, not buds!"
         for thisBranch in children:
-            for node in thisBranch.nodeList[_skipChildren:]:
-                drawLeaf(thisBranch,node.pos,_LeafScale)
+#            for node in thisBranch.nodeList[_skipChildren:]:
+            drawLeaf(thisBranch,thisBranch.nodeList[-1].pos,_LeafScale)
 
 ##############################
 
@@ -407,7 +405,7 @@ if __name__ == "__main__":
     base.accept('escape',sys.exit)
     base.accept('z',base.toggleWireframe)
 #    pycallgraph.make_dot_graph('treeXpcg.png')
-    base.setBackgroundColor((.9,.9,1))
+    base.setBackgroundColor((.1,.6,1))
     base.render.analyze()
     base.run()
 

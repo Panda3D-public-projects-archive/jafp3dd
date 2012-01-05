@@ -271,7 +271,7 @@ class DefaultTree(FractalTree):
             #if i % 3 == 0:
                 #decrease dimensions when we branch
                 #length = Vec3(length.getX() / 2, length.getY() / 2, length.getZ() / 1.1)
-            length = l[i-1] / sl ** (1 / 3)
+            length = length / sl
             l.append(length)
         return l
 
@@ -295,7 +295,7 @@ if __name__ == "__main__":
 #    base.cam.lookAt(base.render)
     base.setFrameRateMeter(1)
     _Nstep = 12
-    tree = DefaultTree(numIterations=64,branchEvery=.45,numBranches=3,maxAngle=60, maxBend=20, lenScale = 2)
+    tree = DefaultTree(numIterations=64,branchEvery=.8,numBranches=3,maxAngle=60, maxBend=20, lenScale = 1.25)
     tree.reparentTo(base.render)
     #make an optimized snapshot of the current tree
 #    np = t.getStatic()
