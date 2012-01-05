@@ -69,8 +69,8 @@ class tileManager:
     removeTileQueue = []
     lastAddTime = 0
     
-    def __init__(self, **kwargs ):
-        self.tileInfo = kwargs['infoDict']
+    def __init__(self, infoDict, **kwargs ):
+        self.tileInfo = infoDict
         self.tiles = {}
         self.refreshTileList() # need to initialize the addlist
                 
@@ -138,8 +138,8 @@ class tileManager:
 
 class terrainManager(tileManager):
     
-    def __init__(self,parentNode,tileScale=(1,1,1), delay=1, **kwargs ):
-        tileManager.__init__(self, **kwargs)
+    def __init__(self,info, parentNode,tileScale=(1,1,1), delay=1, **kwargs ):
+        tileManager.__init__(self,info, **kwargs)
         self.parentNode = parentNode
         self.minAddDelay = delay
         self.tileScale = tileScale
@@ -268,8 +268,8 @@ class terrainManager(tileManager):
         return task.cont
 
 class objectManager(tileManager):
-    def __init__(self,**kwargs):
-        tileManager.__init__(self,**kwargs)        
+    def __init__(self,info, **kwargs):
+        tileManager.__init__(self,info,**kwargs)        
         self.parentNode = kwargs['parentNode']
         self.LODfocusNode = kwargs['focusNode']
         self.zFunc = kwargs['zFunc']
@@ -278,11 +278,12 @@ class objectManager(tileManager):
     def setupTile(self,tileID):
         if self.tileInfo.has_key(tileID):
             for obj in self.tileInfo[tileID]:
-    #            obj[2] = 'resources/models/sampleTree.bam'    # DEBUG OVERRIDE TO TEST MODEL
+                r = random.randint(0,9)
+                obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
                 print "overriding tree scales"
                 obj[1] = 1.0
                 tmpModel = loader.loadModel(obj[2]) # name
-                tmpModel.reparentTo(self.parentNode)
+                tmpModel.instanceTo(self.parentNode)
                 obj_Z = self.zFunc(obj[0])
 #TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
 # only if valid obj_Z do the next part.

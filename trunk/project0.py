@@ -96,7 +96,7 @@ class World(ShowBase):
         ShowBase.__init__(self)
 #        initText = OnscreenText(text = str("Starting the world..."), pos = (0, 0.5), scale = 0.1, fg = (.8,.8,1,.5))       
         self.setBackgroundColor(_SKYCOLOR_)
-        self.setFrameRateMeter(0)
+        self.setFrameRateMeter(1)
         #app.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
 #        render.setShaderAuto()
@@ -113,10 +113,10 @@ class World(ShowBase):
         treefile.close()
 #        initText.setText("Starting Terrain Manager...")       
         tileInfo = enumerateMapTiles(_mapName,16)              
-        self.ttMgr = terrainManager(parentNode=self.terraNode, tileScale=_terraScale, \
-        focusNode=self.avnp, infoDict=tileInfo)
-        self.objMgr = objectManager(parentNode=self.floralNode, focusNode=self.avnp,\
-        infoDict=treeLocs,zFunc=self.ttMgr.getElevation)
+        self.ttMgr = terrainManager(tileInfo, parentNode=self.terraNode, tileScale=_terraScale, \
+        focusNode=self.avnp)
+        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
+        zFunc=self.ttMgr.getElevation)
         
 #        initText.setText("Checking the time...")
         self.initTime = time.time()
@@ -266,9 +266,9 @@ class World(ShowBase):
         self.aVmodel = loader.loadModel(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel.reparentTo(self.avnp)
 #        self.aVmodel.setScale(.5,.5,1)
-        self.aVmodel.setScale(.01)
+#        self.aVmodel.setScale(.01)
 #        self.aVmodel.setZ(.29)
-        self.aVmodel.setH(180)
+#        self.aVmodel.setH(180)
 #        self.aVmodel.setColor(.9,1,.9)
         avMat = Material()
         avMat.setShininess(0)
@@ -277,7 +277,7 @@ class World(ShowBase):
         self.camera.reparentTo(self.avnp)
         self.camera.setY(-10)
         self.camera.lookAt(self.avnp)
-#        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 
     def setupTrees(self):
                 
@@ -323,7 +323,7 @@ class World(ShowBase):
 
    
     def setupKeys(self):
-        _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'control-w'}
+        _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
            
         self.accept(_KeyMap['left'],self.turn,[1])
         self.accept(_KeyMap['left']+"-up",self.turn,[0])
@@ -426,7 +426,7 @@ class World(ShowBase):
         # POSSIBLE PERFOMANCE ISSUE HERE. Couldget the current tile once and only call a new one at boundary
         
         self.ttMgr.updatePos(self.avnp.getPos())
-#        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
+        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
     
     
