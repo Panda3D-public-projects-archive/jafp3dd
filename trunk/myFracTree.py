@@ -335,24 +335,24 @@ if __name__ == "__main__":
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
 
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 3    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
+    numGens = 2    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
     L0 = 4      # initial length
-    R0 = .5        # initial radius
-    numSegs = 5    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    R0 = 1        # initial radius
+    numSegs = 2    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
-    lfact = 0.65   # length ratio between branch generations
+    lfact = 0.7   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
     rTaper = .6 # taper factor; % reduction in radius between tip and base ends of branch
-    budP0 = 60    # a new bud's nominal pitch angle
+    budP0 = 45    # a new bud's nominal pitch angle
     
     budPnoise = 10 # variation in bud's pitch angle
     bNodeRadNoise = 0.1 # EXPERIMENTAL: ADDING Vertex RADIAL NOISE for shape interest
     posNoise = 0.0    # random noise in The XY plane around the growth axis of a branch
-    Lnoise = 2    # percent(0-1) length variation of new branches
+    Lnoise = 3    # percent(0-1) length variation of new branches
 
     _uvScale = (1,1) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
@@ -361,16 +361,16 @@ if __name__ == "__main__":
 
     # LEAF PARAMETERS
 #    _LeafTex = 'Green Leaf.png'
-#    _LeafModel = 'myLeafModel2.x'
-    _LeafModel = 'shrubbery'
-    _LeafTex = 'material-10-cl.png'
+    _LeafModel = 'myLeafModel5.x'
+#    _LeafModel = 'shrubbery'
+#    _LeafTex = 'material-10-cl.png'
     
-    leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
+#    leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
     leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
-    leafMod.setScale(.01)
+#    leafMod.setScale(.01)
     leafMod.flattenStrong()
     _LeafScale = 2
-    _DoLeaves = 0 # not ready for prime time; need to add drawLeaf to Tree Class
+    _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     bark = base.loader.loadTexture(_BarkTex_)    
 

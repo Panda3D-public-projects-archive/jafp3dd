@@ -13,7 +13,7 @@ import time, random
 _BLOCKSIZE_ = 32    # for LOD chunking
 _LODNEAR_ = 64 # ideal = Fog min distance
 _LODFAR_ = 192
-_Brute = False # use brute force
+_Brute = True # use brute force
 
 # This should probably go in its own file  
 class ScalingGeoMipTerrain(GeoMipTerrain):
@@ -276,14 +276,14 @@ class objectManager(tileManager):
         self.addTile(self.curIJ)            
 
     def setupTile(self,tileID):
+        print "overriding tree models"
         tileNode = self.parentNode.attachNewNode('tile'+str(tileID))
         tileNode.reparentTo(self.parentNode)
         if self.tileInfo.has_key(tileID):
             for obj in self.tileInfo[tileID]:
                 r = random.randint(0,9)
                 obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
-                print "overriding tree scales"
-                obj[1] = 1.0
+#                obj[1] = 1.0
                 tmpModel = loader.loadModel(obj[2]) # name
                 tmpModel.instanceTo(tileNode)
                 obj_Z = self.zFunc(obj[0])
