@@ -32,7 +32,7 @@ import pickle
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 1
+_DoFog = 0
 _ShowOcean = 0
 _ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
@@ -99,13 +99,13 @@ class World(ShowBase):
         self.setFrameRateMeter(1)
         #app.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
-#        render.setShaderAuto()
+        render.setShaderAuto()
         
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
         self.avnp = render.attachNewNode("Avatar")
         self.skynp = render.attachNewNode("SkyDome")               
-        self.floralNode = render.attachNewNode('TreesAndFlowers')
+        self.floralNode = self.terraNode.attachNewNode('TreesAndFlowers') # child to inherit terrain fog
         
         print "Getting Tree Loc's"       
         treefile = open(os.path.join(_DATAPATH_,_treePath))        
