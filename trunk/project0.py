@@ -63,7 +63,7 @@ fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 _AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
-_WALKRATE_ = 5
+_WALKRATE_ = 15
 _MINCAMDIST_ = 1
 _MaxCamDist = 15
  
@@ -207,6 +207,8 @@ class World(ShowBase):
         taskMgr.add(self.updateCamera,"UpdateCamera")
         taskMgr.setupTaskChain('TileUpdates',numThreads=16,threadPriority=2,frameBudget=0.01,frameSync=True)
         taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
+        taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
+
 #        initText.setText("Done with init...")
 #        initText.destroy()
 ###############
@@ -278,49 +280,6 @@ class World(ShowBase):
         self.camera.setY(-10)
         self.camera.lookAt(self.avnp)
         self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
-
-    def setupTrees(self):
-                
-        # the model/texture loading;  is client side 
-#        treeTex = loader.loadTexture(os.path.join(_DATAPATH_,'trees','Abies_lasiocarpa__subalpine_fir02_256.tiff')) # some web source
-#        treeTex.setWrapU(Texture.WMClamp)
-#        treeTex.setWrapU(Texture.WMClamp)
-#        
-#        treeModel = loader.loadModel(os.path.join(_DATAPATH_,'models','plane')) # borrowed from panda tutorial
-#        treeModel.setTexture(treeTex)
-#        treeModel.setPos(0,0,.5) 
-#        treeModel.setTransparency(1)
-#        treeModel.setTwoSided(1)
-#        treeModel.setBillboardAxis()
-#        treeMat = Material()
-#        treeMat.setShininess(0)
-#        treeMat.setAmbient((1,1,1,1))
-#        treeModel.setMaterial(treeMat)
-   
-#        treeTex2 = loader.loadTexture(os.path.join(_DATAPATH_,'trees', 'Abies_lasiocarpa__subalpine_fir02_256.tiff')) # some web source
-#        treeTex2.setWrapU(Texture.WMClamp)
-#        treeTex2.setWrapV(Texture.WMClamp)
-        
-        tmpModel = loader.loadModel(os.path.join(_DATAPATH_,'models',_treeModel)) # borrowed from panda tutorial
-        treeModel2 = NodePath('treeModel')
-        tmpModel.getChildren().reparentTo(treeModel2)
-        treeModel2.setScale(1)
-#        bm2Tex = baseModel2.getTexture()
-#        bm2Tex.setTexScale(TextureStage.getDefault(),1,1)
-        
-#        baseModel2 = loader.loadModel(os.path.join(_DATAPATH_,'models','plane')) # borrowed from panda tutorial
-#        baseModel2.setMaterial(treeMat)        
-#        baseModel2.setTexture(treeTex2)
-#        baseModel2.setPos(0,0,.5) 
-#        baseModel2.setTransparency(1)
-#        baseModel2.setTwoSided(1)
-
-#        treeModel2 = self.terraNode.attachNewNode('treeModel2')
-#        for nang in range(0,180,60):
-#            subInst = treeModel2.attachNewNode('T2subAngles')
-#            subInst.setH(nang)
-#            baseModel2.instanceTo(subInst)
-
    
     def setupKeys(self):
         _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
@@ -426,6 +385,8 @@ class World(ShowBase):
         # POSSIBLE PERFOMANCE ISSUE HERE. Couldget the current tile once and only call a new one at boundary
         
         self.ttMgr.updatePos(self.avnp.getPos())
+        self.objMgr.curIJ = self.ttMgr.curIJ # sync terrain manager loc and obj mgr
+
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
     
