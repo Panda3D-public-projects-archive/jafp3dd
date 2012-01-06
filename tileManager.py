@@ -69,7 +69,8 @@ class tileManager:
     removeTileQueue = []
     lastAddTime = 0
     
-    def __init__(self, infoDict, **kwargs ):
+    def __init__(self, infoDict, delay=1, **kwargs ):
+        self.minAddDelay = delay
         self.tileInfo = infoDict
         self.tiles = {}
         self.refreshTileList() # need to initialize the addlist
@@ -138,10 +139,9 @@ class tileManager:
 
 class terrainManager(tileManager):
     
-    def __init__(self,info, parentNode,tileScale=(1,1,1), delay=1, **kwargs ):
+    def __init__(self,info, parentNode,tileScale=(1,1,1), **kwargs ):
         tileManager.__init__(self,info, **kwargs)
         self.parentNode = parentNode
-        self.minAddDelay = delay
         self.tileScale = tileScale
         self.LODfocusNode = kwargs['focusNode']
 #        self.objectInfo = kwargs['objDict']
@@ -276,6 +276,8 @@ class objectManager(tileManager):
         self.addTile(self.curIJ)            
 
     def setupTile(self,tileID):
+        tileNode = self.parentNode.attachNewNode('tile'+str(tileID))
+        tileNode.reparentTo(self.parentNode)
         if self.tileInfo.has_key(tileID):
             for obj in self.tileInfo[tileID]:
                 r = random.randint(0,9)
@@ -283,10 +285,11 @@ class objectManager(tileManager):
                 print "overriding tree scales"
                 obj[1] = 1.0
                 tmpModel = loader.loadModel(obj[2]) # name
-                tmpModel.instanceTo(self.parentNode)
+                tmpModel.instanceTo(tileNode)
                 obj_Z = self.zFunc(obj[0])
 #TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
 # only if valid obj_Z do the next part.
                 tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
                 tmpModel.setScale(obj[1])
                 tmpModel.setH(random.randint(0,360))
+        return tileNode

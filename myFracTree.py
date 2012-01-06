@@ -174,7 +174,7 @@ class Branch(NodePath):
     
             #Child branch Ang func - orient the node after creation
             # trunk bud multiple variables
-            budsPerNode = random.randint(2,4) +1    # +1 since 1 branch will always "continue"
+            budsPerNode = random.randint(1,3) +1    # +1 since 1 branch will always "continue"
             hdg = range(0,360,360/budsPerNode)
 #            budRot = random.randint(-hdg[1],hdg[1]) # add some noise to the trunk bud angles
             for i,h in enumerate(hdg):                        
@@ -338,16 +338,16 @@ if __name__ == "__main__":
     numGens = 3    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
-    L0 = 2      # initial length
-    R0 = .25        # initial radius
-    numSegs = 8    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    L0 = 4      # initial length
+    R0 = .5        # initial radius
+    numSegs = 5    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
     lfact = 0.65   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
-    rTaper = .4 # taper factor; % reduction in radius between tip and base ends of branch
-    budP0 = 70    # a new bud's nominal pitch angle
+    rTaper = .6 # taper factor; % reduction in radius between tip and base ends of branch
+    budP0 = 60    # a new bud's nominal pitch angle
     
     budPnoise = 10 # variation in bud's pitch angle
     bNodeRadNoise = 0.1 # EXPERIMENTAL: ADDING Vertex RADIAL NOISE for shape interest
@@ -370,7 +370,7 @@ if __name__ == "__main__":
     leafMod.setScale(.01)
     leafMod.flattenStrong()
     _LeafScale = 2
-    _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
+    _DoLeaves = 0 # not ready for prime time; need to add drawLeaf to Tree Class
  
     bark = base.loader.loadTexture(_BarkTex_)    
 
@@ -388,9 +388,9 @@ if __name__ == "__main__":
 
         # DONE GENERATING. WRITE OUT UNSCALED MODEL
         print "writing out file"
-        base.render.setScale(1)        
-        base.render.flattenStrong()
-        base.render.writeBamFile('./resources/models/sampleTree'+str(it)+'.bam')
+        tree.setScale(1)        
+        tree.flattenStrong()
+        tree.writeBamFile('./resources/models/sampleTree'+str(it)+'.bam')
 
         p = random.choice(plts)
         tx = ds*(p/np)
