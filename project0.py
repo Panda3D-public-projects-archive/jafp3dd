@@ -11,6 +11,7 @@ from numpy import sign
 import time
      
 from direct.showbase.ShowBase import ShowBase
+from direct.actor.Actor import Actor
 #from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
@@ -52,8 +53,7 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-#_AVMODEL_ = os.path.join('models','char0.bam')
-_AVMODEL_ = os.path.join('models','MrStix.x')
+_AVMODEL_ = os.path.join('models','ludwig.egg')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 4
@@ -61,7 +61,7 @@ _MINCAMDIST_ = 1
 _MaxCamDist = 15
  
 # TERRAIN SETTINGS
-_terraScale = (1,1,40) # xy scaling not working right as of 12-10-11. prob the LOD impacts
+_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
 _mapName='map2/map2'
 _templ = '%s_%s.x%dy%d.%s' #terrain image name template
 _treePath = 'map1/treeList.dat'
@@ -108,8 +108,8 @@ class World(ShowBase):
         tileInfo = enumerateMapTiles(_mapName,16)              
         self.ttMgr = terrainManager(tileInfo, parentNode=self.terraNode, tileScale=_terraScale, \
         focusNode=self.avnp)
-        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
-        zFunc=self.ttMgr.getElevation)
+#        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
+#        zFunc=self.ttMgr.getElevation)
         
 #        initText.setText("Checking the time...")
         self.initTime = time.time()
@@ -200,12 +200,13 @@ class World(ShowBase):
         taskMgr.add(self.updateCamera,"UpdateCamera")
         taskMgr.setupTaskChain('TileUpdates',numThreads=16,threadPriority=2,frameBudget=0.01,frameSync=True)
         taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
-        taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
-
+#        taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
+        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.setText("Done with init...")
 #        initText.destroy()
 ###############
-        render.analyze()
+#        render.analyze()
+        
     def setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
 #        npDome = loader.loadModel(os.path.join(_DATAPATH_,_SkyModel))
@@ -258,11 +259,15 @@ class World(ShowBase):
 #        ruler.setTwoSided(1)
 #        ruler.reparentTo(self.avnp)
 
-        self.aVmodel = loader.loadModel(os.path.join(_DATAPATH_,_AVMODEL_))
+#        self.aVmodel = loader.loadModel(os.path.join(_DATAPATH_,_AVMODEL_))
+        self.aVmodel = Actor(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel.reparentTo(self.avnp)
+        self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Eye_L")
+        print self.aVmodel.listJoints()
+        
 #        self.aVmodel.setScale(.5,.5,1)
-#        self.aVmodel.setScale(.01)
-#        self.aVmodel.setZ(.29)
+        self.aVmodel.setScale(1.0/6)
+#        self.aVmodel.setZ(1)
 #        self.aVmodel.setH(180)
 #        self.aVmodel.setColor(.9,1,.9)
         avMat = Material()
@@ -378,7 +383,7 @@ class World(ShowBase):
         # POSSIBLE PERFOMANCE ISSUE HERE. Couldget the current tile once and only call a new one at boundary
         
         self.ttMgr.updatePos(self.avnp.getPos())
-        self.objMgr.curIJ = self.ttMgr.curIJ # sync terrain manager loc and obj mgr
+#        self.objMgr.curIJ = self.ttMgr.curIJ # sync terrain manager loc and obj mgr
 
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
@@ -420,7 +425,12 @@ class World(ShowBase):
     #    print camVector                   
         return task.cont
   
-
+    def moveArm(self,task):
+        t = task.time/3.0
+        self.armCtrl.setHpr(0,90*sin(2*pi*t),0)
+        return task.cont
+    
+        
     def GetWorldTime(self):
         worldScaleFactor = 4
         self.worldTime = (time.time() - self.initTime) / worldScaleFactor

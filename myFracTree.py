@@ -237,7 +237,7 @@ class Branch(NodePath):
         rTaper = kwargs['rTaper']
         relPos = kwargs['position']
 #        R0 = kwargs['R0']
-        newRad = self.R0*(1 - rTaper*relPos) # linear taper Vs length. pretty typical        
+        newRad = self.R0*(1 - (1-rTaper)*relPos) # linear taper Vs length. pretty typical        
         return newRad
 
 class GeneralTree(NodePath):
@@ -292,7 +292,7 @@ class GeneralTree(NodePath):
                     lFunc = Lgen*(1-Lnoise/2 - Lnoise*random.random())
                     Params['Anoise'] = bud[1]*posNoise    # noise func of tree or branch?
                     Params.update({'L':lFunc,'nSegs':self.numSegs+1-gen})
-    
+                    Params.update({'rTaper':rTaper**gen})
                     newBr.setHpr(base.render,bud[2]) 
                     
                     #Create the actual geometry now
@@ -338,15 +338,16 @@ if __name__ == "__main__":
     numGens = 2    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
-    L0 = 8      # initial length
+    L0 = 6      # initial length
     R0 = 2        # initial radius
     numSegs = 6    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    taper0 = 1
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
-    lfact = 0.6   # length ratio between branch generations
+    lfact = 0.8   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
-    rTaper = .76 # taper factor; % reduction in radius between tip and base ends of branch
+    rTaper = .7 # taper factor; % reduction in radius between tip and base ends of branch
     budP0 = 45    # a new bud's nominal pitch angle
     
     budPnoise = 10 # variation in bud's pitch angle
@@ -354,7 +355,7 @@ if __name__ == "__main__":
     posNoise = 0.0    # random noise in The XY plane around the growth axis of a branch
     Lnoise = 3    # percent(0-1) length variation of new branches
 
-    _uvScale = (1,.5) #repeats per unit length (around perimeter, along the tree axis) 
+    _uvScale = (2,1.0/3) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
     
@@ -371,7 +372,7 @@ if __name__ == "__main__":
     leafMod.setZ(-.5)
 #    leafMod.setScale(2,2,1)
     leafMod.flattenStrong()
-    _LeafScale = 3
+    _LeafScale = 4
     _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     bark = base.loader.loadTexture(_BarkTex_)    
