@@ -15,7 +15,7 @@ _scatter = 1
 _GridSpace = 2.4 # meters
 _startSeeds = 15000    # if not in grid mode(scatter=false), best if this is an int^2
 _growCycles = 8
-_minAge = .75    #simpleTree.x is 1/2 meter tall scale=1
+_minAge = .33    #simpleTree.x is 1/2 meter tall scale=1
 _maxAge = 3
 _modelID = 'resources/models/sampleTree.bam'
 _treeMap = './addcli_TM.png'

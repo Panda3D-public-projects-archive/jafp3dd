@@ -277,19 +277,38 @@ class objectManager(tileManager):
 
     def setupTile(self,tileID):
         print "overriding tree models"
+#        my_model.reparentTo(lod_np)
         tileNode = self.parentNode.attachNewNode('tile'+str(tileID))
         tileNode.reparentTo(self.parentNode)
         if self.tileInfo.has_key(tileID):
-            for obj in self.tileInfo[tileID]:
+            for obj in self.tileInfo[tileID]:                
                 r = random.randint(0,9)
                 obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
 #                obj[1] = 1.0
                 tmpModel = loader.loadModel(obj[2]) # name
-                tmpModel.instanceTo(tileNode)
+
                 obj_Z = self.zFunc(obj[0])
-#TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
-# only if valid obj_Z do the next part.
-                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
-                tmpModel.setScale(obj[1])
-                tmpModel.setH(random.randint(0,360))
+        #TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
+        # only if valid obj_Z do the next part.
+                self.attachLODobj([tmpModel],tileNode,(obj[0][0],obj[0][1],obj_Z),obj[1])
+#                tmpModel.instanceTo(lod_np)
+#                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
+#                tmpModel.setScale(obj[1])
+#                tmpModel.setH(random.randint(0,360))
         return tileNode
+        
+    def attachLODobj(self, modelList, attachNode,pos,state=1):
+        _TreeLODfar = 128
+        lodNode = FadeLODNode('Tree LOD node')
+        lodNP = NodePath(lodNode)
+        lodNP.reparentTo(attachNode)
+        lodNP.setPos(pos) #  offset of plane is -1/2 * Zscale
+        lodNP.setH(random.randint(0,360))
+        lodNP.setScale(state)
+        for i,model in enumerate(modelList):                
+            near = i*_TreeLODfar
+            far = near + _TreeLODfar
+#                print near,far,model
+            lodNode.addSwitch(far,near)
+#                if i==1: lodNP.setBillboardAxis()     # try billboard effect                        
+            model.instanceTo(lodNP)

@@ -25,7 +25,7 @@ from collections import namedtuple
 #import pycallgraph
 #pycallgraph.start_trace()
 
-_polySize = 7
+_polySize = 5
 
 
 class Bud(object):
@@ -338,15 +338,15 @@ if __name__ == "__main__":
     numGens = 2    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
-    L0 = 4      # initial length
-    R0 = 1        # initial radius
-    numSegs = 2    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    L0 = 8      # initial length
+    R0 = 2        # initial radius
+    numSegs = 6    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
-    lfact = 0.7   # length ratio between branch generations
+    lfact = 0.6   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
-    rTaper = .6 # taper factor; % reduction in radius between tip and base ends of branch
+    rTaper = .76 # taper factor; % reduction in radius between tip and base ends of branch
     budP0 = 45    # a new bud's nominal pitch angle
     
     budPnoise = 10 # variation in bud's pitch angle
@@ -354,22 +354,24 @@ if __name__ == "__main__":
     posNoise = 0.0    # random noise in The XY plane around the growth axis of a branch
     Lnoise = 3    # percent(0-1) length variation of new branches
 
-    _uvScale = (1,1) #repeats per unit length (around perimeter, along the tree axis) 
+    _uvScale = (1,.5) #repeats per unit length (around perimeter, along the tree axis) 
     _BarkTex_ = "barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
     
 
     # LEAF PARAMETERS
 #    _LeafTex = 'Green Leaf.png'
-    _LeafModel = 'myLeafModel5.x'
+    _LeafModel = 'myLeafModel6.x'
 #    _LeafModel = 'shrubbery'
 #    _LeafTex = 'material-10-cl.png'
     
 #    leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
     leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
 #    leafMod.setScale(.01)
+    leafMod.setZ(-.5)
+#    leafMod.setScale(2,2,1)
     leafMod.flattenStrong()
-    _LeafScale = 2
+    _LeafScale = 3
     _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     bark = base.loader.loadTexture(_BarkTex_)    
@@ -388,7 +390,8 @@ if __name__ == "__main__":
 
         # DONE GENERATING. WRITE OUT UNSCALED MODEL
         print "writing out file"
-        tree.setScale(1)        
+        tree.setScale(1) 
+        tree.setZ(-0.1)
         tree.flattenStrong()
         tree.writeBamFile('./resources/models/sampleTree'+str(it)+'.bam')
 
@@ -412,6 +415,7 @@ if __name__ == "__main__":
     base.taskMgr.add(rotateTree,"merrygoround")
 
     base.cam.setPos(0,-4*L0, L0/2)    
+    base.render.setShaderAuto()
     base.setFrameRateMeter(1)    
 #    base.toggleWireframe()
     base.accept('escape',sys.exit)

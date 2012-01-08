@@ -2,13 +2,6 @@
 
 # SETUP SOME PATH's
 import sys
-#import platform
-#if platform.system() == 'Windows':
-#    sys.path.append('c:\Panda3D-1.7.2')
-#    sys.path.append('c:\Panda3D-1.7.2\\bin')
-#else:
-#    sys.path.append('/usr/lib/panda3d')
-#    sys.path.append('/usr/share/panda3d')
 
 _DATAPATH_ = "resources"
 
@@ -32,10 +25,10 @@ import pickle
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 0
+_DoFog = 1
 _ShowOcean = 0
 _ShowSky = 0        # put up the sky dome
-_ShowClouds = 0
+_ShowClouds = 1
 
 # COLORS
 _DARKBLUE_ = VBase4(.0,.4,.7,1)
@@ -63,13 +56,13 @@ fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 _AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
-_WALKRATE_ = 15
+_WALKRATE_ = 4
 _MINCAMDIST_ = 1
 _MaxCamDist = 15
  
 # TERRAIN SETTINGS
 _terraScale = (1,1,40) # xy scaling not working right as of 12-10-11. prob the LOD impacts
-_mapName='map1/map1'
+_mapName='map2/map2'
 _templ = '%s_%s.x%dy%d.%s' #terrain image name template
 _treePath = 'map1/treeList.dat'
 
@@ -439,7 +432,7 @@ def enumerateMapTiles(dirName,N):
     tileList = {}
     for nx in range(N):
         for ny in range(N):
-            tileList.update({(nx,ny):(_templ%(dirName,'hm',nx,ny,'png'), _templ%(dirName,'tx',nx,ny,'jpg'))})
+            tileList.update({(nx,ny):(_templ%(dirName,'HM',nx,ny,'png'), _templ%(dirName,'TX',nx,ny,'png'))})
     return tileList
 
 #
