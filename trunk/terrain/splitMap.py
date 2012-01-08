@@ -7,16 +7,6 @@ Created on Fri Dec 02 12:58:39 2011
 
 from PIL import Image
 import sys
-import platform
-if platform.system() == 'Windows':
-    sys.path.append('c:\Panda3D-1.7.2')
-    sys.path.append('c:\Panda3D-1.7.2\\bin')
-    _DATAPATH_ = "./resources"
-else:
-    sys.path.append('/usr/lib/panda3d')
-    sys.path.append('/usr/share/panda3d')
-    _DATAPATH_ = "/home/shawn/Documents/project0/resources"
-
 
 from pandac.PandaModules import CardMaker
 from panda3d.core import NodePath, PNMImage, Texture
