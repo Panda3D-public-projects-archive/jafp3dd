@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<varlist name="ProjectData">
+	<int name="FileVersion">1</int>
+	<varlist name="MapInfo">
+		<varlist name="Terrain">
+			<int name="nx">1024</int>
+			<int name="ny">1024</int>
+			<float name="MinAlt">6.03154</float>
+			<float name="MaxAlt">289.388</float>
+			<float name="HorizScale">10</float>
+		</varlist>
+		<varlist name="Texture">
+			<int name="nx">8192</int>
+			<int name="ny">8192</int>
+		</varlist>
+		<bool name="WrapFlag">false</bool>
+	</varlist>
+	<varlist name="Maps">
+		<varlist name="HF">
+			<string name="Filename">map2_HF.hfz</string>
+			<string name="MapType">HF</string>
+		</varlist>
+		<varlist name="AM">
+			<string name="Filename">map2_AM.amf.gz</string>
+			<string name="MapType">AM</string>
+		</varlist>
+		<varlist name="TX">
+			<string name="Filename">map2_TX.jpg</string>
+			<string name="MapType">RGB</string>
+			<varlist name="MipMaps">
+				<int name="Step">2</int>
+				<int name="Max">8</int>
+			</varlist>
+		</varlist>
+	</varlist>
+	<varlist name="Climates">
+		<varlist name="Spring Greenworld (FA)">
+			<string name="Filename">C:\windows\profiles\shawn\L3DT\Resources\Pro 11.08.3.0\Climates\Spring Greenworld (FA)\Greenworld.cli.xml</string>
+		</varlist>
+	</varlist>
+</varlist>
