@@ -6,7 +6,8 @@ Created on Mon Nov 28 13:24:03 2011
 """
 
 import sys
-from direct.showbase.ShowBase import taskMgr
+import time
+from direct.showbase.ShowBase import taskMgr, ShowBase #SBase for global clock...clean up
 from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
@@ -15,13 +16,12 @@ from panda3d.core import *
 class serverApp(DirectObject):
     def __init__(self):
         DirectObject.__init__(self)
-#        self.OSD = OnscreenText(text = str("Starting the world..."), pos = (0.5, 0.5), scale = 0.5, fg = (.8,.8,1,.5))       
         print "Starting the world..."
         port_address = 9099
         backlog = 1000 
         self.activeConnections = []
         
-        print "Starting up the connections..."
+        print "Starting up Server Network Managers..."
         self.cManager = QueuedConnectionManager()
         self.cListener = QueuedConnectionListener(self.cManager,0)
         self.cReader = QueuedConnectionReader(self.cManager,0)
@@ -29,10 +29,10 @@ class serverApp(DirectObject):
 
         tcpSocket = self.cManager.openTCPServerRendezvous(port_address,backlog)        
         self.cListener.addConnection(tcpSocket)
-        print "Adding pollers..."
+        print "Server Adding pollers..."
         taskMgr.add(self.tskListenerPolling,'Poll connection listener',-39)
         taskMgr.add(self.tskReaderPolling,'Poll connection reader',-40)
-        print "Initialization completed successfully!"
+        print "Server Initialization completed successfully!"
         
     def tskListenerPolling(self,task):
 #        for con in self.activeConnections:
@@ -50,7 +50,6 @@ class serverApp(DirectObject):
                 newConnection = newConnection.p()
                 self.activeConnections.append(newConnection)
                 self.cReader.addConnection(newConnection)
-#        self.OSD.setText( "Open Connections: %d" % (len(self.activeConnections)) )
             print "Open Connections: %d" % (len(self.activeConnections))
         return task.cont
         
@@ -63,27 +62,54 @@ class serverApp(DirectObject):
             
             # check return value incase other thread grabbed data first
             if self.cReader.getData(datagram):
-    #            myProcessDataFunction(datagram)
-                 
-                 I = DatagramIterator(datagram)
-                 ds = I.getString()
-                 print ds
-                 if ds == 'ping':
-                     print "request recv - replying..."
-                     self.write('pong',datagram.getConnection())
-            
+                self.ProcessData(datagram)            
         return task.cont
 
     def write(self,message, toConnection):
-##TO DO: SERVER SIDE NEEDS TO KNOW WHERE TO SEND THE MESSAGE        
+#TODO: SERVER SIDE NEEDS TO KNOW WHERE TO SEND THE MESSAGE        
         datagram = NetDatagram()
         datagram.addString(message)
         self.cWriter.send(datagram, toConnection)
-        
 
-server = serverApp()
-#server.run()
-taskMgr.run()
+    def ProcessData(self,NetDatagram):
+        pass
+    
+class serverNPC(NodePath):
+    nextUpdate = 0
+    
+class WorldServer(serverApp):
+    def __init__(self):
+        serverApp.__init__(self)
+        self.npc = []
+        for n in range(10):
+            self.npc.append( serverNPC('thisguy'))
+            self.npc[n].setPos(128,128,0)
+        taskMgr.add(self.updateNPCs,'server NPCs')
+           
+    def updateNPCs(self,task):
+        for iNpc in self.npc:
+            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+                iNpc.makeChange(task.time)
+                self.network.write('time')
+            dt = globalClock.getDt()
+            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#            x,y,z = iNpc.getPos()
+#            iNpc.setZ(self.ttMgr.getElevation((x,y)))
+#TODO: What to do about terrain heights???
+        return task.cont   
+
+    def ProcessData(self,NetDatagram):
+        t0 = time.ctime()
+        I = DatagramIterator(datagram)
+        ds = I.getString()
+        if ds == 'time':
+            print t0," request recv - replying..."
+            self.write(t0,datagram.getConnection())
+
+if __name__ == '__main__':
+    server = WorldServer()
+    #server.run()
+    taskMgr.run()
         
         
                 
