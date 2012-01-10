@@ -69,7 +69,25 @@ _treePath = 'map1/treeList.dat'
 PStatClient.connect()
 #import pycallgraph
 #pycallgraph.start_trace()
-    
+
+class NPC(NodePath):
+    def __init__(self,nodeName,modelName,modelScale,parentNode):
+        NodePath.__init__(self,nodeName)
+        self.speed = 0
+        self.nextUpdate = 0
+        self.color = ((random.randint(0,255),random.randint(0,255),random.randint(0,255),1))
+        self.model = loader.loadModel(modelName)
+        self.model.reparentTo(self)
+        self.setScale(modelScale)
+        self.model.setColor(self.color)
+        self.reparentTo(parentNode)
+    def makeChange(self,ttime):
+        self.speed = 10*abs(random.gauss(0,.33333))
+        newH = random.gauss(0,60)
+        self.setH(self,newH) #key input steer
+        self.nextUpdate = ttime + random.randint(1,10) # randomize when to update next
+
+        
 class World(ShowBase):
     Kturn = 0
     Kwalk = 0
@@ -104,14 +122,18 @@ class World(ShowBase):
         treefile = open(os.path.join(_DATAPATH_,_treePath))        
         treeLocs = pickle.load(treefile)
         treefile.close()
-#        initText.setText("Starting Terrain Manager...")       
         tileInfo = enumerateMapTiles(_mapName,16)              
         self.ttMgr = terrainManager(tileInfo, parentNode=self.terraNode, tileScale=_terraScale, \
         focusNode=self.avnp)
-#        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
-#        zFunc=self.ttMgr.getElevation)
         
-#        initText.setText("Checking the time...")
+        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
+        zFunc=self.ttMgr.getElevation)
+        
+        self.npc = []
+        for n in range(10):
+            self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
+            self.npc[n].setPos(128,128,0)
+        
         self.initTime = time.time()
         self.worldTime = self.initTime
         
@@ -200,9 +222,10 @@ class World(ShowBase):
         taskMgr.add(self.updateCamera,"UpdateCamera")
         taskMgr.setupTaskChain('TileUpdates',numThreads=16,threadPriority=2,frameBudget=0.01,frameSync=True)
         taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
-#        taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
+        taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
+        taskMgr.add(self.updateNPCs,'NPC Updates')
+
         taskMgr.add(self.moveArm,'pjoint test')
-#        initText.setText("Done with init...")
 #        initText.destroy()
 ###############
 #        render.analyze()
@@ -237,10 +260,10 @@ class World(ShowBase):
         
     def setupLights(self):
         self.dlight = DirectionalLight('dlight')
-        self.dlight.setColor(VBase4(.59, .59, .59, 1))
+        self.dlight.setColor(VBase4(.5, .5, .5, 1))
 #        self.dlight.setShadowCaster(True,512,512)        
         self.dlnp = render.attachNewNode(self.dlight)
-        self.dlnp.setHpr(-90,-45,0)        
+        self.dlnp.setHpr(-90,15,0)        
         render.setLight(self.dlnp)
         
         self.alight = AmbientLight('alight')
@@ -263,7 +286,7 @@ class World(ShowBase):
         self.aVmodel = Actor(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel.reparentTo(self.avnp)
         self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Eye_L")
-        print self.aVmodel.listJoints()
+#        print self.aVmodel.listJoints()
         
 #        self.aVmodel.setScale(.5,.5,1)
         self.aVmodel.setScale(1.0/6)
@@ -434,6 +457,17 @@ class World(ShowBase):
     def GetWorldTime(self):
         worldScaleFactor = 4
         self.worldTime = (time.time() - self.initTime) / worldScaleFactor
+    
+    def updateNPCs(self,task):
+        for iNpc in self.npc:
+            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+                iNpc.makeChange(task.time)            
+            dt = globalClock.getDt()
+            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            x,y,z = iNpc.getPos()
+            iNpc.setZ(self.ttMgr.getElevation((x,y)))
+
+        return task.cont   
         
 def enumerateMapTiles(dirName,N):
     # map tiles must be saved in the format (dirName).hmXY.png 
