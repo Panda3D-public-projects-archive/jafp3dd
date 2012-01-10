@@ -5,7 +5,7 @@ Created on Thu Dec 01 13:47:28 2011
 @author: us997259
 """
 
-from random import random
+from random import random, randint
 import pickle
 from PDFImage import PDFImage
 
@@ -17,8 +17,8 @@ _startSeeds = 15000    # if not in grid mode(scatter=false), best if this is an 
 _growCycles = 8
 _minAge = .33    #simpleTree.x is 1/2 meter tall scale=1
 _maxAge = 3
-_modelID = 'resources/models/sampleTree.bam'
-_treeMap = './addcli_TM.png'
+_modelID = 'resources/models/sampleTree%d.bam'
+#_treeMap = './addcli_TM.png'
 _treeMap = './uniform_TM.png'
 
 def calcTileTrees(tileSize=None, minSep=None, Lx=None,Ly=None,numSeeds=_startSeeds, numCycles=_growCycles,minAge=_minAge,maxAge=_maxAge):  
@@ -36,7 +36,7 @@ def calcTileTrees(tileSize=None, minSep=None, Lx=None,Ly=None,numSeeds=_startSee
     for i in range(numSeeds):            
         loc.append([PM.getNewLocation()])
         loc[-1].append(min(maxAge,minAge + random())) # initial age/state=1
-        loc[-1].append(_modelID)
+        loc[-1].append(_modelID %(randint(0,9)))
         # Assign object location to a grid tile
         ij = (loc[-1][0][0]/Lx, loc[-1][0][1]/Ly)
         D.setdefault(ij,[]).append(loc[-1])
