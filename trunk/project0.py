@@ -53,7 +53,7 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = os.path.join('models','ludwig.egg')
+_AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 4
@@ -225,7 +225,7 @@ class World(ShowBase):
         taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
         taskMgr.add(self.updateNPCs,'NPC Updates')
 
-        taskMgr.add(self.moveArm,'pjoint test')
+#        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.destroy()
 ###############
 #        render.analyze()

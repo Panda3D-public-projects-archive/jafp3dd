@@ -8,21 +8,12 @@ Created on Tue Dec 13 14:54:51 2011
 
 # SETUP SOME PATH's
 import sys
-import platform
-if platform.system() == 'Windows':
-    sys.path.append('c:\Panda3D-1.7.2')
-    sys.path.append('c:\Panda3D-1.7.2\\bin')
-    _DATAPATH_ = "./resources"
-else:
-    sys.path.append('/usr/lib/panda3d')
-    sys.path.append('/usr/share/panda3d')
-    _DATAPATH_ = "/home/shawn/Documents/project0/resources"
 
-from direct.showbase.ShowBase import ShowBase   
-from panda3d.core import *
+from direct.showbase.ShowBase import taskMgr
+from direct.showbase.DirectObject import DirectObject
+from panda3d.core import * 
     
-    
-class netClient(ShowBase):
+class netClient(DirectObject):
     port_address=9099  # same for client and server
     ct = 0 
      # a valid server URL. You can also use a DNS name
@@ -33,19 +24,19 @@ class netClient(ShowBase):
     timeout_in_miliseconds=3000  # 3 seconds
 
     def __init__(self,addr=None):
-        ShowBase.__init__(self)
-        self.closeWindow(self.win)
-        if addr: self.ip_address = addr
+        DirectObject.__init__(self)
         self.cManager = QueuedConnectionManager()
         self.cReader = QueuedConnectionReader(self.cManager,0)
         self.cWriter = ConnectionWriter(self.cManager,0)
         print "Adding pollers..."
         taskMgr.add(self.tskReaderPolling,'Poll connection reader',-30)
         print "connecting to ", self.ip_address
-        self.connect()
+        if addr: 
+            self.connect(addr)
         print "Initialization completed successfully!"
     
-    def connect(self):
+    def connect(self,addr):
+        self.ip_address = addr
         self.myConnection=self.cManager.openTCPClientConnection(self.ip_address,self.port_address,self.timeout_in_miliseconds)
         if self.myConnection:
           self.cReader.addConnection(self.myConnection)  # receive messages from server
@@ -84,6 +75,6 @@ if __name__ == '__main__':
 
     
     client.write('ping',client.myConnection)
-    client.run()
+    taskMgr.run()
     print "out of the loop somehow!"
     client.cManager.closeConnection(myConnection)
