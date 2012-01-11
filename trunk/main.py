@@ -54,7 +54,7 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = os.path.join('models','ludwig.egg')
+_AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 4
@@ -83,7 +83,7 @@ class NPC(NodePath):
         self.model.setColor(self.color)
         self.reparentTo(parentNode)
     def makeChange(self,ttime):
-        self.speed = 10*abs(random.gauss(0,.33333))
+        self.speed = 1*abs(random.gauss(0,.33333))
         newH = random.gauss(0,60)
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + random.randint(1,10) # randomize when to update next
@@ -463,11 +463,11 @@ class World(ShowBase):
         self.worldTime = (time.time() - self.initTime) / worldScaleFactor
     
     def updateNPCs(self,task):
+        dt = globalClock.getDt()
         for iNpc in self.npc:
             if task.time > iNpc.nextUpdate:         # change direction and heading every so often
                 iNpc.makeChange(task.time)
                 self.network.write('time')
-            dt = globalClock.getDt()
             iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
             x,y,z = iNpc.getPos()
             iNpc.setZ(self.ttMgr.getElevation((x,y)))

@@ -14,9 +14,9 @@ from direct.showbase.DirectObject import DirectObject
 from panda3d.core import *
 
 
-class serverApp(ShowBase):
+class serverApp(DirectObject):
     def __init__(self):
-        ShowBase.__init__(self)
+        DirectObject.__init__(self)
         print "Starting the world..."
         port_address = 9099
         backlog = 1000 
@@ -85,6 +85,14 @@ class serverNPC(NodePath):
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + random.randint(1,10) # randomize when to update next
     
+#class NPCmanager():
+#
+#    queueMsq
+#
+#    def mgrTask(self,task):
+#        get some message from the Q
+#        split msg into func and data
+        
 class WorldServer(serverApp):
     def __init__(self):
         serverApp.__init__(self)
@@ -95,17 +103,17 @@ class WorldServer(serverApp):
         taskMgr.add(self.updateNPCs,'server NPCs')
            
     def updateNPCs(self,task):
+        dt = task.getDt()
         for iNpc in self.npc:
             if task.time > iNpc.nextUpdate:         # change direction and heading every so often
                 iNpc.makeChange(task.time)
-            dt = globalClock.getDt()
             iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            x,y,z = iNpc.getPos()
 #            iNpc.setZ(self.ttMgr.getElevation((x,y)))
 #TODO: What to do about terrain heights???
         return task.cont   
 
-    def ProcessData(self,NetDatagram):
+    def ProcessData(self,datagram):
         t0 = time.ctime()
         I = DatagramIterator(datagram)
         ds = I.getString()
@@ -115,8 +123,8 @@ class WorldServer(serverApp):
 
 if __name__ == '__main__':
     server = WorldServer()
-    server.run()
-#    taskMgr.run()
+#    server.run()
+    taskMgr.run()
         
         
                 
