@@ -6,16 +6,17 @@ Created on Mon Nov 28 13:24:03 2011
 """
 
 import sys
+import random
 import time
-from direct.showbase.ShowBase import taskMgr, ShowBase #SBase for global clock...clean up
+from direct.showbase.ShowBase import taskMgr, ShowBase
 from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
 
 
-class serverApp(DirectObject):
+class serverApp(ShowBase):
     def __init__(self):
-        DirectObject.__init__(self)
+        ShowBase.__init__(self)
         print "Starting the world..."
         port_address = 9099
         backlog = 1000 
@@ -76,6 +77,13 @@ class serverApp(DirectObject):
     
 class serverNPC(NodePath):
     nextUpdate = 0
+    speed = 0
+
+    def makeChange(self,ttime):
+        self.speed = 10*abs(random.gauss(0,.33333))
+        newH = random.gauss(0,60)
+        self.setH(self,newH) #key input steer
+        self.nextUpdate = ttime + random.randint(1,10) # randomize when to update next
     
 class WorldServer(serverApp):
     def __init__(self):
@@ -90,7 +98,6 @@ class WorldServer(serverApp):
         for iNpc in self.npc:
             if task.time > iNpc.nextUpdate:         # change direction and heading every so often
                 iNpc.makeChange(task.time)
-                self.network.write('time')
             dt = globalClock.getDt()
             iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            x,y,z = iNpc.getPos()
@@ -108,8 +115,8 @@ class WorldServer(serverApp):
 
 if __name__ == '__main__':
     server = WorldServer()
-    #server.run()
-    taskMgr.run()
+    server.run()
+#    taskMgr.run()
         
         
                 

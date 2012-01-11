@@ -27,9 +27,9 @@ from network.client import netClient
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 0
+_DoFog = 1
 _ShowOcean = 0
-_ShowSky = 0        # put up the sky dome
+_ShowSky = 1        # put up the sky dome
 _ShowClouds = 1
 
 # COLORS
@@ -40,8 +40,8 @@ _WHITE_= VBase4(1,1,1,1)
 
 
 # SKY PARMS
-_SkyTex = ('textures/sky0.png',1,1)
-#_Skytex = 'textures/skyTexPolar.png'
+#_SkyTex = ('textures/sky0.png',1,1)
+_SkyTex = ('textures/skyTexPolar.png',1,1)
 _SkyModel = 'textures/curved.png'
 _SKYCOLOR_ = _LIGHTBLUE_
 
@@ -54,12 +54,12 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = os.path.join('models','MrStix.x')
+_AVMODEL_ = os.path.join('models','ludwig.egg')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 4
 _MINCAMDIST_ = 1
-_MaxCamDist = 15
+_MaxCamDist = 20
  
 # TERRAIN SETTINGS
 _terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
@@ -267,7 +267,7 @@ class World(ShowBase):
         self.dlight.setColor(VBase4(.5, .5, .5, 1))
 #        self.dlight.setShadowCaster(True,512,512)        
         self.dlnp = render.attachNewNode(self.dlight)
-        self.dlnp.setHpr(-90,15,0)        
+        self.dlnp.setHpr(-90,-15,0)        
         render.setLight(self.dlnp)
         
         self.alight = AmbientLight('alight')
