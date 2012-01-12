@@ -89,7 +89,7 @@ class NPC(NodePath):
         self.nextUpdate = ttime + random.randint(1,10) # randomize when to update next
 
         
-class World(ShowBase):
+class World(ShowBase,netClient):
     Kturn = 0
     Kwalk = 0
     Kstrafe = 0
@@ -106,15 +106,14 @@ class World(ShowBase):
         
     def __init__(self):
         ShowBase.__init__(self)
-#        initText = OnscreenText(text = str("Starting the world..."), pos = (0, 0.5), scale = 0.1, fg = (.8,.8,1,.5))       
+        netClient.__init__(self)
         self.setBackgroundColor(_SKYCOLOR_)
         self.setFrameRateMeter(1)
         #app.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
         render.setShaderAuto()
         
-        self.network = netClient()
-        self.network.connect() # local loop if no address
+        self.connect() # local loop if no address
         
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
@@ -136,7 +135,7 @@ class World(ShowBase):
         self.npc = []
         for n in range(10):
             self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
-            self.npc[n].setPos(128,128,0)
+            self.npc[n].setPos(70,70,0)
         
         self.initTime = time.time()
         self.worldTime = self.initTime
@@ -463,16 +462,29 @@ class World(ShowBase):
         self.worldTime = (time.time() - self.initTime) / worldScaleFactor
     
     def updateNPCs(self,task):
-        dt = globalClock.getDt()
-        for iNpc in self.npc:
-            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
-                iNpc.makeChange(task.time)
-                self.network.write('time')
-            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-            x,y,z = iNpc.getPos()
-            iNpc.setZ(self.ttMgr.getElevation((x,y)))
+        pass
+#        dt = globalClock.getDt()
+#        for iNpc in self.npc:
+#            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+#                iNpc.makeChange(task.time)
+#                self.write('time')
+#            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#            x,y,z = iNpc.getPos()
+#            iNpc.setZ(self.ttMgr.getElevation((x,y)))
 
         return task.cont   
+
+    # NETWORK DATAGRAM PROCESSING
+    def ProcessData(self,datagram):
+        print time.ctime(),' <recv> ',
+        I = DatagramIterator(datagram)
+        for iNpc in self.npc:
+            if I.getRemainingSize() > 0:
+                x=I.getFloat32()
+                y =I.getFloat32()
+                z=I.getFloat32() # read it out because it is there
+                iNpc.setPos(x,y,self.ttMgr.getElevation((x,y)))
+        print "</>"
         
 def enumerateMapTiles(dirName,N):
     # map tiles must be saved in the format (dirName).hmXY.png 
@@ -498,5 +510,5 @@ def enumerateMapTiles(dirName,N):
 W = World()
 W.run()
 print "closing connection to server"
-W.network.disconnect()
+W.disconnect()
 #pycallgraph.make_dot_graph('test.png')

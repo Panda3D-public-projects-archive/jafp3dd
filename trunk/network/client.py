@@ -53,14 +53,12 @@ class netClient(DirectObject):
             
             # check return value incase other thread grabbed data first
             if self.cReader.getData(datagram):
-    #            myProcessDataFunction(datagram)
-                 print time.ctime(),' recv: ', datagram
-                 I = DatagramIterator(datagram)
-                 if I.getString() == 'pong':
-                     self.ct += 1
-                     self.write('ping',datagram.getConnection())
-                 
+                self.ProcessData(datagram)
         return task.cont
+
+    def ProcessData(self,datagram):
+        print time.ctime(),' <recv> ',
+        print "</>"
 
     def write(self,message,toCon=None):
         if self.myConnection or toCon:        
