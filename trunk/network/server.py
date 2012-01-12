@@ -129,12 +129,14 @@ class WorldServer(serverApp):
 #TODO: What to do about terrain heights???
             for cv in iNpc.getPos():           
                 datagram.addFloat32(cv)
-                
+            for cv in iNpc.getHpr():           
+                datagram.addFloat32(cv)
+            datagram.addFloat32(iNpc.speed)
         # send x,y,z's to client(s)
         if time.time() > self.nextTx:
             for client in self.activeConnections:
                 self.cWriter.send(datagram, client)
-            self.nextTx = time.time() + 0.100
+            self.nextTx = time.time() + 1.100
         return task.cont   
 
 if __name__ == '__main__':
