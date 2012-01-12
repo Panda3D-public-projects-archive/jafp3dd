@@ -76,6 +76,7 @@ class serverApp(DirectObject):
         pass
     
 class serverNPC(NodePath):
+# Data needed to sync: x,y,z,h,p,r,speed
     nextUpdate = 0
     speed = 0
 
@@ -83,46 +84,62 @@ class serverNPC(NodePath):
         self.speed = 10*abs(random.gauss(0,.33333))
         newH = random.gauss(0,60)
         self.setH(self,newH) #key input steer
-        self.nextUpdate = ttime + random.randint(1,10) # randomize when to update next
+        self.nextUpdate = ttime + 5*random.random() # randomize when to update next
+    
     
 #class NPCmanager():
+#    def __init__(self):
 #
 #    queueMsq
 #
 #    def mgrTask(self,task):
 #        get some message from the Q
 #        split msg into func and data
+
         
 class WorldServer(serverApp):
     def __init__(self):
         serverApp.__init__(self)
+        self.nextTx = 0
         self.npc = []
         for n in range(10):
-            self.npc.append( serverNPC('thisguy'))
-            self.npc[n].setPos(128,128,0)
+            self.npc.append( serverNPC('thisguy'+str(n)))
+            self.npc[n].setPos(70,70,0)
         taskMgr.add(self.updateNPCs,'server NPCs')
-           
-    def updateNPCs(self,task):
-        dt = task.getDt()
-        for iNpc in self.npc:
-            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
-                iNpc.makeChange(task.time)
-            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#            x,y,z = iNpc.getPos()
-#            iNpc.setZ(self.ttMgr.getElevation((x,y)))
-#TODO: What to do about terrain heights???
-        return task.cont   
-
+        
     def ProcessData(self,datagram):
         t0 = time.ctime()
         I = DatagramIterator(datagram)
         ds = I.getString()
         if ds == 'time':
-            print t0," request recv - replying..."
-            self.write(t0,datagram.getConnection())
+            print t0," request recv - NOT replying..."
+#            self.write(t0,datagram.getConnection())
+
+    def updateNPCs(self,task):
+        dt = task.getDt()
+        datagram = NetDatagram()
+
+        for iNpc in self.npc:
+            if time.time() > iNpc.nextUpdate:         # change direction and heading every so often
+                iNpc.makeChange(task.time)
+            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#            poslist.append(iNpc.getPos())
+            x,y,z = iNpc.getPos()
+#            iNpc.setZ(self.ttMgr.getElevation((x,y)))
+#TODO: What to do about terrain heights???
+            for cv in iNpc.getPos():           
+                datagram.addFloat32(cv)
+                
+        # send x,y,z's to client(s)
+        if time.time() > self.nextTx:
+            for client in self.activeConnections:
+                self.cWriter.send(datagram, client)
+            self.nextTx = time.time() + 0.100
+        return task.cont   
 
 if __name__ == '__main__':
     server = WorldServer()
+#    nMgr = NPCmanager()
 #    server.run()
     taskMgr.run()
         
