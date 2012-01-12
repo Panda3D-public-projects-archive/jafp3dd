@@ -462,15 +462,14 @@ class World(ShowBase,netClient):
         self.worldTime = (time.time() - self.initTime) / worldScaleFactor
     
     def updateNPCs(self,task):
-        pass
-#        dt = globalClock.getDt()
-#        for iNpc in self.npc:
-#            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
-#                iNpc.makeChange(task.time)
-#                self.write('time')
-#            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#            x,y,z = iNpc.getPos()
-#            iNpc.setZ(self.ttMgr.getElevation((x,y)))
+        dt = globalClock.getDt()
+        for iNpc in self.npc:
+            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+                iNpc.makeChange(task.time)
+                self.write('time')
+            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            x,y,z = iNpc.getPos()
+            iNpc.setZ(self.ttMgr.getElevation((x,y)))
 
         return task.cont   
 
@@ -481,9 +480,15 @@ class World(ShowBase,netClient):
         for iNpc in self.npc:
             if I.getRemainingSize() > 0:
                 x=I.getFloat32()
-                y =I.getFloat32()
+                y=I.getFloat32()
                 z=I.getFloat32() # read it out because it is there
+                h=I.getFloat32()
+                p=I.getFloat32()
+                r=I.getFloat32() # read it out because it is there
+                s=I.getFloat32()
                 iNpc.setPos(x,y,self.ttMgr.getElevation((x,y)))
+                iNpc.setHpr(h,p,r)
+                iNpc.speed = s
         print "</>"
         
 def enumerateMapTiles(dirName,N):
