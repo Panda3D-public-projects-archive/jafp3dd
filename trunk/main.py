@@ -54,7 +54,7 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = os.path.join('models','MrStix.x')
+_AVMODEL_ = os.path.join('models','human.egg')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 4
@@ -120,6 +120,10 @@ class World(ShowBase,netClient):
         self.avnp = render.attachNewNode("Avatar")
         self.skynp = render.attachNewNode("SkyDome")               
         self.floralNode = self.terraNode.attachNewNode('TreesAndFlowers') # child to inherit terrain fog
+        self.camera.reparentTo(self.avnp)
+        self.camera.setY(-10)
+        self.camera.lookAt(self.avnp)
+        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
         
         print "Getting Tree Loc's"       
         treefile = open(os.path.join(_DATAPATH_,_treePath))        
@@ -228,7 +232,7 @@ class World(ShowBase,netClient):
         taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
         taskMgr.add(self.updateNPCs,'NPC Updates')
 
-#        taskMgr.add(self.moveArm,'pjoint test')
+        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.destroy()
 ###############
 #        render.analyze()
@@ -288,8 +292,8 @@ class World(ShowBase,netClient):
 #        self.aVmodel = loader.loadModel(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel = Actor(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel.reparentTo(self.avnp)
-        self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Eye_L")
-#        print self.aVmodel.listJoints()
+        self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Armature")
+        print self.aVmodel.listJoints()
         
 #        self.aVmodel.setScale(.5,.5,1)
 #        self.aVmodel.setScale(1.0/6)
@@ -299,12 +303,7 @@ class World(ShowBase,netClient):
         avMat = Material()
         avMat.setShininess(0)
         self.aVmodel.setMaterial(avMat)
-        
-        self.camera.reparentTo(self.avnp)
-        self.camera.setY(-10)
-        self.camera.lookAt(self.avnp)
-        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
-   
+           
     def setupKeys(self):
         _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
            
@@ -455,11 +454,6 @@ class World(ShowBase,netClient):
         t = task.time/3.0
         self.armCtrl.setHpr(0,90*sin(2*pi*t),0)
         return task.cont
-    
-        
-    def GetWorldTime(self):
-        worldScaleFactor = 4
-        self.worldTime = (time.time() - self.initTime) / worldScaleFactor
     
     def updateNPCs(self,task):
         dt = globalClock.getDt()
