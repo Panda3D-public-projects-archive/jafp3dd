@@ -54,7 +54,7 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = os.path.join('models','human.egg')
+_AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
 _WALKRATE_ = 4
@@ -74,6 +74,7 @@ PStatClient.connect()
 class NPC(NodePath):
     def __init__(self,nodeName,modelName,modelScale,parentNode):
         NodePath.__init__(self,nodeName)
+        self.commandsBuffer = dict({0:[Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0)]}) # {time:[list of commands]}
         self.speed = 0
         self.nextUpdate = 0
         self.color = (VBase4(random.random(),random.random(),random.random(),1))
@@ -82,6 +83,25 @@ class NPC(NodePath):
         self.setScale(modelScale)
         self.model.setColor(self.color)
         self.reparentTo(parentNode)
+        
+    def calcPos(self,timenow):
+        # get time just previous to time now in buffer
+        ts = self.commandsBuffer.keys()
+        ix = ([x<=timenow for x in ts]).index(True) # give me the index first entry in the dict that is < timenow
+        dT = timenow-ts[ix]
+        cmds = self.commandsBuffer[ts[ix]] # give me the command/state associated with time in [ix]
+        # store commands as [Point3:pos,Vect3:vel,Vec3:accel,Vec3:Hpr] 
+        # velocity direction can be different than the orientation of the model
+        pos = cmds[0] + cmds[1]*dT + 0.5*cmds[2]*dT**2
+        return pos
+    
+    def updateCommandsBuffer(self,time,commands):
+        if time < self.commandsBuffer.key()[-1]: # adding a time before the last time in the list
+        #assuming here that time keys are put in sequential; no sort needed
+            raise Exception('command update time before the latest update time!')
+        else:
+            self.commandsBuffer.update({time:commands})
+    
     def makeChange(self,ttime):
         self.speed = 1*abs(random.gauss(0,.33333))
         newH = random.gauss(0,60)
@@ -232,7 +252,7 @@ class World(ShowBase,netClient):
         taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
         taskMgr.add(self.updateNPCs,'NPC Updates')
 
-        taskMgr.add(self.moveArm,'pjoint test')
+#        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.destroy()
 ###############
 #        render.analyze()
@@ -292,8 +312,8 @@ class World(ShowBase,netClient):
 #        self.aVmodel = loader.loadModel(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel = Actor(os.path.join(_DATAPATH_,_AVMODEL_))
         self.aVmodel.reparentTo(self.avnp)
-        self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Armature")
-        print self.aVmodel.listJoints()
+#        self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Armature")
+#        print self.aVmodel.listJoints()
         
 #        self.aVmodel.setScale(.5,.5,1)
 #        self.aVmodel.setScale(1.0/6)
@@ -419,12 +439,13 @@ class World(ShowBase,netClient):
         aim = Point3(0,.333,2)
         dt = globalClock.getDt() # to stay time based, not frame based
         self.camVector[0] += 8*(self.Kzoom)*dt
+        self.camVector[0] = max(_MINCAMDIST_,min(_MaxCamDist,self.camVector[0]))
         self.camVector[1] += .5*_TURNRATE_*self.Ktheta*dt
         self.camVector[2] += .5*_TURNRATE_*self.Kpitch*dt
         
         phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
         theta = self.camVector[1]*pi/180 # orbit angle un    d this way
-        radius = max(_MINCAMDIST_,min(_MaxCamDist,self.camVector[0]))
+        radius = self.camVector[0]
         camera.setX(radius*cos(phi)*sin(theta))
         camera.setY(-radius*cos(phi)*cos(theta))
         camera.setZ(radius*sin(phi)+aim[2])
