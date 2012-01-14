@@ -4,11 +4,8 @@ Created on Thu Dec 01 15:38:44 2011
 
 @author: us997259
 """
-import os
 from panda3d.core import *
 import time, random
-
-#_DATAPATH_ = "./resources"
 
 _BLOCKSIZE_ = 32    # for LOD chunking
 _LODNEAR_ = 64 # ideal = Fog min distance
@@ -206,6 +203,9 @@ class terrainManager(tileManager):
                     
 #        terrainRoot.setColor(1,0,1,1) 
 #        terrain.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
+
+#        print 'disabling terrain textures...'
+#        texList = []
         if texList:
 #                t.append((time.time()-t0)*1e3 )
 #                print "Loading Tex"
@@ -213,12 +213,10 @@ class terrainManager(tileManager):
             terraTex = Texture() # loader.loadTexture(os.path.join(_DATAPATH_,texList))
             tmpimg = PNMImage(texList)
             terraTex.load(tmpimg)
-#                t.append((time.time()-t0)*1e3 )
-
-        
-        terraTex.setWrapU(Texture.WMClamp)
-        terraTex.setWrapV(Texture.WMClamp)
-        terrain.root.setTexture(terraTex)
+#                t.append((time.time()-t0)*1e3 )   
+            terraTex.setWrapU(Texture.WMClamp)
+            terraTex.setWrapV(Texture.WMClamp)        
+            terrain.root.setTexture(terraTex)
     #            terrain.root.setTexScale(TextureStage.getDefault(),(hfx-1)/float(hfx), (hfy-1)/float(hfy))
             
     #        leaves = TextureStage('leaves')

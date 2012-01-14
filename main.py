@@ -3,7 +3,7 @@
 # SETUP SOME PATH's
 import sys
 
-_DATAPATH_ = "resources"
+_Datapath = "resources"
 
 import os.path
 from math import *
@@ -27,7 +27,7 @@ from network.client import netClient
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 1
+_DoFog = 0
 _ShowOcean = 0
 _ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
@@ -63,9 +63,8 @@ _MaxCamDist = 20
  
 # TERRAIN SETTINGS
 _terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
-_mapName='map2/map2'
-_templ = '%s_%s.x%dy%d.%s' #terrain image name template
-_treePath = 'map1/treeList.dat'
+_mapName='map2'
+
 
 PStatClient.connect()
 #import pycallgraph
@@ -140,9 +139,7 @@ class World(ShowBase,netClient):
         #app.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
         render.setShaderAuto()
-        
-        self.connect() # local loop if no address
-        
+
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
         self.avnp = render.attachNewNode("Avatar")
@@ -152,37 +149,20 @@ class World(ShowBase,netClient):
         self.camera.setY(-10)
         self.camera.lookAt(self.avnp)
         self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+        if _DoLights: self.setupLights()        
+        if _ShowSky: self.setupSky() # must occur after setupAvatar    
         
-        print "Getting Tree Loc's"       
-        treefile = open(os.path.join(_DATAPATH_,_treePath))        
-        treeLocs = pickle.load(treefile)
-        treefile.close()
-        tileInfo = enumerateMapTiles(_mapName,16)              
-        self.ttMgr = terrainManager(tileInfo, parentNode=self.terraNode, tileScale=_terraScale, \
-        focusNode=self.avnp)
-        
-        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
-        zFunc=self.ttMgr.getElevation)
-        
-        self.npc = []
-        for n in range(20):
-            self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
-#            self.npc[n].setPos(70,70,0)
-        
-        self.initTime = time.time()
-        self.worldTime = self.initTime
-        
-        if _DoLights: self.setupLights()
-#        initText.setText("setting key mapping...")        
         self.setupKeys()
-#        initText.setText("Create an Avatar...")
+        self.connect() # local loop if no address
         self.setupAvatar()     
-        
-        if _ShowSky: 
-#            initText.setText("We need a sky!...")            
-            self.setupSky() # must occur after setupAvatar    
+
+        self.loadMap(_mapName)
+     
+        self.npc = []
+        for n in range(5):
+            self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
+             
        
-#        initText.setText("The sun, the moon, and someday the stars...")
         self.sun = CelestialBody(self.render, self.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
         self.sun.period = 3600
@@ -204,17 +184,16 @@ class World(ShowBase,netClient):
 #            
 
         if _ShowOcean:
-#            initText.setText("Filling the swimming pool...")
             self.oceanNode = render.attachNewNode('ocean plane')        
-#            oceanPlane = loader.loadModel(os.path.join(_DATAPATH_,'models','plane')) #plane model -.5,.5 corners
+#            oceanPlane = loader.loadModel(os.path.join(_Datapath,'models','plane')) #plane model -.5,.5 corners
 #            oceanPlane.setPos(.5,.5,0)
 #            oceanPlane.setP(-90) # -90 for plane otherwise setTwoSided(1)
-            oceanPlane = loader.loadModel(os.path.join(_DATAPATH_,'models','flatcone.egg')) #plane model -.5,.5 corners
+            oceanPlane = loader.loadModel(os.path.join(_Datapath,'models','flatcone.egg')) #plane model -.5,.5 corners
             oceanPlane.setPos(0,0,-1)            
             oceanPlane.setTwoSided(1)
 #            oceanPlane.setColor(.8,1,1,1)
             
-            oceanPlaneTex = loader.loadTexture(os.path.join(_DATAPATH_, _OceanTex[0]))
+            oceanPlaneTex = loader.loadTexture(os.path.join(_Datapath, _OceanTex[0]))
 #            oceanPlane.setTexGen(TextureStage.getDefault(),TexGenAttrib.MEyePosition)
 #            oceanPlane.setTexture(oceanPlaneTex)
 #            oceanPlane.setTexScale(TextureStage.getDefault(), _OceanTex[1], _OceanTex[2])
@@ -234,7 +213,6 @@ class World(ShowBase,netClient):
             oceanPlane.reparentTo(self.oceanNode)
 
         if _DoFog:
-#            initText.setText("A hazy day...")
             self.terraFog = Fog("Fog Name")
             self.terraFog.setColor(_SKYCOLOR_)
 #            self.terraFog.setExpDensity(fogPm[0])
@@ -257,28 +235,39 @@ class World(ShowBase,netClient):
         taskMgr.add(self.updateCamera,"UpdateCamera")
         taskMgr.setupTaskChain('TileUpdates',numThreads=16,threadPriority=2,frameBudget=0.01,frameSync=True)
         taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
-        taskMgr.add(self.objMgr.updateTask,'FloraUpdates',taskChain='TileUpdates')
+        taskMgr.add(self.objMgr.updateTask,'StaticObjectUpdates',taskChain='TileUpdates')
         taskMgr.add(self.updateNPCs,'NPC Updates')
 
 #        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.destroy()
 ###############
 #        render.analyze()
+
+    def loadMap(self,mapDefName):
+        print 'loading map ', mapDefName
+        data = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
+        treeLocs = data[0]
+        tileInfo = data[1]
+        self.ttMgr = terrainManager(tileInfo, parentNode=self.terraNode, tileScale=_terraScale, \
+        focusNode=self.avnp)
         
+        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
+        zFunc=self.ttMgr.getElevation)
+
     def setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
-#        npDome = loader.loadModel(os.path.join(_DATAPATH_,_SkyModel))
+#        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))
 #        npDome.setHpr(0,90,0)
       
         skyModel = GeoMipTerrain("scene")
-        skyModel.setHeightfield(os.path.join(_DATAPATH_,_SkyModel)) # crude to save and read but works for now
+        skyModel.setHeightfield(os.path.join(_Datapath,_SkyModel)) # crude to save and read but works for now
         skyModel.setBruteforce(1)
         skyModel.setFocalPoint(self.avnp)
         npDome = skyModel.getRoot()
         skyModel.generate()
         npDome.setTwoSided(1)
         
-        tex1 = loader.loadTexture(os.path.join(_DATAPATH_,_SkyTex[0]))
+        tex1 = loader.loadTexture(os.path.join(_Datapath,_SkyTex[0]))
 #        tex1.setFormat(Texture.FAlpha)
         tstage1 = TextureStage('clouds')
 #        tstage1.setColor(Vec4(1, 1, 1, 1))
@@ -294,11 +283,15 @@ class World(ShowBase,netClient):
         npDome.reparentTo(self.skynp)
         
     def setupLights(self):
-        self.dlight = DirectionalLight('dlight')
-        self.dlight.setColor(VBase4(.5, .5, .5, 1))
-#        self.dlight.setShadowCaster(True,512,512)        
+        self.dlight = Spotlight('dlight')
+        self.dlight.setColor(VBase4(1, 1, 1, 1))
+        self.dlight.showFrustum()
+        self.dlight.getLens().setNearFar(32,128)
+        self.dlight.getLens().setFov(90)
+#        self.dlight.setShadowCaster(True,16,16,1)
         self.dlnp = render.attachNewNode(self.dlight)
-        self.dlnp.setHpr(-90,-15,0)        
+        self.dlnp.setPos(-1000,0,1000)
+        self.dlnp.setHpr(-90,-45,0)        
         render.setLight(self.dlnp)
         
         self.alight = AmbientLight('alight')
@@ -311,14 +304,14 @@ class World(ShowBase,netClient):
 #        self.avnp.setBin('fixed',45)
 #        print self.avnp.getBinName()
         
-#        ruler = loader.loadModel(_DATAPATH_ + '/models/plane')
+#        ruler = loader.loadModel(_Datapath + '/models/plane')
 #        ruler.setPos(0,-.5,1) # .5 *2scale
 #        ruler.setScale(.05,1,2) #2 unit tall board
 #        ruler.setTwoSided(1)
 #        ruler.reparentTo(self.avnp)
 
-#        self.aVmodel = loader.loadModel(os.path.join(_DATAPATH_,_AVMODEL_))
-        self.aVmodel = Actor(os.path.join(_DATAPATH_,_AVMODEL_))
+#        self.aVmodel = loader.loadModel(os.path.join(_Datapath,_AVMODEL_))
+        self.aVmodel = Actor(os.path.join(_Datapath,_AVMODEL_))
         self.aVmodel.reparentTo(self.avnp)
 #        self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Armature")
 #        print self.aVmodel.listJoints()
@@ -512,15 +505,7 @@ class World(ShowBase,netClient):
                 iNpc.speed = s
         print "</>"
         
-def enumerateMapTiles(dirName,N):
-    # map tiles must be saved in the format (dirName).hmXY.png 
-    # with a matching texture (dirName).txXY.png
-    dirName = os.path.join(_DATAPATH_,dirName)
-    tileList = {}
-    for nx in range(N):
-        for ny in range(N):
-            tileList.update({(nx,ny):(_templ%(dirName,'HM',nx,ny,'png'), _templ%(dirName,'TX',nx,ny,'png'))})
-    return tileList
+
 
 #
 ## NOTES
