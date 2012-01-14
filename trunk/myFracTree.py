@@ -335,19 +335,19 @@ if __name__ == "__main__":
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
 
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 2    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
+    numGens = 3    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
     L0 = 6      # initial length
     R0 = 2        # initial radius
-    numSegs = 6    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    numSegs = 2    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
     taper0 = 1
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
     lfact = 0.8   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
-    rTaper = .7 # taper factor; % reduction in radius between tip and base ends of branch
+    rTaper = .6 # taper factor; % reduction in radius between tip and base ends of branch
     budP0 = 45    # a new bud's nominal pitch angle
     
     budPnoise = 10 # variation in bud's pitch angle
@@ -392,6 +392,7 @@ if __name__ == "__main__":
         # DONE GENERATING. WRITE OUT UNSCALED MODEL
         print "writing out file"
         tree.setScale(1) 
+        tree.setH(180)
         tree.setZ(-0.1)
         tree.flattenStrong()
         tree.writeBamFile('./resources/models/sampleTree'+str(it)+'.bam')
