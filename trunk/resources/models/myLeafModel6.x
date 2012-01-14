@@ -389,7 +389,7 @@ Frame Root {
            96.078431;
            0.000000; 0.000000; 0.000000;;
            0.000000; 0.000000; 0.000000;;
-          TextureFilename {"genLeaf2.png";}
+          TextureFilename {"genLeaf3.png";}
         }
       } //End of Sphere_001 Material List
       MeshTextureCoords { //Sphere_001 UV Coordinates

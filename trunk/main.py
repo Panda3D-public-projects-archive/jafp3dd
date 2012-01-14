@@ -106,15 +106,15 @@ class NPC(NodePath):
             self.commandsBuffer.update({time:commands})
 
 
-def makeChange(self,ttime):
-    Q = Quat()
-    newH = random.gauss(-180,180)
-    Q.setHpr((newH,0,0))
-    # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
-    self.speed = 3*abs(random.gauss(0,.33333))
-    self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
-#        self.setH(self,newH) #key input steer
-    self.nextUpdate = ttime + 10*random.random() # randomize when to update next
+    def makeChange(self,ttime):
+        Q = Quat()
+        newH = random.gauss(-180,180)
+        Q.setHpr((newH,0,0))
+        # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
+        self.speed = 3*abs(random.gauss(0,.33333))
+        self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
+    #        self.setH(self,newH) #key input steer
+        self.nextUpdate = ttime + 10*random.random() # randomize when to update next
 
         
 class World(ShowBase,netClient):
