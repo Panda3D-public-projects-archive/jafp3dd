@@ -29,8 +29,8 @@ from network.client import netClient
 _DoLights = 1
 _DoFog = 1
 _ShowOcean = 0
-_ShowSky = 1        # put up the sky dome
-_ShowClouds = 1
+_ShowSky = 0        # put up the sky dome
+_ShowClouds = 0
 
 # COLORS
 _DARKBLUE_ = VBase4(.0,.4,.7,1)
@@ -43,7 +43,7 @@ _WHITE_= VBase4(1,1,1,1)
 #_SkyTex = ('textures/sky0.png',1,1)
 _SkyTex = ('textures/skyTexPolar.png',1,1)
 _SkyModel = 'textures/curved.png'
-_SKYCOLOR_ = _LIGHTBLUE_
+_SKYCOLOR_ = _DARKBLUE_
 
 _OceanTex = ('textures/oceanTex2.png',1,1)
 _Sealevel = 2
@@ -74,7 +74,7 @@ PStatClient.connect()
 class NPC(NodePath):
     def __init__(self,nodeName,modelName,modelScale,parentNode):
         NodePath.__init__(self,nodeName)
-        self.commandsBuffer = dict({0:[Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0)]}) # {time:[list of commands]}
+        self.commandsBuffer = dict({0:[Vec3(70,70,0),Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0)]}) # {time:[list of commands]}
         self.speed = 0
         self.nextUpdate = 0
         self.color = (VBase4(random.random(),random.random(),random.random(),1))
@@ -86,27 +86,35 @@ class NPC(NodePath):
         
     def calcPos(self,timenow):
         # get time just previous to time now in buffer
-        ts = self.commandsBuffer.keys()
-        ix = ([x<=timenow for x in ts]).index(True) # give me the index first entry in the dict that is < timenow
-        dT = timenow-ts[ix]
-        cmds = self.commandsBuffer[ts[ix]] # give me the command/state associated with time in [ix]
+        utimes = self.commandsBuffer.keys()
+        utimes.sort()
+        for ix in utimes:
+            if ix <= timenow: ts = ix # give me the index first entry in the dict that is < timenow
+        dT = timenow-ts
+        cmds = self.commandsBuffer[ts] # give me the command/state associated with time in [ix]
         # store commands as [Point3:pos,Vect3:vel,Vec3:accel,Vec3:Hpr] 
         # velocity direction can be different than the orientation of the model
-        pos = cmds[0] + cmds[1]*dT + 0.5*cmds[2]*dT**2
+        pos = cmds[0] + cmds[1]*dT + cmds[2]*0.5*dT**2
+        self.setPos(pos)
         return pos
     
     def updateCommandsBuffer(self,time,commands):
-        if time < self.commandsBuffer.key()[-1]: # adding a time before the last time in the list
+        if time < (self.commandsBuffer.keys())[-1]: # adding a time before the last time in the list
         #assuming here that time keys are put in sequential; no sort needed
             raise Exception('command update time before the latest update time!')
         else:
             self.commandsBuffer.update({time:commands})
-    
-    def makeChange(self,ttime):
-        self.speed = 1*abs(random.gauss(0,.33333))
-        newH = random.gauss(0,60)
-        self.setH(self,newH) #key input steer
-        self.nextUpdate = ttime + random.randint(1,10) # randomize when to update next
+
+
+def makeChange(self,ttime):
+    Q = Quat()
+    newH = random.gauss(-180,180)
+    Q.setHpr((newH,0,0))
+    # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
+    self.speed = 3*abs(random.gauss(0,.33333))
+    self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
+#        self.setH(self,newH) #key input steer
+    self.nextUpdate = ttime + 10*random.random() # randomize when to update next
 
         
 class World(ShowBase,netClient):
@@ -157,9 +165,9 @@ class World(ShowBase,netClient):
         zFunc=self.ttMgr.getElevation)
         
         self.npc = []
-        for n in range(10):
+        for n in range(20):
             self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
-            self.npc[n].setPos(70,70,0)
+#            self.npc[n].setPos(70,70,0)
         
         self.initTime = time.time()
         self.worldTime = self.initTime
@@ -423,13 +431,10 @@ class World(ShowBase,netClient):
         x,y,z = self.avnp.getPos()
 #        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.avnp,(x,y,z))
 
-        hdg = self.avnp.getH()
-        self.avnp.setZ(self.ttMgr.getElevation((x,y)))
-        # POSSIBLE PERFOMANCE ISSUE HERE. Couldget the current tile once and only call a new one at boundary
-        
+        self.avnp.setZ(self.ttMgr.getElevation((x,y)))        
         self.ttMgr.updatePos(self.avnp.getPos())
 #        self.objMgr.curIJ = self.ttMgr.curIJ # sync terrain manager loc and obj mgr
-
+        hdg = self.avnp.getH()
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
     
@@ -451,9 +456,7 @@ class World(ShowBase,netClient):
         camera.setZ(radius*sin(phi)+aim[2])
         
         # Keep Camera above terrain
-        # TO DO: Object occlusion with camera intersection
-#        zmin = self.avnp.getZ() + epsilon
-#        if camera.getZ() < zmin: camera.setZ(zmin)
+# TODO: Object occlusion with camera intersection
         
         cx,cy,cz = camera.getPos(self.terraNode)
 #        print "localframe: ",app.camera.getPos()
@@ -477,14 +480,17 @@ class World(ShowBase,netClient):
         return task.cont
     
     def updateNPCs(self,task):
-        dt = globalClock.getDt()
+#        dt = globalClock.getDt()
+
         for iNpc in self.npc:
             if task.time > iNpc.nextUpdate:         # change direction and heading every so often
                 iNpc.makeChange(task.time)
                 self.write('time')
-            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-            x,y,z = iNpc.getPos()
+
+#            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector            
+            x,y,z = iNpc.calcPos(task.time)
             iNpc.setZ(self.ttMgr.getElevation((x,y)))
+#            print iNpc.commandsBuffer
 
         return task.cont   
 
