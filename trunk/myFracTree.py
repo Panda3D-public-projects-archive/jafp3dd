@@ -25,7 +25,7 @@ from collections import namedtuple
 #import pycallgraph
 #pycallgraph.start_trace()
 
-_polySize = 5
+_polySize = 7
 
 
 class Bud(object):
@@ -113,7 +113,7 @@ class Branch(NodePath):
             self.bodies.attachNewNode(circleGeomNode)
             return circleGeomNode
         
-    def generate(self, Params):
+    def generate(self, Params,baseFlair=[]):
         # defines a "branch" as a list of BranchNodes and then calls branchfromNodes
         # Creates a scaled length,width, height geometry to be later
         # otherwise can not maintain UV per unit length (if that's desired)
@@ -122,8 +122,13 @@ class Branch(NodePath):
 #        branchlen = Params['L']
 #        branchSegs = Params['nSegs']
         Params.update({'iSeg':0})
+        # Base flair: nice to flair out the first segment on a "trunk" branch sometimes
+        if baseFlair:
+            bff = baseFlair
+        else:
+            bff = 1
         rootPos = Vec3(0,0,0) # + self.PositionFunc(**Params) #add noise to root node; same as others in loop
-        rootNode = BranchNode._make([rootPos,self.R0,Vec3(0,0,0),Quat(),_uvScale,0,self.length]) # initial node      # make a starting node flat at 0,0,0        
+        rootNode = BranchNode._make([rootPos,bff*self.R0,Vec3(0,0,0),Quat(),_uvScale,0,self.length]) # initial node      # make a starting node flat at 0,0,0        
         self.nodeList = [rootNode] # start new branch list with newly created rootNode
         prevNode = rootNode
         
@@ -253,8 +258,8 @@ class GeneralTree(NodePath):
     
     def generate(self,*args,**kwargs):
 #        lfact = kwargs['lfact']
-        
-        self.trunk.generate(Params)
+        bff = kwargs['baseflair']
+        self.trunk.generate(Params,baseFlair=bff)
         self.trunk.addNewBuds()
         children = [self.trunk] # each node in the trunk will span a branch 
         nextChildren = []
@@ -335,19 +340,19 @@ if __name__ == "__main__":
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
 
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 3    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
+    numGens = 2    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
     L0 = 6      # initial length
-    R0 = 2        # initial radius
-    numSegs = 2    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
-    taper0 = 1
+    R0 = 1        # initial radius
+    numSegs = 6    # number of nodes per branch; +1 root = 7 total BranchNodes per branch
+    taper0 = 1    # Initial taper; 1= same diam end to end
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
     lfact = 0.8   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
-    rTaper = .6 # taper factor; % reduction in radius between tip and base ends of branch
+    rTaper = .65 # taper factor; % reduction in radius between tip and base ends of branch
     budP0 = 45    # a new bud's nominal pitch angle
     
     budPnoise = 10 # variation in bud's pitch angle
@@ -362,7 +367,7 @@ if __name__ == "__main__":
 
     # LEAF PARAMETERS
 #    _LeafTex = 'Green Leaf.png'
-    _LeafModel = 'myLeafModel7.x'
+    _LeafModel = 'myLeafModel8.x'
 #    _LeafModel = 'shrubbery'
 #    _LeafTex = 'material-10-cl.png'
     
@@ -372,7 +377,7 @@ if __name__ == "__main__":
     leafMod.setZ(-.5)
 #    leafMod.setScale(2,2,1)
     leafMod.flattenStrong()
-    _LeafScale = 4
+    _LeafScale = 3
     _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
  
     bark = base.loader.loadTexture(_BarkTex_)    
@@ -386,7 +391,7 @@ if __name__ == "__main__":
     ds = 5.0
     for it in range(10):
         tree = GeneralTree(L0,R0,numSegs,bark,"my tree")    
-        tree.generate(Params)
+        tree.generate(Params,baseflair=1.45)
         tree.reparentTo(base.render)
 
         # DONE GENERATING. WRITE OUT UNSCALED MODEL

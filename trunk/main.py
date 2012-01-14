@@ -27,7 +27,7 @@ from network.client import netClient
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 0
+_DoFog = 1
 _ShowOcean = 0
 _ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
@@ -233,7 +233,7 @@ class World(ShowBase,netClient):
         taskMgr.add(self.updateAvnp,"update Av node")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
-        taskMgr.setupTaskChain('TileUpdates',numThreads=16,threadPriority=2,frameBudget=0.01,frameSync=True)
+        taskMgr.setupTaskChain('TileUpdates',numThreads=4,threadPriority=2,frameBudget=0.01,frameSync=True)
         taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
         taskMgr.add(self.objMgr.updateTask,'StaticObjectUpdates',taskChain='TileUpdates')
         taskMgr.add(self.updateNPCs,'NPC Updates')
