@@ -166,7 +166,7 @@ class World(ShowBase,netClient):
        
         self.sun = CelestialBody(self.render, self.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
-        self.sun.period = 3600
+        self.sun.period = 1800
         self.sun.declin = 0
         self.sun.aMin = VBase4(.1,.1,.1,1)
         self.sun.eColor=VBase4(1,1,1,1)
@@ -185,26 +185,28 @@ class World(ShowBase,netClient):
 #            
 
         if _ShowOcean:
+            print "ocean in DEBUG MODE. NOT WORKING!"
             self.oceanNode = render.attachNewNode('ocean plane')        
 #            oceanPlane = loader.loadModel(os.path.join(_Datapath,'models','plane')) #plane model -.5,.5 corners
 #            oceanPlane.setPos(.5,.5,0)
 #            oceanPlane.setP(-90) # -90 for plane otherwise setTwoSided(1)
             oceanPlane = loader.loadModel(os.path.join(_Datapath,'models','flatcone.egg')) #plane model -.5,.5 corners
-            oceanPlane.setPos(0,0,-1)            
+            oceanPlane.setPos(10,10,35)
+            oceanPlane.setR(90)
             oceanPlane.setTwoSided(1)
 #            oceanPlane.setColor(.8,1,1,1)
             
             oceanPlaneTex = loader.loadTexture(os.path.join(_Datapath, _OceanTex[0]))
 #            oceanPlane.setTexGen(TextureStage.getDefault(),TexGenAttrib.MEyePosition)
-            oceanPlane.setTexture(oceanPlaneTex)
-            oceanPlane.setTexScale(TextureStage.getDefault(), _OceanTex[1], _OceanTex[2])
+            self.oceanNode.setTexture(oceanPlaneTex)
+#            oceanPlane.setTexScale(TextureStage.getDefault(), _OceanTex[1], _OceanTex[2])
 #            ocMat = Material()
 #            ocMat.setShininess(1.0) 
 #            ocMat.setDiffuse(VBase4(1,1,1,1))
 #            ocMat.setAmbient(VBase4(.8,1,.8,1))
 #            self.oceanNode.setMaterial(ocMat)
             self.oceanNode.setTransparency(0)
-            self.oceanNode.setScale(3000,3000,1)
+            self.oceanNode.setScale(1,1,1)
 
             # Try one big rect
 #            W = 2000
