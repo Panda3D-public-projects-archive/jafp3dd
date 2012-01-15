@@ -10,14 +10,15 @@ import time, random
 _BLOCKSIZE_ = 32    # for LOD chunking
 _LODNEAR_ = 64 # ideal = Fog min distance
 _LODFAR_ = 192
-_Brute = True # use brute force
+_Brute = False # use brute force
 
 # This should probably go in its own file  
 class ScalingGeoMipTerrain(GeoMipTerrain):
-    def __init__(self, name=None,x0=0,y0=0,z0=0):
+    def __init__(self, name=None,position=(0,0,0)):
         GeoMipTerrain.__init__(self,name)
         # these units are all in "Panda" space units. This class takes care of 
         # scaling GeoMipTerrain data in and out
+        (x0,y0,z0)=position
         self.root = self.getRoot()
         self.root.setPos(x0,y0,z0)
         self.Sx = 1
@@ -26,6 +27,7 @@ class ScalingGeoMipTerrain(GeoMipTerrain):
 #        self.Xoffset = 0.0
 #        self.Yoffset = 0.0
 #        self.Zoffset = 0.0
+
     def __del__(self):
 #        removed.getRoot().detachNode()
         self.root.removeNode() # frees up memory Vs just detach
@@ -59,19 +61,101 @@ class ScalingGeoMipTerrain(GeoMipTerrain):
 #        self.Zoffset = val
 #        self.getRoot().setZ(self.Zoffset/self.Sz)
 #       
+class Tile():
+    def __init__(self):
+        self.terGeom = ScalingGeoMipTerrain()
+        self.texTex = Texture()
+        self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
+        self.dynObjs = dict() # objects like other PCs and NPCs that move/change realtime
+
+    def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
+        #    GENERATE THE WORLD. GENERATE THE CHEERLEADER
+# Make an GeoMip Instance in this tile             
+#        HFname = self.tileInfo[tileID][0]
+        tmp = GeoMipTerrain('tmp gmt') # This gets HF and ensures it is power of 2 +1
+        tmp.setHeightfield(Filename(HFname))
+        HF = tmp.heightfield()
+        self.terGeom = ScalingGeoMipTerrain("myHills",position)
+#            terrain.setAutoFlatten(GeoMipTerrain.AFMStrong)
+        self.terGeom.setHeightfield(HF)
+#            t.append((time.time()-t0)*1e3 )
+        self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class        
+        self.terGeom.setBruteforce(_Brute) # skip all that LOD stuff 
+        self.terGeom.setBorderStitching(0)   
+        self.terGeom.setNear(_LODNEAR_)
+        self.terGeom.setFar(_LODFAR_)
+        self.terGeom.setBlockSize(_BLOCKSIZE_)
+    
+        teraMat = Material()
+        teraMat.setAmbient(VBase4(1,1,1,1))
+        teraMat.setDiffuse(VBase4(1,1,1,1))
+        teraMat.setShininess(0)
+#        terrainRoot = terrain.getRoot()     
+        self.terGeom.root.setMaterial(teraMat)
+                    
+#        terrainRoot.setColor(1,0,1,1) 
+#        terrain.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
+        self.terGeom.root.reparentTo(self.parentNode)
+        self.terGeom.setFocalPoint(self.focusNode) 
+        self.terGeom.generate() 
+    
+    def setTexture(self):
+        texList = self.tileInfo[tileID][1]        
+#        print 'disabling terrain textures...'
+#        texList = []
+        if texList:
+            terraTex = Texture() # loader.loadTexture(os.path.join(_DATAPATH_,texList))
+            tmpimg = PNMImage(texList)
+            terraTex.load(tmpimg)
+            terraTex.setWrapU(Texture.WMClamp)
+            terraTex.setWrapV(Texture.WMClamp)        
+            terrain.root.setTexture(terraTex)
+#            terrain.root.setTexScale(TextureStage.getDefault(),(hfx-1)/float(hfx), (hfy-1)/float(hfy))
+        
+#        leaves = TextureStage('leaves')
+#        terrain.root.setTexture(leaves, loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[1])))
+#        leaves.setMode(TextureStage.MAdd) # Default mode is Multiply
+#        terrain.root.setTexScale(leaves, 100,100)
+        
+#        flowerStage = TextureStage('flowers')
+#        flowerStage.setMode(TextureStage.MDecal)
+#        terrainRoot.setTexture(flowerStage,loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[2])))
+#        terrainRoot.setTexScale(flowerStage, 100, 100)
+
+    
+    def attachLODobj(self, modelList, pos,state=1):
+        _TreeLODfar = 128
+        lodNode = FadeLODNode('Tree LOD node')
+        lodNP = NodePath(lodNode)
+#        lodNP.reparentTo(attachNode)
+        lodNP.setPos(pos) #  offset of plane is -1/2 * Zscale
+        lodNP.setH(random.randint(0,360))
+        lodNP.setScale(state)
+        for i,model in enumerate(modelList):                
+            near = i*_TreeLODfar
+            far = near + _TreeLODfar
+#                print near,far,model
+            lodNode.addSwitch(far,near)
+#                if i==1: lodNP.setBillboardAxis()     # try billboard effect                        
+            model.instanceTo(lodNP)
+        return lodNP
 
 class tileManager:
     curIJ = (0,0)
+    Lx = Ly = []
     addTileQueue = []
     removeTileQueue = []
     lastAddTime = 0
     
-    def __init__(self, infoDict, delay=1, **kwargs ):
+    def __init__(self, infoDict, focus, delay=1, **kwargs ):
         self.minAddDelay = delay
         self.tileInfo = infoDict    # dictionary keyed by 2D tile indices (0,0) thru (N,M)
         self.tiles = {}
         self.refreshTileList() # need to initialize the addlist
-                
+        self.focusNode = focus
+        taskMgr.setupTaskChain('TileUpdates',numThreads=4,threadPriority=2,frameBudget=0.01,frameSync=True)
+        taskMgr.add(self.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
+              
     def setupTile(self,**kwds):
         pass            
     
@@ -81,10 +165,10 @@ class tileManager:
                 ter = self.setupTile(tileID)
                 if ter:    # everything went OK creating the object
                     self.tiles.update({tileID:ter})
-#            if tileID not in self.addTileQueue:
-#                print "stopping"
-#            else:
-            self.addTileQueue.remove(tileID) # pull it out of the list even if not in the dict(bad list entry)        
+            if tileID not in self.addTileQueue:
+                print "addtile error"
+            else:
+                self.addTileQueue.remove(tileID) # pull it out of the list even if not in the dict(bad list entry)        
         # REMOVE TILES FROM ADD LIST ONCE THEY ARE ADDED
 
     def removeTile(self,tileID):    # make this a background task eventually?
@@ -126,6 +210,11 @@ class tileManager:
         self.curIJ = self.ijTile(position)
         
     def updateTask(self,task):
+        if self.Lx and self.Ly:
+            self.curIJ = self.ijTile(self.focusNode.getPos())
+        else:
+            print "can't update manager pos yet"
+            
         self.refreshTileList()
         if self.addTileQueue and time.time()-self.lastAddTime > self.minAddDelay:
             self.addTile(self.addTileQueue[0])
@@ -143,24 +232,11 @@ class terrainManager(tileManager):
         tileManager.__init__(self,info, **kwargs)
         self.parentNode = parentNode
         self.tileScale = tileScale
-        self.LODfocusNode = kwargs['focusNode']
 #        self.objectInfo = kwargs['objDict']
         # COULD just init the addlist and let the task do the loading        
 #        for thisTile in tileInfo:    
         self.addTile(self.curIJ)            
-    
-#    def addTile(self,tileID):
-#        tileManager.addTile(self,tileID)
-#        self.placeObjects(tileID)    # HAACK FOR NOW
 
-    def defo(self,xp,yp):
-        nf = PNMImage(xp,yp,1,65535)
-        nerr = int(.05 * xp * yp)
-        for i in range(nerr):
-            x0 = random.randint(0,xp-1)
-            y0 = random.randint(0,yp-1)
-            nf.setGray(x0,y0,.8+.2*random.random())
-        return nf
          
     def setupTile(self,tileID):
 #    GENERATE THE WORLD. GENERATE THE CHEERLEADER
@@ -183,7 +259,7 @@ class terrainManager(tileManager):
         self.Lx = (hfx-1) * self.tileScale[0]
         self.Ly = (hfy-1) * self.tileScale[1] 
 #            t.append((time.time()-t0)*1e3 )
-        terrain = ScalingGeoMipTerrain("myHills",tileID[0]*self.Lx,tileID[1]*self.Ly,0)
+        terrain = ScalingGeoMipTerrain("myHills",(tileID[0]*self.Lx,tileID[1]*self.Ly,0))
 #            terrain.setAutoFlatten(GeoMipTerrain.AFMStrong)
         terrain.setHeightfield(HF)
 #            t.append((time.time()-t0)*1e3 )
@@ -228,24 +304,10 @@ class terrainManager(tileManager):
     #        flowerStage.setMode(TextureStage.MDecal)
     #        terrainRoot.setTexture(flowerStage,loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[2])))
     #        terrainRoot.setTexScale(flowerStage, 100, 100)
-    #    
-#            t.append((time.time()-t0)*1e3 )
-#            print "Starting generate tile (%d,%d)" %(tileID[0],tileID[1])
         terrain.root.reparentTo(self.parentNode)
-        terrain.setFocalPoint(self.LODfocusNode) 
+        terrain.setFocalPoint(self.focusNode) 
         terrain.generate() 
-#            t.append((time.time()-t0)*1e3 )
-            
-#            delta=[]
-#            for i in range(1,len(t)):
-#                delta.append( round(t[i]-t[i-1],2) )
-#            print delta, int(t[-1])
-        
-        
         return terrain 
-#        except:
-#            print "  --> failed to setup terrain"
-#            return []
                
     def getElevation(self,worldPos):
         ij = tileManager.ijTile(self,worldPos)
@@ -272,7 +334,6 @@ class objectManager(tileManager):
     def __init__(self,info, **kwargs):
         tileManager.__init__(self,info,**kwargs)        
         self.parentNode = kwargs['parentNode']
-        self.LODfocusNode = kwargs['focusNode']
         self.zFunc = kwargs['zFunc']
         self.addTile(self.curIJ)            
 
@@ -291,18 +352,19 @@ class objectManager(tileManager):
                 obj_Z = self.zFunc(obj[0])
         #TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
         # only if valid obj_Z do the next part.
-                self.attachLODobj([tmpModel],tileNode,(obj[0][0],obj[0][1],obj_Z),obj[1])
+                np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
+                np.reparentTo(tileNode)
 #                tmpModel.instanceTo(lod_np)
 #                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
 #                tmpModel.setScale(obj[1])
 #                tmpModel.setH(random.randint(0,360))
         return tileNode
         
-    def attachLODobj(self, modelList, attachNode,pos,state=1):
+    def attachLODobj(self, modelList, pos,state=1):
         _TreeLODfar = 128
         lodNode = FadeLODNode('Tree LOD node')
         lodNP = NodePath(lodNode)
-        lodNP.reparentTo(attachNode)
+#        lodNP.reparentTo(attachNode)
         lodNP.setPos(pos) #  offset of plane is -1/2 * Zscale
         lodNP.setH(random.randint(0,360))
         lodNP.setScale(state)
@@ -313,3 +375,4 @@ class objectManager(tileManager):
             lodNode.addSwitch(far,near)
 #                if i==1: lodNP.setBillboardAxis()     # try billboard effect                        
             model.instanceTo(lodNP)
+        return lodNP

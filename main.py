@@ -62,8 +62,8 @@ _MINCAMDIST_ = 1
 _MaxCamDist = 20
  
 # TERRAIN SETTINGS
-_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
-_mapName='map2'
+_terraScale = (1,1,30) # xy scaling not working right as of 12-10-11. prob the LOD impacts
+_mapName='map1'
 
 
 PStatClient.connect()
@@ -159,7 +159,7 @@ class World(ShowBase,netClient):
         self.loadMap(_mapName)
      
         self.npc = []
-        for n in range(10):
+        for n in range(0):
             self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
              
        
@@ -233,9 +233,6 @@ class World(ShowBase,netClient):
         taskMgr.add(self.updateAvnp,"update Av node")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
-        taskMgr.setupTaskChain('TileUpdates',numThreads=4,threadPriority=2,frameBudget=0.01,frameSync=True)
-        taskMgr.add(self.ttMgr.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
-        taskMgr.add(self.objMgr.updateTask,'StaticObjectUpdates',taskChain='TileUpdates')
         taskMgr.add(self.updateNPCs,'NPC Updates')
 
 #        taskMgr.add(self.moveArm,'pjoint test')
@@ -248,12 +245,10 @@ class World(ShowBase,netClient):
         data = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
         treeLocs = data[0]
         tileInfo = data[1]
-        self.ttMgr = terrainManager(tileInfo, parentNode=self.terraNode, tileScale=_terraScale, \
-        focusNode=self.avnp)
-        
-        self.objMgr = objectManager(treeLocs, parentNode=self.floralNode, focusNode=self.avnp,\
-        zFunc=self.ttMgr.getElevation)
-
+        self.ttMgr = terrainManager(tileInfo, focus=self.avnp, parentNode=self.terraNode, tileScale=_terraScale)      
+        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
+        self.objMgr.Lx = self.ttMgr.Lx
+        self.objMgr.Ly = self.ttMgr.Ly
     def setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
 #        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))
@@ -424,8 +419,6 @@ class World(ShowBase,netClient):
 #        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.avnp,(x,y,z))
 
         self.avnp.setZ(self.ttMgr.getElevation((x,y)))        
-        self.ttMgr.updatePos(self.avnp.getPos())
-#        self.objMgr.curIJ = self.ttMgr.curIJ # sync terrain manager loc and obj mgr
         hdg = self.avnp.getH()
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
