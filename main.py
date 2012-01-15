@@ -246,9 +246,8 @@ class World(ShowBase,netClient):
         treeLocs = data[0]
         tileInfo = data[1]
         self.ttMgr = terrainManager(tileInfo, focus=self.avnp, parentNode=self.terraNode, tileScale=_terraScale)      
-        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
-        self.objMgr.Lx = self.ttMgr.Lx
-        self.objMgr.Ly = self.ttMgr.Ly
+#        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
+
     def setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
 #        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))

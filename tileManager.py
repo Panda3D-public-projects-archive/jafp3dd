@@ -14,7 +14,7 @@ _Brute = False # use brute force
 
 # This should probably go in its own file  
 class ScalingGeoMipTerrain(GeoMipTerrain):
-    def __init__(self, name=None,position=(0,0,0)):
+    def __init__(self, name="ScalingGeoMipTerrain",position=(0,0,0)):
         GeoMipTerrain.__init__(self,name)
         # these units are all in "Panda" space units. This class takes care of 
         # scaling GeoMipTerrain data in and out
@@ -62,14 +62,17 @@ class ScalingGeoMipTerrain(GeoMipTerrain):
 #        self.getRoot().setZ(self.Zoffset/self.Sz)
 #       
 class Tile():
-    def __init__(self):
-        self.terGeom = ScalingGeoMipTerrain()
+    # A tile is a chunk of a map. 
+    # TileManager determines what tiles are in scope for rendering on the client
+    def __init__(self, focus):
+        self.focusNode = focus
+        self.terGeom = ScalingGeoMipTerrain("Tile Terrain")
         self.texTex = Texture()
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
         self.dynObjs = dict() # objects like other PCs and NPCs that move/change realtime
 
-    def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
-        #    GENERATE THE WORLD. GENERATE THE CHEERLEADER
+    def setGeom(self,HFname, parentNode, geomScale=(1,1,1),position=(0,0,0)):
+#    GENERATE THE WORLD. GENERATE THE CHEERLEADER
 # Make an GeoMip Instance in this tile             
 #        HFname = self.tileInfo[tileID][0]
         tmp = GeoMipTerrain('tmp gmt') # This gets HF and ensures it is power of 2 +1
@@ -78,7 +81,6 @@ class Tile():
         self.terGeom = ScalingGeoMipTerrain("myHills",position)
 #            terrain.setAutoFlatten(GeoMipTerrain.AFMStrong)
         self.terGeom.setHeightfield(HF)
-#            t.append((time.time()-t0)*1e3 )
         self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class        
         self.terGeom.setBruteforce(_Brute) # skip all that LOD stuff 
         self.terGeom.setBorderStitching(0)   
@@ -93,14 +95,13 @@ class Tile():
 #        terrainRoot = terrain.getRoot()     
         self.terGeom.root.setMaterial(teraMat)
                     
-#        terrainRoot.setColor(1,0,1,1) 
-#        terrain.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
-        self.terGeom.root.reparentTo(self.parentNode)
+#        self.terGeom.setColor(1,0,1,1) 
+#        self.terGeom.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
+        self.terGeom.root.reparentTo(parentNode)
         self.terGeom.setFocalPoint(self.focusNode) 
         self.terGeom.generate() 
     
-    def setTexture(self):
-        texList = self.tileInfo[tileID][1]        
+    def setTexture(self,texList):
 #        print 'disabling terrain textures...'
 #        texList = []
         if texList:
@@ -109,7 +110,7 @@ class Tile():
             terraTex.load(tmpimg)
             terraTex.setWrapU(Texture.WMClamp)
             terraTex.setWrapV(Texture.WMClamp)        
-            terrain.root.setTexture(terraTex)
+            self.terGeom.root.setTexture(terraTex)
 #            terrain.root.setTexScale(TextureStage.getDefault(),(hfx-1)/float(hfx), (hfy-1)/float(hfy))
         
 #        leaves = TextureStage('leaves')
@@ -162,9 +163,9 @@ class tileManager:
     def addTile(self, tileID):
         if self.addTileQueue.__contains__(tileID): # you are asking for a real add item            
             if not self.tiles.has_key(tileID) and self.tileInfo.has_key(tileID): # this is not already in the dictionary but is in the overall dictionary
-                ter = self.setupTile(tileID)
-                if ter:    # everything went OK creating the object
-                    self.tiles.update({tileID:ter})
+                til = self.setupTile(tileID)
+                if til:    # everything went OK creating the object
+                    self.tiles.update({tileID:til})
             if tileID not in self.addTileQueue:
                 print "addtile error"
             else:
@@ -205,9 +206,9 @@ class tileManager:
         j = int(position[1] / self.Ly)
         return i,j
 
-    def updatePos(self,position): # of the focus
-        self.curPos = position
-        self.curIJ = self.ijTile(position)
+#    def updatePos(self,position): # of the focus
+#        self.curPos = position
+#        self.curIJ = self.ijTile(position)
         
     def updateTask(self,task):
         if self.Lx and self.Ly:
@@ -232,6 +233,7 @@ class terrainManager(tileManager):
         tileManager.__init__(self,info, **kwargs)
         self.parentNode = parentNode
         self.tileScale = tileScale
+        self.focusNode = kwargs['focus']
 #        self.objectInfo = kwargs['objDict']
         # COULD just init the addlist and let the task do the loading        
 #        for thisTile in tileInfo:    
@@ -240,59 +242,33 @@ class terrainManager(tileManager):
          
     def setupTile(self,tileID):
 #    GENERATE THE WORLD. GENERATE THE CHEERLEADER
-# Make an GeoMip Instance in this tile             
-        HFname = self.tileInfo[tileID][0]
+# Make an GeoMip Instance in this tile      
+        newTile = Tile(self.focusNode)
         texList = self.tileInfo[tileID][1]
-
-#        try:            
-#            t0 = time.time()
-#            print "Loading HF"
+     
+        HFname = self.tileInfo[tileID][0]
         tmp = GeoMipTerrain('tmp gmt') # This gets HF and ensures it is power of 2 +1
         tmp.setHeightfield(Filename(HFname))
         HF = tmp.heightfield()
-#            t = [(time.time()-t0)*1e3]
-#        if not self.Lx or not self.Ly:
         hfx = HF.getReadXSize()
         hfy = HF.getReadYSize()
         # Assuming HF are coming in +1,+1 to overlap neighbors.
         # remove that below when calc the tile locations (otherwise won't overlap)
         self.Lx = (hfx-1) * self.tileScale[0]
         self.Ly = (hfy-1) * self.tileScale[1] 
-#            t.append((time.time()-t0)*1e3 )
-        terrain = ScalingGeoMipTerrain("myHills",(tileID[0]*self.Lx,tileID[1]*self.Ly,0))
-#            terrain.setAutoFlatten(GeoMipTerrain.AFMStrong)
-        terrain.setHeightfield(HF)
-#            t.append((time.time()-t0)*1e3 )
-        terrain.setScale(self.tileScale[0],self.tileScale[1],self.tileScale[2]) # for objects of my class        
-        terrain.setBruteforce(_Brute) # skip all that LOD stuff 
-        terrain.setBorderStitching(0)   
-        terrain.setNear(_LODNEAR_)
-        terrain.setFar(_LODFAR_)
-        terrain.setBlockSize(_BLOCKSIZE_)
-    
-        teraMat = Material()
-        teraMat.setAmbient(VBase4(1,1,1,1))
-        teraMat.setDiffuse(VBase4(1,1,1,1))
-        teraMat.setShininess(0)
-#        terrainRoot = terrain.getRoot()     
-        terrain.root.setMaterial(teraMat)
-                    
-#        terrainRoot.setColor(1,0,1,1) 
-#        terrain.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
+        newTile.setGeom(HFname,self.parentNode, self.tileScale, position=(tileID[0]*self.Lx,tileID[1]*self.Ly,0))
+        newTile.setTexture(texList)
 
 #        print 'disabling terrain textures...'
 #        texList = []
-        if texList:
-#                t.append((time.time()-t0)*1e3 )
-#                print "Loading Tex"
-            
-            terraTex = Texture() # loader.loadTexture(os.path.join(_DATAPATH_,texList))
-            tmpimg = PNMImage(texList)
-            terraTex.load(tmpimg)
-#                t.append((time.time()-t0)*1e3 )   
-            terraTex.setWrapU(Texture.WMClamp)
-            terraTex.setWrapV(Texture.WMClamp)        
-            terrain.root.setTexture(terraTex)
+#        if texList:
+#            terraTex = Texture() # loader.loadTexture(os.path.join(_DATAPATH_,texList))
+#            tmpimg = PNMImage(texList)
+#            terraTex.load(tmpimg)
+##                t.append((time.time()-t0)*1e3 )   
+#            terraTex.setWrapU(Texture.WMClamp)
+#            terraTex.setWrapV(Texture.WMClamp)        
+#            terrain.root.setTexture(terraTex)
     #            terrain.root.setTexScale(TextureStage.getDefault(),(hfx-1)/float(hfx), (hfy-1)/float(hfy))
             
     #        leaves = TextureStage('leaves')
@@ -304,19 +280,19 @@ class terrainManager(tileManager):
     #        flowerStage.setMode(TextureStage.MDecal)
     #        terrainRoot.setTexture(flowerStage,loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[2])))
     #        terrainRoot.setTexScale(flowerStage, 100, 100)
-        terrain.root.reparentTo(self.parentNode)
-        terrain.setFocalPoint(self.focusNode) 
-        terrain.generate() 
-        return terrain 
+#        terrain.root.reparentTo(self.parentNode)
+#        terrain.setFocalPoint(self.focusNode) 
+#        terrain.generate() 
+        return newTile 
                
     def getElevation(self,worldPos):
         ij = tileManager.ijTile(self,worldPos)
         if self.tiles.has_key(ij):
-            return self.tiles[ij].getElevation(worldPos[0],worldPos[1])
+            return self.tiles[ij].terGeom.getElevation(worldPos[0],worldPos[1])
         elif self.tileInfo.has_key(ij): # check if in dictionary at all
             self.addTileQueue.append(ij)
             self.addTile(ij)
-            return self.tiles[ij].getElevation(worldPos[0],worldPos[1])
+            return self.tiles[ij].terGeom.getElevation(worldPos[0],worldPos[1])
         else: 
             return [] # that tile just doesn't exist!
         
@@ -327,7 +303,7 @@ class terrainManager(tileManager):
             # Deformation test below
 #            nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
 #            tile.setHeightfield(tile.heightfield()*nf)
-                tile.update()
+                tile.terGeom.update()    # update LOD geometry
         return task.cont
 
 class objectManager(tileManager):
