@@ -51,13 +51,13 @@ _Sealevel = 2
 _Suntex = 'textures/blueSun.png'
 
 
-fogPm = (96,128,45,250,500) # last 3 params for linfalloff - not used atm
+fogPm = (128,164,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
 _AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 _TURNRATE_ = 120    # Degrees per second
-_WALKRATE_ = 4
+_WALKRATE_ = 8
 _MINCAMDIST_ = 1
 _MaxCamDist = 20
  
@@ -159,7 +159,7 @@ class World(ShowBase,netClient):
         self.loadMap(_mapName)
      
         self.npc = []
-        for n in range(5):
+        for n in range(10):
             self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
              
        
@@ -283,11 +283,10 @@ class World(ShowBase,netClient):
         npDome.reparentTo(self.skynp)
         
     def setupLights(self):
-        self.dlight = Spotlight('dlight')
+        self.dlight = DirectionalLight('dlight')
         self.dlight.setColor(VBase4(1, 1, 1, 1))
-        self.dlight.showFrustum()
-        self.dlight.getLens().setNearFar(32,128)
-        self.dlight.getLens().setFov(90)
+#        self.slight.getLens().setNearFar(32,128)
+#        self.slight.getLens().setFov(90)
 #        self.dlight.setShadowCaster(True,16,16,1)
         self.dlnp = render.attachNewNode(self.dlight)
         self.dlnp.setPos(-1000,0,1000)
@@ -473,18 +472,12 @@ class World(ShowBase,netClient):
         return task.cont
     
     def updateNPCs(self,task):
-#        dt = globalClock.getDt()
-
         for iNpc in self.npc:
             if task.time > iNpc.nextUpdate:         # change direction and heading every so often
                 iNpc.makeChange(task.time)
                 self.write('time')
-
-#            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector            
             x,y,z = iNpc.calcPos(task.time)
             iNpc.setZ(self.ttMgr.getElevation((x,y)))
-#            print iNpc.commandsBuffer
-
         return task.cont   
 
     # NETWORK DATAGRAM PROCESSING

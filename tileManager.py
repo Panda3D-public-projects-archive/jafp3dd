@@ -81,10 +81,10 @@ class tileManager:
                 ter = self.setupTile(tileID)
                 if ter:    # everything went OK creating the object
                     self.tiles.update({tileID:ter})
-            if tileID not in self.addTileQueue:
-                print "stopping"
-            else:
-                self.addTileQueue.remove(tileID) # pull it out of the list even if not in the dict(bad list entry)        
+#            if tileID not in self.addTileQueue:
+#                print "stopping"
+#            else:
+            self.addTileQueue.remove(tileID) # pull it out of the list even if not in the dict(bad list entry)        
         # REMOVE TILES FROM ADD LIST ONCE THEY ARE ADDED
 
     def removeTile(self,tileID):    # make this a background task eventually?
