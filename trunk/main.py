@@ -9,7 +9,7 @@ import os.path
 from math import *
 from numpy import sign
 import time
-import pickle
+import cPickle as pickle
      
 from direct.showbase.ShowBase import ShowBase
 from direct.actor.Actor import Actor
@@ -24,13 +24,14 @@ from CelestialBody import CelestialBody
 from tileManager import *
 from network.client import netClient
 
+TILE_SIZE = (128,128)
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 1
-_ShowOcean = 0
-_ShowSky = 0        # put up the sky dome
+_DoFog = 0
+_ShowSky = 1        # put up the sky dome
 _ShowClouds = 0
+_ShowOcean = 1
 
 # COLORS
 _DARKBLUE_ = VBase4(.0,.4,.7,1)
@@ -62,8 +63,8 @@ _MINCAMDIST_ = 1
 _MaxCamDist = 20
  
 # TERRAIN SETTINGS
-_terraScale = (1,1,30) # xy scaling not working right as of 12-10-11. prob the LOD impacts
-_mapName='map1'
+_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
+_mapName='map2'
 
 
 PStatClient.connect()
@@ -195,15 +196,15 @@ class World(ShowBase,netClient):
             
             oceanPlaneTex = loader.loadTexture(os.path.join(_Datapath, _OceanTex[0]))
 #            oceanPlane.setTexGen(TextureStage.getDefault(),TexGenAttrib.MEyePosition)
-#            oceanPlane.setTexture(oceanPlaneTex)
-#            oceanPlane.setTexScale(TextureStage.getDefault(), _OceanTex[1], _OceanTex[2])
+            oceanPlane.setTexture(oceanPlaneTex)
+            oceanPlane.setTexScale(TextureStage.getDefault(), _OceanTex[1], _OceanTex[2])
 #            ocMat = Material()
 #            ocMat.setShininess(1.0) 
 #            ocMat.setDiffuse(VBase4(1,1,1,1))
 #            ocMat.setAmbient(VBase4(.8,1,.8,1))
 #            self.oceanNode.setMaterial(ocMat)
             self.oceanNode.setTransparency(0)
-            self.oceanNode.setScale(1000,100,1)
+            self.oceanNode.setScale(3000,3000,1)
 
             # Try one big rect
 #            W = 2000
@@ -242,12 +243,12 @@ class World(ShowBase,netClient):
 
     def loadMap(self,mapDefName):
         print 'loading map ', mapDefName
-        data = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
-        treeLocs = data[0]
-        tileInfo = data[1]
-        self.ttMgr = terrainManager(tileInfo, focus=self.avnp, parentNode=self.terraNode, tileScale=_terraScale)      
+        tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
+#        treeLocs, = data[0:2]
+        self.ttMgr = terrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=self.terraNode, tileScale=_terraScale)      
 #        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
-
+        print "done"
+        
     def setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
 #        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))
@@ -417,7 +418,10 @@ class World(ShowBase,netClient):
         x,y,z = self.avnp.getPos()
 #        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.avnp,(x,y,z))
 
-        self.avnp.setZ(self.ttMgr.getElevation((x,y)))        
+#        return self.terGeom.getElevation(worldPos[0],worldPos[1])
+# TODO: REMOVE THIS HACK FOR GET Z! 
+# just make Avatar another object in the tile. then object can get it's own Z from tile object
+        self.avnp.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))        
         hdg = self.avnp.getH()
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
@@ -446,7 +450,7 @@ class World(ShowBase,netClient):
 #        print "localframe: ",app.camera.getPos()
 #        print "worldframe: ",app.camera.getPos(terrainRoot)
 #        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
-        terZ = self.ttMgr.getElevation((cx,cy)) # what is terrain elevation at new camera pos
+        terZ = self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(cx,cy) # what is terrain elevation at new camera pos
         if cz <= terZ+epsilon:
             camera.setZ(self.terraNode,terZ+epsilon)
 #            print cx,cy,cz, terZ
@@ -469,7 +473,7 @@ class World(ShowBase,netClient):
                 iNpc.makeChange(task.time)
                 self.write('time')
             x,y,z = iNpc.calcPos(task.time)
-            iNpc.setZ(self.ttMgr.getElevation((x,y)))
+            iNpc.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
         return task.cont   
 
     # NETWORK DATAGRAM PROCESSING
@@ -485,7 +489,7 @@ class World(ShowBase,netClient):
                 p=I.getFloat32()
                 r=I.getFloat32() # read it out because it is there
                 s=I.getFloat32()
-                iNpc.setPos(x,y,self.ttMgr.getElevation((x,y)))
+                iNpc.setPos(x,y,self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
                 iNpc.setHpr(h,p,r)
                 iNpc.speed = s
         print "</>"
