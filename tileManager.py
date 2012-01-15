@@ -61,7 +61,7 @@ class ScalingGeoMipTerrain(GeoMipTerrain):
 #        self.Zoffset = val
 #        self.getRoot().setZ(self.Zoffset/self.Sz)
 #       
-class Tile():
+class MapTile():
     # A tile is a chunk of a map. 
     # TileManager determines what tiles are in scope for rendering on the client
     def __init__(self, focus):
@@ -72,9 +72,8 @@ class Tile():
         self.dynObjs = dict() # objects like other PCs and NPCs that move/change realtime
 
     def setGeom(self,HFname, parentNode, geomScale=(1,1,1),position=(0,0,0)):
-#    GENERATE THE WORLD. GENERATE THE CHEERLEADER
-# Make an GeoMip Instance in this tile             
-#        HFname = self.tileInfo[tileID][0]
+        # GENERATE THE WORLD. GENERATE THE CHEERLEADER
+        # Make an GeoMip Instance in this tile             
         tmp = GeoMipTerrain('tmp gmt') # This gets HF and ensures it is power of 2 +1
         tmp.setHeightfield(Filename(HFname))
         HF = tmp.heightfield()
@@ -123,7 +122,18 @@ class Tile():
 #        terrainRoot.setTexture(flowerStage,loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[2])))
 #        terrainRoot.setTexScale(flowerStage, 100, 100)
 
-    
+    def addObject(self, parentNode, Objects):
+        print "overriding tree models"
+        tileNode = parentNode.attachNewNode('StaticObject')
+        tileNode.reparentTo(parentNode)
+        for obj in Objects:                
+            r = random.randint(0,9)
+            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
+            tmpModel = loader.loadModel(obj[2]) # name
+            obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
+            np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
+            np.reparentTo(tileNode)
+
     def attachLODobj(self, modelList, pos,state=1):
         _TreeLODfar = 128
         lodNode = FadeLODNode('Tree LOD node')
@@ -141,20 +151,22 @@ class Tile():
             model.instanceTo(lodNP)
         return lodNP
 
+
 class tileManager:
     curIJ = (0,0)
-    Lx = Ly = []
+    Lx = Ly = []        # Size of a "Tile" in world units
     addTileQueue = []
     removeTileQueue = []
     lastAddTime = 0
     
-    def __init__(self, infoDict, focus, delay=1, **kwargs ):
+    def __init__(self, infoDict, focus, size, delay=1, **kwargs ):
+        (self.Lx,self.Ly) = size # 
         self.minAddDelay = delay
         self.tileInfo = infoDict    # dictionary keyed by 2D tile indices (0,0) thru (N,M)
         self.tiles = {}
         self.refreshTileList() # need to initialize the addlist
         self.focusNode = focus
-        taskMgr.setupTaskChain('TileUpdates',numThreads=4,threadPriority=2,frameBudget=0.01,frameSync=True)
+        taskMgr.setupTaskChain('TileUpdates',numThreads=4,threadPriority=1,frameBudget=0.02,frameSync=True)
         taskMgr.add(self.updateTask,'TileManagerUpdates',taskChain='TileUpdates')
               
     def setupTile(self,**kwds):
@@ -211,11 +223,7 @@ class tileManager:
 #        self.curIJ = self.ijTile(position)
         
     def updateTask(self,task):
-        if self.Lx and self.Ly:
-            self.curIJ = self.ijTile(self.focusNode.getPos())
-        else:
-            print "can't update manager pos yet"
-            
+        self.curIJ = self.ijTile(self.focusNode.getPos())
         self.refreshTileList()
         if self.addTileQueue and time.time()-self.lastAddTime > self.minAddDelay:
             self.addTile(self.addTileQueue[0])
@@ -234,67 +242,32 @@ class terrainManager(tileManager):
         self.parentNode = parentNode
         self.tileScale = tileScale
         self.focusNode = kwargs['focus']
-#        self.objectInfo = kwargs['objDict']
-        # COULD just init the addlist and let the task do the loading        
-#        for thisTile in tileInfo:    
         self.addTile(self.curIJ)            
 
          
     def setupTile(self,tileID):
-#    GENERATE THE WORLD. GENERATE THE CHEERLEADER
-# Make an GeoMip Instance in this tile      
-        newTile = Tile(self.focusNode)
-        texList = self.tileInfo[tileID][1]
-     
-        HFname = self.tileInfo[tileID][0]
-        tmp = GeoMipTerrain('tmp gmt') # This gets HF and ensures it is power of 2 +1
-        tmp.setHeightfield(Filename(HFname))
-        HF = tmp.heightfield()
-        hfx = HF.getReadXSize()
-        hfy = HF.getReadYSize()
-        # Assuming HF are coming in +1,+1 to overlap neighbors.
-        # remove that below when calc the tile locations (otherwise won't overlap)
-        self.Lx = (hfx-1) * self.tileScale[0]
-        self.Ly = (hfy-1) * self.tileScale[1] 
+
+
+#        if self.tileInfo.has_key(tileID):
+        HFname,texList,Objects = self.tileInfo[tileID][0:3]
+
+        newTile = MapTile(self.focusNode)
         newTile.setGeom(HFname,self.parentNode, self.tileScale, position=(tileID[0]*self.Lx,tileID[1]*self.Ly,0))
         newTile.setTexture(texList)
+        newTile.addObject(self.parentNode,Objects) # takes a list for this tile        
 
-#        print 'disabling terrain textures...'
-#        texList = []
-#        if texList:
-#            terraTex = Texture() # loader.loadTexture(os.path.join(_DATAPATH_,texList))
-#            tmpimg = PNMImage(texList)
-#            terraTex.load(tmpimg)
-##                t.append((time.time()-t0)*1e3 )   
-#            terraTex.setWrapU(Texture.WMClamp)
-#            terraTex.setWrapV(Texture.WMClamp)        
-#            terrain.root.setTexture(terraTex)
-    #            terrain.root.setTexScale(TextureStage.getDefault(),(hfx-1)/float(hfx), (hfy-1)/float(hfy))
-            
-    #        leaves = TextureStage('leaves')
-    #        terrain.root.setTexture(leaves, loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[1])))
-    #        leaves.setMode(TextureStage.MAdd) # Default mode is Multiply
-    #        terrain.root.setTexScale(leaves, 100,100)
-            
-    #        flowerStage = TextureStage('flowers')
-    #        flowerStage.setMode(TextureStage.MDecal)
-    #        terrainRoot.setTexture(flowerStage,loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[2])))
-    #        terrainRoot.setTexScale(flowerStage, 100, 100)
-#        terrain.root.reparentTo(self.parentNode)
-#        terrain.setFocalPoint(self.focusNode) 
-#        terrain.generate() 
         return newTile 
                
-    def getElevation(self,worldPos):
-        ij = tileManager.ijTile(self,worldPos)
-        if self.tiles.has_key(ij):
-            return self.tiles[ij].terGeom.getElevation(worldPos[0],worldPos[1])
-        elif self.tileInfo.has_key(ij): # check if in dictionary at all
-            self.addTileQueue.append(ij)
-            self.addTile(ij)
-            return self.tiles[ij].terGeom.getElevation(worldPos[0],worldPos[1])
-        else: 
-            return [] # that tile just doesn't exist!
+#    def getElevation(self,worldPos):
+#        ij = tileManager.ijTile(self,worldPos)
+#        if self.tiles.has_key(ij):
+#            return self.tiles[ij].terGeom.getElevation(worldPos[0],worldPos[1])
+#        elif self.tileInfo.has_key(ij): # check if in dictionary at all
+#            self.addTileQueue.append(ij)
+#            self.addTile(ij)
+#            return self.tiles[ij].terGeom.getElevation(worldPos[0],worldPos[1])
+#        else: 
+#            return [] # that tile just doesn't exist!
         
     def updateTask(self,task):
         tileManager.updateTask(self,task)
