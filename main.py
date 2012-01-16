@@ -31,7 +31,7 @@ _DoLights = 1
 _DoFog = 0
 _ShowSky = 1        # put up the sky dome
 _ShowClouds = 0
-_ShowOcean = 1
+_ShowOcean = 0
 
 # COLORS
 _DARKBLUE_ = VBase4(.0,.4,.7,1)
@@ -70,53 +70,7 @@ _mapName='map2'
 PStatClient.connect()
 #import pycallgraph
 #pycallgraph.start_trace()
-
-class NPC(NodePath):
-    def __init__(self,nodeName,modelName,modelScale,parentNode):
-        NodePath.__init__(self,nodeName)
-        self.commandsBuffer = dict({0:[Vec3(70,70,0),Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0)]}) # {time:[list of commands]}
-        self.speed = 0
-        self.nextUpdate = 0
-        self.color = (VBase4(random.random(),random.random(),random.random(),1))
-        self.model = loader.loadModel(modelName)
-        self.model.reparentTo(self)
-        self.setScale(modelScale)
-        self.model.setColor(self.color)
-        self.reparentTo(parentNode)
-        
-    def calcPos(self,timenow):
-        # get time just previous to time now in buffer
-        utimes = self.commandsBuffer.keys()
-        utimes.sort()
-        for ix in utimes:
-            if ix <= timenow: ts = ix # give me the index first entry in the dict that is < timenow
-        dT = timenow-ts
-        cmds = self.commandsBuffer[ts] # give me the command/state associated with time in [ix]
-        # store commands as [Point3:pos,Vect3:vel,Vec3:accel,Vec3:Hpr] 
-        # velocity direction can be different than the orientation of the model
-        pos = cmds[0] + cmds[1]*dT + cmds[2]*0.5*dT**2
-        self.setPos(pos)
-        return pos
-    
-    def updateCommandsBuffer(self,time,commands):
-        if time < (self.commandsBuffer.keys())[-1]: # adding a time before the last time in the list
-        #assuming here that time keys are put in sequential; no sort needed
-            raise Exception('command update time before the latest update time!')
-        else:
-            self.commandsBuffer.update({time:commands})
-
-
-    def makeChange(self,ttime):
-        Q = Quat()
-        newH = random.gauss(-180,180)
-        Q.setHpr((newH,0,0))
-        # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
-        self.speed = 3*abs(random.gauss(0,.33333))
-        self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
-    #        self.setH(self,newH) #key input steer
-        self.nextUpdate = ttime + 10*random.random() # randomize when to update next
-
-        
+       
 class World(ShowBase,netClient):
     Kturn = 0
     Kwalk = 0
@@ -159,11 +113,6 @@ class World(ShowBase,netClient):
 
         self.loadMap(_mapName)
      
-        self.npc = []
-        for n in range(0):
-            self.npc.append( NPC('thisguy','resources/models/cone.egg',1,self.terraNode) )
-             
-       
         self.sun = CelestialBody(self.render, self.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
         self.sun.period = 1800
@@ -200,11 +149,11 @@ class World(ShowBase,netClient):
 #            oceanPlane.setTexGen(TextureStage.getDefault(),TexGenAttrib.MEyePosition)
             self.oceanNode.setTexture(oceanPlaneTex)
 #            oceanPlane.setTexScale(TextureStage.getDefault(), _OceanTex[1], _OceanTex[2])
-#            ocMat = Material()
-#            ocMat.setShininess(1.0) 
-#            ocMat.setDiffuse(VBase4(1,1,1,1))
-#            ocMat.setAmbient(VBase4(.8,1,.8,1))
-#            self.oceanNode.setMaterial(ocMat)
+            ocMat = Material()
+            ocMat.setShininess(1.0) 
+            ocMat.setDiffuse(VBase4(1,1,1,1))
+            ocMat.setAmbient(VBase4(.8,1,.8,1))
+            self.oceanNode.setMaterial(ocMat)
             self.oceanNode.setTransparency(0)
             self.oceanNode.setScale(1,1,1)
 
@@ -236,7 +185,7 @@ class World(ShowBase,netClient):
         taskMgr.add(self.updateAvnp,"update Av node")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
-        taskMgr.add(self.updateNPCs,'NPC Updates')
+#        taskMgr.add(self.updateNPCs,'NPC Updates')
 
 #        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.destroy()
@@ -469,14 +418,6 @@ class World(ShowBase,netClient):
         self.armCtrl.setHpr(0,90*sin(2*pi*t),0)
         return task.cont
     
-    def updateNPCs(self,task):
-        for iNpc in self.npc:
-            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
-                iNpc.makeChange(task.time)
-                self.write('time')
-            x,y,z = iNpc.calcPos(task.time)
-            iNpc.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
-        return task.cont   
 
     # NETWORK DATAGRAM PROCESSING
     def ProcessData(self,datagram):

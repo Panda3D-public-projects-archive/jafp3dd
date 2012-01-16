@@ -7,13 +7,10 @@ Created on Thu Dec 01 15:38:44 2011
 from panda3d.core import *
 import time, random
 
-_BLOCKSIZE_ = 32    # for LOD chunking
-_LODNEAR_ = 64 # ideal = Fog min distance
-_LODFAR_ = 192
-_Brute = False # use brute force
+from NPC import NPC
 
 # This should probably go in its own file  
-class ScalingGeoMipTerrain(GeoMipTerrain):
+class ScalingGeoMipTerrain(GeoMipTerrain):      
     def __init__(self, name="ScalingGeoMipTerrain",position=(0,0,0)):
         GeoMipTerrain.__init__(self,name)
         # these units are all in "Panda" space units. This class takes care of 
@@ -64,12 +61,20 @@ class ScalingGeoMipTerrain(GeoMipTerrain):
 class MapTile():
     # A tile is a chunk of a map. 
     # TileManager determines what tiles are in scope for rendering on the client
+    
+    # Some hacky global consts for now    
+    _block_size_ = 32    # for LOD chunking
+    _lod_near = 64 # ideal = Fog min distance
+    _lod_far = 192
+    _brute = False # use brute force
+    _tree_lod_far = 128
+
     def __init__(self, focus):
         self.focusNode = focus
         self.terGeom = ScalingGeoMipTerrain("Tile Terrain")
         self.texTex = Texture()
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
-        self.dynObjs = dict() # objects like other PCs and NPCs that move/change realtime
+        self.npcs = [] # objects like other PCs and NPCs that move/change realtime
 
     def setGeom(self,HFname, parentNode, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
@@ -81,11 +86,11 @@ class MapTile():
 #            terrain.setAutoFlatten(GeoMipTerrain.AFMStrong)
         self.terGeom.setHeightfield(HF)
         self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class        
-        self.terGeom.setBruteforce(_Brute) # skip all that LOD stuff 
+        self.terGeom.setBruteforce(self._brute) # skip all that LOD stuff 
         self.terGeom.setBorderStitching(0)   
-        self.terGeom.setNear(_LODNEAR_)
-        self.terGeom.setFar(_LODFAR_)
-        self.terGeom.setBlockSize(_BLOCKSIZE_)
+        self.terGeom.setNear(self._lod_near)
+        self.terGeom.setFar(self._lod_far)
+        self.terGeom.setBlockSize(self._block_size_)
     
         teraMat = Material()
         teraMat.setAmbient(VBase4(1,1,1,1))
@@ -122,37 +127,53 @@ class MapTile():
 #        terrainRoot.setTexture(flowerStage,loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[2])))
 #        terrainRoot.setTexScale(flowerStage, 100, 100)
 
-    def addObject(self, parentNode, Objects):
-        print "overriding tree models"
+    def addStaticObject(self, parentNode, obj):
+        # These are intended to be things like trees, rocks, minerals, etc 
+        # that get updated on a push from the server. They aren't changing quickly
         tileNode = parentNode.attachNewNode('StaticObject')
         tileNode.reparentTo(parentNode)
-        for obj in Objects:                
-            r = random.randint(0,9)
-            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
-            tmpModel = loader.loadModel(obj[2]) # name
-            obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
-            np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
-            np.reparentTo(tileNode)
+        tmpModel = loader.loadModel(obj[2]) # name
+        obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
+        np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
+        np.reparentTo(tileNode)
 
     def attachLODobj(self, modelList, pos,state=1):
-        _TreeLODfar = 128
+        # attaches subsequent models in modelList at pos x,y
+        # different models are to be LODs of the model
         lodNode = FadeLODNode('Tree LOD node')
         lodNP = NodePath(lodNode)
 #        lodNP.reparentTo(attachNode)
-        lodNP.setPos(pos) #  offset of plane is -1/2 * Zscale
+        lodNP.setPos(pos)
         lodNP.setH(random.randint(0,360))
         lodNP.setScale(state)
         for i,model in enumerate(modelList):                
-            near = i*_TreeLODfar
-            far = near + _TreeLODfar
+            near = i*self._tree_lod_far
+            far = near + self._tree_lod_far
 #                print near,far,model
             lodNode.addSwitch(far,near)
 #                if i==1: lodNP.setBillboardAxis()     # try billboard effect                        
             model.instanceTo(lodNP)
         return lodNP
 
+    def updateNPCs(self,task):
+        for iNpc in self.npcs:
+            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+                iNpc.makeChange(task.time)
+                self.write('time')
+            x,y,z = iNpc.calcPos(task.time)
+            iNpc.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
+        return task.cont   
 
-class tileManager:
+
+    def updateTile(self,task):
+        if not self._brute: self.terGeom.update()    # update LOD geometry
+        for iNpc in self.npcs:
+            x,y,z = iNpc.calcPos(task.time)
+            iNpc.setZ(self.terGeom.getElevation(x,y))
+        return task.done
+
+
+class MapTileManager:
     curIJ = (0,0)
     Lx = Ly = []        # Size of a "Tile" in world units
     addTileQueue = []
@@ -163,7 +184,7 @@ class tileManager:
         (self.Lx,self.Ly) = size # 
         self.minAddDelay = delay
         self.tileInfo = infoDict    # dictionary keyed by 2D tile indices (0,0) thru (N,M)
-        self.tiles = {}
+        self.tiles = {}        # this IS the list of tiles (dict object)
         self.refreshTileList() # need to initialize the addlist
         self.focusNode = focus
         taskMgr.setupTaskChain('TileUpdates',numThreads=4,threadPriority=1,frameBudget=0.02,frameSync=True)
@@ -223,7 +244,9 @@ class tileManager:
 #        self.curIJ = self.ijTile(position)
         
     def updateTask(self,task):
+        # Update the current tile based on where our focus node moved
         self.curIJ = self.ijTile(self.focusNode.getPos())
+        # Manage the tile list; add remove, etc
         self.refreshTileList()
         if self.addTileQueue and time.time()-self.lastAddTime > self.minAddDelay:
             self.addTile(self.addTileQueue[0])
@@ -231,14 +254,20 @@ class tileManager:
         elif self.removeTileQueue:
 #            print "removing tiles from dict"
             self.removeTile(self.removeTileQueue[0])
-
+        for tile in self.tiles.values():
+            tile.updateTile(task)
+            # fake some AI motion
+            for iNpc in tile.npcs:
+                if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+                    iNpc.makeChange(task.time)
+            
         return task.cont
 
 
-class terrainManager(tileManager):
+class terrainManager(MapTileManager):
     
     def __init__(self,info, parentNode,tileScale=(1,1,1), **kwargs ):
-        tileManager.__init__(self,info, **kwargs)
+        MapTileManager.__init__(self,info, **kwargs)
         self.parentNode = parentNode
         self.tileScale = tileScale
         self.focusNode = kwargs['focus']
@@ -246,20 +275,27 @@ class terrainManager(tileManager):
 
          
     def setupTile(self,tileID):
-
-
-#        if self.tileInfo.has_key(tileID):
+#TODO:        if self.tileInfo.has_key(tileID):
         HFname,texList,Objects = self.tileInfo[tileID][0:3]
 
         newTile = MapTile(self.focusNode)
         newTile.setGeom(HFname,self.parentNode, self.tileScale, position=(tileID[0]*self.Lx,tileID[1]*self.Ly,0))
         newTile.setTexture(texList)
-        newTile.addObject(self.parentNode,Objects) # takes a list for this tile        
+        print "overriding tree models"
+        for obj in Objects:                
+            r = random.randint(0,9)
+            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
+            newTile.addStaticObject(self.parentNode,obj) # takes a an individual object for this tile        
+
+        for n in range(5):
+            newTile.npcs.append( NPC('thisguy','resources/models/cone.egg',1,self.parentNode) )
+#TODO: HOW TO GET NPC INFO PER TILE FROM SERVER???
+       
 
         return newTile 
                
 #    def getElevation(self,worldPos):
-#        ij = tileManager.ijTile(self,worldPos)
+#        ij = MapTileManager.ijTile(self,worldPos)
 #        if self.tiles.has_key(ij):
 #            return self.tiles[ij].terGeom.getElevation(worldPos[0],worldPos[1])
 #        elif self.tileInfo.has_key(ij): # check if in dictionary at all
@@ -269,59 +305,59 @@ class terrainManager(tileManager):
 #        else: 
 #            return [] # that tile just doesn't exist!
         
-    def updateTask(self,task):
-        tileManager.updateTask(self,task)
-        if not _Brute:
-            for tile in self.tiles.values():
-            # Deformation test below
-#            nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
-#            tile.setHeightfield(tile.heightfield()*nf)
-                tile.terGeom.update()    # update LOD geometry
-        return task.cont
+#    def updateTask(self,task):
+#        MapTileManager.updateTask(self,task)
+#        if not _Brute:
+#            for tile in self.tiles.values():
+#            # Deformation test below
+##            nf = self.defo(129,129)  #.getReadXSize(),hf.getReadYSize())
+##            tile.setHeightfield(tile.heightfield()*nf)
+#                tile.terGeom.update()    # update LOD geometry
+#        return task.cont
 
-class objectManager(tileManager):
-    def __init__(self,info, **kwargs):
-        tileManager.__init__(self,info,**kwargs)        
-        self.parentNode = kwargs['parentNode']
-        self.zFunc = kwargs['zFunc']
-        self.addTile(self.curIJ)            
-
-    def setupTile(self,tileID):
-        print "overriding tree models"
-#        my_model.reparentTo(lod_np)
-        tileNode = self.parentNode.attachNewNode('tile'+str(tileID))
-        tileNode.reparentTo(self.parentNode)
-        if self.tileInfo.has_key(tileID):
-            for obj in self.tileInfo[tileID]:                
-                r = random.randint(0,9)
-                obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
-#                obj[1] = 1.0
-                tmpModel = loader.loadModel(obj[2]) # name
-
-                obj_Z = self.zFunc(obj[0])
-        #TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
-        # only if valid obj_Z do the next part.
-                np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
-                np.reparentTo(tileNode)
-#                tmpModel.instanceTo(lod_np)
-#                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
-#                tmpModel.setScale(obj[1])
-#                tmpModel.setH(random.randint(0,360))
-        return tileNode
-        
-    def attachLODobj(self, modelList, pos,state=1):
-        _TreeLODfar = 128
-        lodNode = FadeLODNode('Tree LOD node')
-        lodNP = NodePath(lodNode)
-#        lodNP.reparentTo(attachNode)
-        lodNP.setPos(pos) #  offset of plane is -1/2 * Zscale
-        lodNP.setH(random.randint(0,360))
-        lodNP.setScale(state)
-        for i,model in enumerate(modelList):                
-            near = i*_TreeLODfar
-            far = near + _TreeLODfar
-#                print near,far,model
-            lodNode.addSwitch(far,near)
-#                if i==1: lodNP.setBillboardAxis()     # try billboard effect                        
-            model.instanceTo(lodNP)
-        return lodNP
+#class objectManager(MapTileManager):
+#    def __init__(self,info, **kwargs):
+#        MapTileManager.__init__(self,info,**kwargs)        
+#        self.parentNode = kwargs['parentNode']
+#        self.zFunc = kwargs['zFunc']
+#        self.addTile(self.curIJ)            
+#
+#    def setupTile(self,tileID):
+#        print "overriding tree models"
+##        my_model.reparentTo(lod_np)
+#        tileNode = self.parentNode.attachNewNode('tile'+str(tileID))
+#        tileNode.reparentTo(self.parentNode)
+#        if self.tileInfo.has_key(tileID):
+#            for obj in self.tileInfo[tileID]:                
+#                r = random.randint(0,9)
+#                obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
+##                obj[1] = 1.0
+#                tmpModel = loader.loadModel(obj[2]) # name
+#
+#                obj_Z = self.zFunc(obj[0])
+#        #TODO: MAKE CONDITIONAL HERE. obj_Z may not return valid if not tile
+#        # only if valid obj_Z do the next part.
+#                np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
+#                np.reparentTo(tileNode)
+##                tmpModel.instanceTo(lod_np)
+##                tmpModel.setPos(obj[0][0],obj[0][1],obj_Z)
+##                tmpModel.setScale(obj[1])
+##                tmpModel.setH(random.randint(0,360))
+#        return tileNode
+#        
+#    def attachLODobj(self, modelList, pos,state=1):
+#        _tree_lof_far = 128
+#        lodNode = FadeLODNode('Tree LOD node')
+#        lodNP = NodePath(lodNode)
+##        lodNP.reparentTo(attachNode)
+#        lodNP.setPos(pos) #  offset of plane is -1/2 * Zscale
+#        lodNP.setH(random.randint(0,360))
+#        lodNP.setScale(state)
+#        for i,model in enumerate(modelList):                
+#            near = i*_TreeLODfar
+#            far = near + _TreeLODfar
+##                print near,far,model
+#            lodNode.addSwitch(far,near)
+##                if i==1: lodNP.setBillboardAxis()     # try billboard effect                        
+#            model.instanceTo(lodNP)
+#        return lodNP
