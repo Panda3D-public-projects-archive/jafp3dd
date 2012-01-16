@@ -1,0 +1,32 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jan 15 12:25:50 2012
+
+@author: shawn
+"""
+
+1/15/2012 
+    redefining the tiling structure. 
+    A class TILE will now be
+        subclass of NodePath
+        One HM with NxM texture maps offset on the HM appropriately
+            HM will be generated once and updated as LOD mesh        
+            texture maps will be loaded in background
+        A list of static objects
+            the list can be updated for changes in things like tree states, resources etc
+            updates will come from the server (mostly)
+            
+        A list of NPCs on the tile
+            NPC's can be added,transfered to another tile, or deleted
+            *** THIS IMPLIES COMM's BETWEEN TILES?
+
+# I think this amounts to the following work
+        Create the class TILE()
+        TILE() is a munge of terrainManager, objectManager, and a non existent
+            NPC manager
+        ** a TILE is a chunk of map that is "in scope" for rendering and updating
+        for the client ***
+
+        *** TILEs on the server side will naturally fit into parallel processes
+                tiles on server side need to interact, client side is only receiver of 
+                state of tile on server side
