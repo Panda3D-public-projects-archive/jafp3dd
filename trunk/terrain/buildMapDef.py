@@ -20,9 +20,10 @@ import cPickle as pickle
 
 _Datapath = 'resources'
 _templ = '%s_%s.x%dy%d.%s' #terrain image name template
-_treePath = 'map1/treeList.dat'
+#_treePath = 'map1/treeList.dat'
 _mapName='map2'
 NUM_DIV = 16
+TILE_SIZE = 128
 
 def enumerateMapTiles(dirName,N,Objects):
     # map tiles must be saved in the format (dirName).hmXY.png 
@@ -36,7 +37,7 @@ def enumerateMapTiles(dirName,N,Objects):
 
 if __name__ == "__main__":
     print "Getting Tree Loc's"       
-    treefile = open(os.path.join('..',_Datapath,_treePath))        
+    treefile = open(os.path.join('..',_Datapath,_mapName,'treeList.dat'))        
     treeLocs = pickle.load(treefile)
     treefile.close()
     
