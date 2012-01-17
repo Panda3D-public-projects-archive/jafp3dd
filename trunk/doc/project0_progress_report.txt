@@ -31,4 +31,16 @@ Created on Tue Nov 08 09:29:40 2011
 11/2 pycallgraph (debugger) installed at work
 11/8 (today) Install VTP at work. - eh, no on VTP, yes on plant library :)
 11/9 a little work in evening. played with auto shader but had troubles with terrain/textures.
-11/10 
+
+...um a bunch of tree work in here somewhere (probably 3-4 weeks on it!)
+
+01/17/2012 Been skipping this too much! The state of affairs: 
+	-Terrain manager can load multiple tiles of terrain. 
+	-Simple NPCs exist and move around on the tiles. 
+	-implemented a queue for object(NPC) movements to later enabled sync'ing pos with server (interpolate from passed position data)
+	-Improving modeling in Blender. MrStix is becoming my low poly avatar
+	-started some work on procedural control of a model's joints (for the combat system). 
+	-Some basic client and server classes created. 
+	-The main object is now a NetClient subclass as well as a Showbase.
+	-implemented a "map" file so the Client can just be told to load map "nnnn" 
+	
