@@ -352,6 +352,10 @@ class World(ShowBase,netClient):
         if self.mbState[2] and not self.mbState[0]:  # mouse Steer av
             self.avnp.setH(self.avnp,-2*_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0]))
             self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
+        if self.mbState[2] and self.mbState[0]:  # mouse Steer av
+            self.Kwalk = 1
+            self.avnp.setH(self.avnp,-2*_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0]))
+            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
         
     #    print avHandler.mbState[3]
         mbWheel = self.mbState[3]
@@ -368,12 +372,15 @@ class World(ShowBase,netClient):
         self.avnp.setPos(self.avnp,_WALKRATE_*self.Kstrafe*dt,_WALKRATE_*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
         self.avnp.setH(self.avnp,_TURNRATE_*self.Kturn*dt) #key input steer
         x,y,z = self.avnp.getPos()
-#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.avnp,(x,y,z))
 
-#        return self.terGeom.getElevation(worldPos[0],worldPos[1])
 # TODO: REMOVE THIS HACK FOR GET Z! 
 # just make Avatar another object in the tile. then object can get it's own Z from tile object
-        self.avnp.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))        
+        curIJ = self.ttMgr.curIJ
+        curTile = self.ttMgr.tiles[curIJ]
+        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
+        lcx = x - curIJ[0]*TILE_SIZE[0]
+        lcy = y - curIJ[1]*TILE_SIZE[1]
+        self.avnp.setZ(curTile.terGeom.getElevation(lcx,lcy))
         hdg = self.avnp.getH()
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
@@ -402,7 +409,15 @@ class World(ShowBase,netClient):
 #        print "localframe: ",app.camera.getPos()
 #        print "worldframe: ",app.camera.getPos(terrainRoot)
 #        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
-        terZ = self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(cx,cy) # what is terrain elevation at new camera pos
+# TODO: REMOVE THIS HACK FOR GET Z! 
+# just make Avatar another object in the tile. then object can get it's own Z from tile object
+        curIJ = self.ttMgr.curIJ
+        curTile = self.ttMgr.tiles[curIJ]
+        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
+        lcx = cx - curIJ[0]*TILE_SIZE[0]
+        lcy = cy - curIJ[1]*TILE_SIZE[1]
+
+        terZ = curTile.terGeom.getElevation(lcx,lcy) # what is terrain elevation at new camera pos
         if cz <= terZ+epsilon:
             camera.setZ(self.terraNode,terZ+epsilon)
 #            print cx,cy,cz, terZ
@@ -438,18 +453,18 @@ class World(ShowBase,netClient):
                 iNpc.speed = s
         print "</>"
         
-
-
-#
-## NOTES
-## OPTIMIZE CAMERA LOOK POINT
-## OPTIMIZE SKY DIMENSIONS AND TEX - (move to cubemap someday...)
-#
-#print """TODO: 
-#-good grass tex 
-#-plant/clutter bmps 
-#-Mip Levels on terrain tex's to reduce far patterning
-#-fog color by sky color dynamic"""
+def fakeAIchange(self,ttime):
+    Q = Quat()
+    newH = random.gauss(-180,180)
+    Q.setHpr((newH,0,0))
+    # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
+    self.speed = 3*abs(random.gauss(0,.33333))
+    self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
+    self.nextUpdate = ttime + 10*random.random() # randomize when to update next
+    # fake some AI motion
+    for iNpc in tile.npcs:
+        if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+            iNpc.makeChange(task.time)
 
 W = World()
 W.run()

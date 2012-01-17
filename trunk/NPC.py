@@ -7,6 +7,8 @@ Created on Sun Jan 15 20:57:23 2012
 from panda3d.core import *
 import random
 
+lim = lambda x,a,b: min(b,max(x,a))
+
 class NPC(NodePath):
     def __init__(self,nodeName,modelName,modelScale,parentNode):
         NodePath.__init__(self,nodeName)
@@ -31,6 +33,7 @@ class NPC(NodePath):
         # store commands as [Point3:pos,Vect3:vel,Vec3:accel,Vec3:Hpr] 
         # velocity direction can be different than the orientation of the model
         pos = cmds[0] + cmds[1]*dT + cmds[2]*0.5*dT**2
+        pos = (max(0,pos[0]),max(0,pos[1]),max(0,pos[2]))
         self.setPos(pos)
         return pos
     
@@ -42,15 +45,15 @@ class NPC(NodePath):
             self.commandsBuffer.update({time:commands})
 
 
-    def makeChange(self,ttime):
-        Q = Quat()
-        newH = random.gauss(-180,180)
-        Q.setHpr((newH,0,0))
-        # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
-        self.speed = 3*abs(random.gauss(0,.33333))
-        self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
-    #        self.setH(self,newH) #key input steer
-        self.nextUpdate = ttime + 10*random.random() # randomize when to update next
+#    def makeChange(self,ttime):
+#        Q = Quat()
+#        newH = random.gauss(-180,180)
+#        Q.setHpr((newH,0,0))
+#        # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
+#        self.speed = 3*abs(random.gauss(0,.33333))
+#        self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
+#    #        self.setH(self,newH) #key input steer
+#        self.nextUpdate = ttime + 10*random.random() # randomize when to update next
 
 #    def updateNpc(self):
 #        x,y,z = self.calcPos(task.time)
