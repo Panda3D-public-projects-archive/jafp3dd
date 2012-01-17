@@ -22,6 +22,7 @@ loadPrcFileData( '', 'sync-video 0' )
 
 from CelestialBody import CelestialBody
 from tileManager import *
+#from ScalingGeoMipTerrain import ScalingGeoMipTerrain
 from network.client import netClient
 
 TILE_SIZE = (128,128)
@@ -196,7 +197,7 @@ class World(ShowBase,netClient):
         print 'loading map ', mapDefName
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
 #        treeLocs, = data[0:2]
-        self.ttMgr = terrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=self.terraNode, tileScale=_terraScale)      
+        self.ttMgr = TerrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=render, tileScale=_terraScale)      
 #        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
         print "done"
         
