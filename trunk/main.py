@@ -21,8 +21,8 @@ from panda3d.core import loadPrcFileData
 loadPrcFileData( '', 'sync-video 0' ) 
 
 from CelestialBody import CelestialBody
-from tileManager import *
-#from ScalingGeoMipTerrain import ScalingGeoMipTerrain
+from tileManager import MapTile as MapTile
+from NPC import NPC
 from network.client import NetClient
 from network import rencode as rencode
 
@@ -30,7 +30,7 @@ TILE_SIZE = (128,128)
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 1
+_DoFog = 0
 _ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
 _ShowOcean = 0
@@ -73,7 +73,7 @@ PStatClient.connect()
 #import pycallgraph
 #pycallgraph.start_trace()
        
-class World(ShowBase,NetClient):
+class TileClient(ShowBase,NetClient):
     Kturn = 0
     Kwalk = 0
     Kstrafe = 0
@@ -178,7 +178,7 @@ class World(ShowBase,NetClient):
 #            self.skynp.setFog(terraFog)
 #            self.oceanNode.setFog(self.terraFog)
         else:
-            print "Using auto shader"
+            print "NO FOG. Using auto shader"
             render.setShaderAuto()
             
 ######### TASKS ADDS
@@ -195,11 +195,25 @@ class World(ShowBase,NetClient):
 #        render.analyze()
 
     def loadMap(self,mapDefName):
-        print 'loading map ', mapDefName
+        print 'loading map ', mapDefName,'...',
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
+        tileID = (0,0)        
+        HFname,texList,Objects = tileInfo[tileID][0:3]
 #        treeLocs, = data[0:2]
-        self.ttMgr = TerrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=self.terraNode, tileScale=_terraScale)      
+#        self.ttMgr = TerrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=self.terraNode, tileScale=_terraScale)      
 #        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
+        self.mapTile = MapTile('mapTile',self.avnp)
+        self.mapTile.setPos(tileID[0]*TILE_SIZE[0],tileID[1]*TILE_SIZE[0],0)
+        self.mapTile.reparentTo(self.terraNode)                     
+        self.mapTile.setGeom(HFname, _terraScale, position=(0,0,0))
+        self.mapTile.setTexture(texList)
+        for obj in Objects:
+#            r = random.randint(0,9)
+#            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
+            self.mapTile.addStaticObject(obj) # takes a an individual object for this tile
+
+        for n in range(1):
+            self.mapTile.npcs.append( NPC('guy','resources/models/cone.egg',1,self.mapTile) )
         print "done"
         
     def setupSky(self):
@@ -376,12 +390,12 @@ class World(ShowBase,NetClient):
 
 # TODO: REMOVE THIS HACK FOR GET Z! 
 # just make Avatar another object in the tile. then object can get it's own Z from tile object
-        curIJ = self.ttMgr.curIJ
-        curTile = self.ttMgr.tiles[curIJ]
-        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
-        lcx = x - curIJ[0]*TILE_SIZE[0]
-        lcy = y - curIJ[1]*TILE_SIZE[1]
-        self.avnp.setZ(curTile.terGeom.getElevation(lcx,lcy))
+#        curIJ = self.ttMgr.curIJ
+#        curTile = self.ttMgr.tiles[curIJ]
+#        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
+#        lcx = x - curIJ[0]*TILE_SIZE[0]
+#        lcy = y - curIJ[1]*TILE_SIZE[1]
+        self.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
         hdg = self.avnp.getH()
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont   
@@ -412,13 +426,13 @@ class World(ShowBase,NetClient):
 #        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
 # TODO: REMOVE THIS HACK FOR GET Z! 
 # just make Avatar another object in the tile. then object can get it's own Z from tile object
-        curIJ = self.ttMgr.curIJ
-        curTile = self.ttMgr.tiles[curIJ]
-        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
-        lcx = cx - curIJ[0]*TILE_SIZE[0]
-        lcy = cy - curIJ[1]*TILE_SIZE[1]
+#        curIJ = self.ttMgr.curIJ
+#        curTile = self.ttMgr.tiles[curIJ]
+#        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
+#        lcx = cx - curIJ[0]*TILE_SIZE[0]
+#        lcy = cy - curIJ[1]*TILE_SIZE[1]
 
-        terZ = curTile.terGeom.getElevation(lcx,lcy) # what is terrain elevation at new camera pos
+        terZ = self.mapTile.terGeom.getElevation(cx,cy) # what is terrain elevation at new camera pos
         if cz <= terZ+epsilon:
             camera.setZ(self.terraNode,terZ+epsilon)
 #            print cx,cy,cz, terZ
@@ -470,7 +484,7 @@ def fakeAIchange(self,ttime):
         if task.time > iNpc.nextUpdate:         # change direction and heading every so often
             iNpc.makeChange(task.time)
 
-W = World()
+W = TileClient()
 W.run()
 print "closing connection to server"
 W.disconnect()

@@ -64,18 +64,21 @@ class ServerApp(DirectObject):
                 self.ProcessData(datagram)
         return task.cont
 
-    def write(self,messageID, data, toConnection):
+    def write(self,messageID, data, toConnection=None):
+        # a none entry results in a broadcast to all active clients
+        if not toConnection: toConnection = self.activeConnections
 #TODO: SERVER SIDE NEEDS TO KNOW WHERE TO SEND THE MESSAGE
         datagram = NetDatagram()
         datagram.addInt32(messageID)
         datagram.addString(rencode.dumps(data,False))
-        self.cWriter.send(datagram, toConnection)
+        for con in toConnection:
+            self.cWriter.send(datagram, con)
 
     def ProcessData(self,NetDatagram):
         pass
 
 
-class WorldServer(ServerApp):
+class TileServer(ServerApp):
     def __init__(self):
         ServerApp.__init__(self)
         self.nextTx = 0
@@ -144,7 +147,7 @@ class serverNPC(NodePath):
 
 
 if __name__ == '__main__':
-    server = WorldServer()
+    server = TileServer()
 #    nMgr = NPCmanager()
 #    server.run()
     taskMgr.run()

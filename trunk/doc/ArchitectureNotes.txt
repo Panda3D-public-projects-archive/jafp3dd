@@ -30,3 +30,50 @@ Created on Sun Jan 15 12:25:50 2012
         *** TILEs on the server side will naturally fit into parallel processes
                 tiles on server side need to interact, client side is only receiver of 
                 state of tile on server side
+==================================================================
+1/18
+* 1 Tile, static objects
+
+DB: definitions
+a Map
+|- terrain geom
+|- ter Tex
+|- stat obj dict {ID:object}
+
+ID: split into high/low half (byte,word, whatever size you want). 
+high = object type (for AI or anything else?)
+low = object number (on that tile)
+
+SERVERSIDE(1 tile per cpu, say)
+    
+Tile Object
+|- *mapID
+|- dynObject dict {ID:object}
+|- *NetClient List (connections)
+
+-methods:
+    |- listen for clients
+    |- *drop dead client connections
+    |- send dynObject update(s) to client(s)
+    |- import object (to another tile-called private)
+    |- export object (from another tile-called public)
+
+
+dynObject
+|- inherit NodePath: Pos,Hpr,Quat,...
+|- objectID (database ID for client to use)
+|- makeAI change (timestamp:pos,hpr,speed,action...):
+
+
+CLIENTSIDE
+|- a tileMgr (already have it, just default to a single tile for now)
+   |- Client Tile (currently "World")
+        (Nodepath, NetClient: each tile talks to a tileserver...makes sense)
+        |- global POS,HPR,setc
+        |- mapID
+        |- interp dynObj (NPC) pos
+        |- update dynObj pos (from incoming server update)
+        |- listen for server msg's
+        |- connect to tileServer (and reconnect)
+
+
