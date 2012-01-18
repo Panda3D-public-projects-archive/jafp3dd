@@ -63,9 +63,9 @@ class MapTile(NodePath):
     # TileManager determines what tiles are in scope for rendering on the client
 
     # Some hacky global consts for now
-    _block_size_ = 16    # for LOD chunking
-    _lod_near = 64 # ideal = Fog min distance
-    _lod_far = 192
+    _block_size_ = 20    # for LOD chunking
+    _lod_near = 96 # ideal = Fog min distance
+    _lod_far = 150
     _brute = False # use brute force
     _tree_lod_far = 128
 
@@ -176,11 +176,12 @@ class MapTile(NodePath):
 
 class MapTileManager:
     curIJ = (0,0)
+    inScopeTiles = [curIJ]
     Lx = Ly = []        # Size of a "Tile" in world units
     addTileQueue = []
     removeTileQueue = []
     lastAddTime = 0
-
+    
     def __init__(self, infoDict, focus, size, delay=1, **kwargs ):
         (self.Lx,self.Ly) = size #
         self.minAddDelay = delay
@@ -212,10 +213,10 @@ class MapTileManager:
                 removed = self.tiles.pop(tileID)
                 del removed # MAKE SURE THE REMOVED OBJECT CLEANS ITSELF UP WITH A del Call!!!
             self.removeTileQueue.remove(tileID) # pull it out of the list even if not in the dict(bad list entry)
-
+        
     def refreshTileList(self,radius=1):    # make this a background task ?
 #       determine what the in range tile list should be and update it
-        newTileList = []
+        inScopeTiles = []
         for di in xrange(-radius,radius+1):
             for dj in xrange(-radius,radius+1):
                 # GENERATING THE LIST FIRST ALLOW TO DO IN BACKGROUND TASK LATER
@@ -227,11 +228,11 @@ class MapTileManager:
                     if not self.addTileQueue.__contains__(newKey): # double check not in add list already
                         self.addTileQueue.append( newKey )    # add to the add list
 #                        print "adding ", newKey
-                if not newTileList.__contains__(newKey):
-                    newTileList.append( newKey )        # build up the new list for later
+                if not inScopeTiles.__contains__(newKey):
+                    inScopeTiles.append( newKey )        # build up the new list for later
         # Now check for removes from current
         for key in self.tiles.keys():
-            if not newTileList.__contains__(key):    # compare newlist to current,
+            if not inScopeTiles.__contains__(key):    # compare newlist to current,
                 if not self.removeTileQueue.__contains__(key):    #double check again
                     self.removeTileQueue.append(key)        #remove currents not in newlist
 
@@ -284,7 +285,6 @@ class TerrainManager(MapTileManager):
         for obj in Objects:
 #            r = random.randint(0,9)
 #            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
-            print obj
             newTile.addStaticObject(obj) # takes a an individual object for this tile
 
         for n in range(1):
