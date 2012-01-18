@@ -23,14 +23,15 @@ loadPrcFileData( '', 'sync-video 0' )
 from CelestialBody import CelestialBody
 from tileManager import *
 #from ScalingGeoMipTerrain import ScalingGeoMipTerrain
-from network.client import netClient
+from network.client import NetClient
+from network import rencode as rencode
 
 TILE_SIZE = (128,128)
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 0
-_ShowSky = 1        # put up the sky dome
+_DoFog = 1
+_ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
 _ShowOcean = 0
 
@@ -53,7 +54,7 @@ _Sealevel = 2
 _Suntex = 'textures/blueSun.png'
 
 
-fogPm = (128,164,45,250,500) # last 3 params for linfalloff - not used atm
+fogPm = (96,150,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
 _AVMODEL_ = os.path.join('models','MrStix.x')
@@ -72,7 +73,7 @@ PStatClient.connect()
 #import pycallgraph
 #pycallgraph.start_trace()
        
-class World(ShowBase,netClient):
+class World(ShowBase,NetClient):
     Kturn = 0
     Kwalk = 0
     Kstrafe = 0
@@ -89,7 +90,7 @@ class World(ShowBase,netClient):
         
     def __init__(self):
         ShowBase.__init__(self)
-        netClient.__init__(self)
+        NetClient.__init__(self)
         self.setBackgroundColor(_SKYCOLOR_)
         self.setFrameRateMeter(1)
         #app.disableMouse()
@@ -197,7 +198,7 @@ class World(ShowBase,netClient):
         print 'loading map ', mapDefName
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
 #        treeLocs, = data[0:2]
-        self.ttMgr = TerrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=render, tileScale=_terraScale)      
+        self.ttMgr = TerrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=self.terraNode, tileScale=_terraScale)      
 #        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
         print "done"
         
@@ -439,18 +440,21 @@ class World(ShowBase,netClient):
     def ProcessData(self,datagram):
         print time.ctime(),' <recv> ',
         I = DatagramIterator(datagram)
-        for iNpc in self.npc:
-            if I.getRemainingSize() > 0:
-                x=I.getFloat32()
-                y=I.getFloat32()
-                z=I.getFloat32() # read it out because it is there
-                h=I.getFloat32()
-                p=I.getFloat32()
-                r=I.getFloat32() # read it out because it is there
-                s=I.getFloat32()
-                iNpc.setPos(x,y,self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
-                iNpc.setHpr(h,p,r)
-                iNpc.speed = s
+        msgID = I.getInt32()
+        data = rencode.loads(I.getString()) # data matching msgID
+        print msgID,data
+#        for iNpc in self.npc:
+#            if I.getRemainingSize() > 0:
+#                x=I.getFloat32()
+#                y=I.getFloat32()
+#                z=I.getFloat32() # read it out because it is there
+#                h=I.getFloat32()
+#                p=I.getFloat32()
+#                r=I.getFloat32() # read it out because it is there
+#                s=I.getFloat32()
+#                iNpc.setPos(x,y,self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
+#                iNpc.setHpr(h,p,r)
+#                iNpc.speed = s
         print "</>"
         
 def fakeAIchange(self,ttime):
