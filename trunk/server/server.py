@@ -12,6 +12,17 @@ from direct.showbase.DirectObject import DirectObject
 from panda3d.core import *
 import rencode
 
+class serverNPC(NodePath):
+# Data needed to sync: x,y,z,h,p,r,speed
+    nextUpdate = 0
+    speed = 0
+
+    def makeChange(self,ttime):
+        self.speed = 10*abs(random.gauss(0,.33333))
+        newH = random.gauss(0,60)
+        self.setH(self,newH) #key input steer
+        self.nextUpdate = ttime + 5*random.random() # randomize when to update next
+
 class ServerApp(DirectObject):
     def __init__(self):
         DirectObject.__init__(self)
@@ -107,6 +118,7 @@ class TileServer(ServerApp):
         msgID = I.getInt32() # what type of message
         data = rencode.loads(I.getString()) # data matching msgID
         print t0,msgID,data
+        if msgID == 10: print data
 #            self.write(t0,datagram.getConnection())
 
     def updateNPCs(self,task):
@@ -137,16 +149,6 @@ class TileServer(ServerApp):
         return task.cont
 
 
-class serverNPC(NodePath):
-# Data needed to sync: x,y,z,h,p,r,speed
-    nextUpdate = 0
-    speed = 0
-
-    def makeChange(self,ttime):
-        self.speed = 10*abs(random.gauss(0,.33333))
-        newH = random.gauss(0,60)
-        self.setH(self,newH) #key input steer
-        self.nextUpdate = ttime + 5*random.random() # randomize when to update next
 
 
 
