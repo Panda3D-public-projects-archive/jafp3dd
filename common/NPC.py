@@ -21,7 +21,7 @@ class NPC(NodePath):
         self.reparentTo(parentNode)
         
     def calcPos(self,timenow):
-        # get time just previous to time now in buffer
+        # get time in buffer that is just previous to time now 
         utimes = self.commandsBuffer.keys()
         utimes.sort()
         for ix in utimes:
