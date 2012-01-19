@@ -10,7 +10,7 @@ from direct.showbase.ShowBase import taskMgr, ShowBase
 from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
-import rencode    # from ??? on Panda3d IRC. Let me know so I can credit!
+import rencode
 
 class ServerApp(DirectObject):
     def __init__(self):
@@ -31,6 +31,7 @@ class ServerApp(DirectObject):
         print "Server Adding pollers..."
         taskMgr.add(self.tskListenerPolling,'Poll connection listener',-39)
         taskMgr.add(self.tskReaderPolling,'Poll connection reader',-40)
+        taskMgr.add(self.tskCheckConnect,'Check for lost connections',-41)
         print "Server Initialization completed successfully!"
 
     def tskListenerPolling(self,task):
@@ -64,15 +65,27 @@ class ServerApp(DirectObject):
                 self.ProcessData(datagram)
         return task.cont
 
-    def write(self,messageID, data, toConnection=None):
+    def tskCheckConnect(self,task):
+        if self.cManager.resetConnectionAvailable() == True:
+            ptc = PointerToConnection()
+            self.cManager.getResetConnection(ptc)
+            con = ptc.p()
+          
+            if con in self.activeConnections:
+                self.activeConnections.remove(con)
+                print self.activeConnections
+            print "CS: Client disconnected" ,con
+            self.cManager.closeConnection(con)
+        return task.cont
+        
+    def write(self,messageID, data, connection=None):
         # a none entry results in a broadcast to all active clients
-        if not toConnection: toConnection = self.activeConnections
+        if not connection: connection = self.activeConnections
 #TODO: SERVER SIDE NEEDS TO KNOW WHERE TO SEND THE MESSAGE
         datagram = NetDatagram()
         datagram.addInt32(messageID)
         datagram.addString(rencode.dumps(data,False))
-        for con in toConnection:
-            self.cWriter.send(datagram, con)
+        self.cWriter.send(datagram, connection)
 
     def ProcessData(self,NetDatagram):
         pass
@@ -135,15 +148,6 @@ class serverNPC(NodePath):
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + 5*random.random() # randomize when to update next
 
-
-#class NPCmanager():
-#    def __init__(self):
-#
-#    queueMsq
-#
-#    def mgrTask(self,task):
-#        get some message from the Q
-#        split msg into func and data
 
 
 if __name__ == '__main__':

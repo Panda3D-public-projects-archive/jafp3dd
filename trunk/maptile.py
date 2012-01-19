@@ -26,7 +26,8 @@ class MapTile(NodePath):
         self.texTex = Texture()
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
         self.npcs = [] # objects like other PCs and NPCs that move/change realtime
-
+        taskMgr.add(self.updateTile,'DoTileUpdates')
+        
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
         # Make an GeoMip Instance in this tile
@@ -106,14 +107,14 @@ class MapTile(NodePath):
             model.instanceTo(lodNP)
         return lodNP
 
-    def updateNPCs(self,task):
-        for iNpc in self.npcs:
-            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
-                iNpc.makeChange(task.time)
-                self.write('time')
-            x,y,z = iNpc.calcPos(task.time)
-            iNpc.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
-        return task.cont
+#    def updateNPCs(self,task):
+#        for iNpc in self.npcs:
+#            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
+#                iNpc.makeChange(task.time)
+#                self.write('time')
+#            x,y,z = iNpc.calcPos(task.time)
+#            iNpc.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
+#        return task.cont
 
 
     def updateTile(self,task):
@@ -121,4 +122,4 @@ class MapTile(NodePath):
         for iNpc in self.npcs:
             x,y,z = iNpc.calcPos(task.time)
             iNpc.setZ(self.terGeom.getElevation(x,y))
-        return task.done
+        return task.cont

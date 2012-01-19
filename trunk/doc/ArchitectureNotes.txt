@@ -52,8 +52,9 @@ Tile Object
 |- *NetClient List (connections)
 
 -methods:
-    |- listen for clients
+    |- *listen for clients
     |- *drop dead client connections
+    |- process client msgs
     |- send dynObject update(s) to client(s)
     |- import object (to another tile-called private)
     |- export object (from another tile-called public)

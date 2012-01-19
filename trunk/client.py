@@ -61,7 +61,7 @@ class NetClient(DirectObject):
         print time.ctime(),' <recv> ',
         print "</>"
 
-    def write(self,messageID,data,datatoCon=None):
+    def write(self,messageID,data,toCon=None):
         if self.myConnection or toCon:
             datagram = NetDatagram()
             datagram.addInt32(messageID)
@@ -75,10 +75,10 @@ if __name__ == '__main__':
         addr = sys.argv[1]
     else:
         addr = '127.0.0.1'
-    client = netClient(addr)
+    client = NetClient(addr)
 
 
-    client.write('ping')
+    client.write(int(1000),'ping')
     taskMgr.run()
     print "out of the loop somehow!"
     client.cManager.closeConnection(myConnection)
