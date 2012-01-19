@@ -22,9 +22,9 @@ loadPrcFileData( '', 'sync-video 0' )
 
 from CelestialBody import CelestialBody
 from tileManager import MapTile as MapTile
-from NPC import NPC
-from network.client import NetClient
-from network import rencode as rencode
+from common import NPC
+from client import NetClient as NetClient
+from common import rencode as rencode
 
 TILE_SIZE = (128,128)
 

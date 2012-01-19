@@ -7,7 +7,7 @@ Created on Thu Dec 01 15:38:44 2011
 from panda3d.core import *
 import time, random
 
-from NPC import NPC
+from common import NPC
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
 
 class MapTile(NodePath):

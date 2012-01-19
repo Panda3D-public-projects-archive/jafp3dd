@@ -12,7 +12,7 @@ import time
 from direct.showbase.ShowBase import taskMgr
 from direct.showbase.DirectObject import DirectObject
 from panda3d.core import *
-import rencode    # from ??? on Panda3d IRC. Let me know so I can credit!
+from common import rencode as rencode # from ??? on Panda3d IRC. Let me know so I can credit!
 
 class NetClient(DirectObject):
     port_address=9099  # same for client and server
