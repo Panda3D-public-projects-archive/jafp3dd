@@ -21,9 +21,9 @@ from panda3d.core import loadPrcFileData
 loadPrcFileData( '', 'sync-video 0' ) 
 
 from CelestialBody import CelestialBody
-from tileManager import MapTile as MapTile
-from common import NPC
-from client import NetClient as NetClient
+from maptile import MapTile as MapTile
+from common.NPC import NPC
+from client import NetClient
 from common import rencode as rencode
 
 TILE_SIZE = (128,128)
