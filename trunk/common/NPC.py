@@ -7,8 +7,6 @@ Created on Sun Jan 15 20:57:23 2012
 from panda3d.core import *
 import random
 
-lim = lambda x,a,b: min(b,max(x,a))
-
 class NPC(NodePath):
     def __init__(self,nodeName,modelName,modelScale,parentNode):
         NodePath.__init__(self,nodeName)
