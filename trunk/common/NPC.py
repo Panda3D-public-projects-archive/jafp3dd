@@ -7,18 +7,19 @@ Created on Sun Jan 15 20:57:23 2012
 from panda3d.core import *
 import random
 
-class NPC(NodePath):
-    def __init__(self,nodeName,modelName,modelScale,parentNode):
+class DynamicObject(NodePath):
+    def __init__(self,nodeName,modelName,modelScale,parentNode=None):
         NodePath.__init__(self,nodeName)
         self.commandsBuffer = dict({0:[Vec3(70,70,0),Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0)]}) # {time:[list of commands]}
         self.speed = 0
         self.nextUpdate = 0
         self.color = (VBase4(random.random(),random.random(),random.random(),1))
         self.model = loader.loadModel(modelName)
+#TODO: Load ACTORS as well as static models...        
         self.model.reparentTo(self)
         self.setScale(modelScale)
         self.model.setColor(self.color)
-        self.reparentTo(parentNode)
+        if parentNode: self.reparentTo(parentNode)
         
     def calcPos(self,timenow):
         # get time in buffer that is just previous to time now 

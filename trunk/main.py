@@ -22,7 +22,7 @@ loadPrcFileData( '', 'sync-video 0' )
 
 from CelestialBody import CelestialBody
 from maptile import MapTile as MapTile
-from common.NPC import NPC
+from common.NPC import DynamicObject
 from client import NetClient
 from common import rencode as rencode
 
@@ -73,7 +73,7 @@ PStatClient.connect()
 #import pycallgraph
 #pycallgraph.start_trace()
        
-class TileClient(ShowBase,NetClient):
+class World(ShowBase,NetClient):
     Kturn = 0
     Kwalk = 0
     Kstrafe = 0
@@ -99,9 +99,12 @@ class TileClient(ShowBase,NetClient):
 
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
-        self.avnp = render.attachNewNode("Avatar")
         self.skynp = render.attachNewNode("SkyDome")               
         self.floralNode = self.terraNode.attachNewNode('TreesAndFlowers') # child to inherit terrain fog
+
+        self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
+        #render.attachNewNode("Avatar")
+        
         self.camera.reparentTo(self.avnp)
         self.camera.setY(-10)
         self.camera.lookAt(self.avnp)
@@ -110,11 +113,14 @@ class TileClient(ShowBase,NetClient):
         if _ShowSky: self.setupSky() # must occur after setupAvatar    
         
         self.setupKeys()
-        self.connect() # local loop if no address
-        self.setupAvatar()     
+#        self.connect() # local loop if no address
+#        self.setupAvatar()     
 
-        self.loadMap(_mapName)
-     
+        self.mapTile = self.newMapTile(_mapName)
+        self.mapTile.reparentTo(self.terraNode)
+        self.avnp.reparentTo(self.mapTile)
+        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+
         self.sun = CelestialBody(self.render, self.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
         self.sun.period = 1800
@@ -182,39 +188,30 @@ class TileClient(ShowBase,NetClient):
             render.setShaderAuto()
             
 ######### TASKS ADDS
-
-#        taskMgr.add(self.updateTera,"TerrainUpdates")
         taskMgr.add(self.updateAvnp,"update Av node")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
-#        taskMgr.add(self.updateNPCs,'NPC Updates')
 
 #        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.destroy()
 ###############
 #        render.analyze()
 
-    def loadMap(self,mapDefName):
+    def newMapTile(self,mapDefName):
         print 'loading map ', mapDefName,'...',
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
         tileID = (0,0)        
         HFname,texList,Objects = tileInfo[tileID][0:3]
-#        treeLocs, = data[0:2]
-#        self.ttMgr = TerrainManager(tileInfo, focus=self.avnp, size=TILE_SIZE, parentNode=self.terraNode, tileScale=_terraScale)      
-#        self.objMgr = objectManager(treeLocs, focus=self.avnp, parentNode=self.floralNode, zFunc=self.ttMgr.getElevation)
-        self.mapTile = MapTile('mapTile',self.avnp)
-        self.mapTile.setPos(tileID[0]*TILE_SIZE[0],tileID[1]*TILE_SIZE[0],0)
-        self.mapTile.reparentTo(self.terraNode)                     
-        self.mapTile.setGeom(HFname, _terraScale, position=(0,0,0))
-        self.mapTile.setTexture(texList)
+        mapTile = MapTile('mapTile',self.avnp)
+        mapTile.setPos(tileID[0]*TILE_SIZE[0],tileID[1]*TILE_SIZE[0],0)
+        mapTile.setGeom(HFname, _terraScale, position=(0,0,0))
+        mapTile.setTexture(texList)
         for obj in Objects:
 #            r = random.randint(0,9)
 #            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
-            self.mapTile.addStaticObject(obj) # takes a an individual object for this tile
-
-        for n in range(1):
-            self.mapTile.npcs.append( NPC('guy','resources/models/cone.egg',1,self.mapTile) )
+            mapTile.addStaticObject(obj) # takes a an individual object for this tile
         print "done"
+        return mapTile
         
     def setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
@@ -385,23 +382,18 @@ class TileClient(ShowBase,NetClient):
     def updateAvnp(self,task):
         dt = globalClock.getDt()
         self.avnp.setPos(self.avnp,_WALKRATE_*self.Kstrafe*dt,_WALKRATE_*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.avnp.setH(self.avnp,_TURNRATE_*self.Kturn*dt) #key input steer
-        x,y,z = self.avnp.getPos()
 
-# TODO: REMOVE THIS HACK FOR GET Z! 
-# just make Avatar another object in the tile. then object can get it's own Z from tile object
-#        curIJ = self.ttMgr.curIJ
-#        curTile = self.ttMgr.tiles[curIJ]
-#        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
-#        lcx = x - curIJ[0]*TILE_SIZE[0]
-#        lcy = y - curIJ[1]*TILE_SIZE[1]
+        self.avnp.setH(self.avnp,_TURNRATE_*self.Kturn*dt) #key input steer
+
+        x,y,z = self.avnp.getPos()
         self.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
         h,p,r = self.avnp.getHpr()
+
         self.textObject.setText(str((int(x),int(y),int(z),int(h))))
-        self.write(int(10),[x,y,z,h,p,r])
+#        self.write(int(10),[x,y,z,h,p,r])
         return task.cont   
     
-    
+
     def updateCamera(self,task):
         epsilon = .333
         aim = Point3(0,.333,2)
@@ -418,31 +410,16 @@ class TileClient(ShowBase,NetClient):
         camera.setY(-radius*cos(phi)*cos(theta))
         camera.setZ(radius*sin(phi)+aim[2])
         
-        # Keep Camera above terrain
 # TODO: Object occlusion with camera intersection
-        
+        # Keep Camera above terrain        
         cx,cy,cz = camera.getPos(self.terraNode)
-#        print "localframe: ",app.camera.getPos()
-#        print "worldframe: ",app.camera.getPos(terrainRoot)
-#        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
-# TODO: REMOVE THIS HACK FOR GET Z! 
-# just make Avatar another object in the tile. then object can get it's own Z from tile object
-#        curIJ = self.ttMgr.curIJ
-#        curTile = self.ttMgr.tiles[curIJ]
-#        # PROBLEM HERE IS THAT THIS x,y are GLOBAL! NOT A TILES LOCAL...calc locals below
-#        lcx = cx - curIJ[0]*TILE_SIZE[0]
-#        lcy = cy - curIJ[1]*TILE_SIZE[1]
-
         terZ = self.mapTile.terGeom.getElevation(cx,cy) # what is terrain elevation at new camera pos
         if cz <= terZ+epsilon:
             camera.setZ(self.terraNode,terZ+epsilon)
-#            print cx,cy,cz, terZ
         camera.lookAt(self.avnp,aim) # look at the avatar nodepath
 #        camera.lookAt(self.sun.model)
 
-        if _DoFog: self.terraFog.setColor(base.getBackgroundColor()) # cheesy place to update this for now...
-        
-    #    print camVector                   
+        if _DoFog: self.terraFog.setColor(base.getBackgroundColor()) # cheesy place to update this for now...       
         return task.cont
   
     def moveArm(self,task):
@@ -452,40 +429,14 @@ class TileClient(ShowBase,NetClient):
     
 
     # NETWORK DATAGRAM PROCESSING
-    def ProcessData(self,datagram):
-        print time.ctime(),' <recv> ',
-        I = DatagramIterator(datagram)
-        msgID = I.getInt32()
-        data = rencode.loads(I.getString()) # data matching msgID
-        print msgID,data
-#        for iNpc in self.npc:
-#            if I.getRemainingSize() > 0:
-#                x=I.getFloat32()
-#                y=I.getFloat32()
-#                z=I.getFloat32() # read it out because it is there
-#                h=I.getFloat32()
-#                p=I.getFloat32()
-#                r=I.getFloat32() # read it out because it is there
-#                s=I.getFloat32()
-#                iNpc.setPos(x,y,self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
-#                iNpc.setHpr(h,p,r)
-#                iNpc.speed = s
-        print "</>"
-        
-def fakeAIchange(self,ttime):
-    Q = Quat()
-    newH = random.gauss(-180,180)
-    Q.setHpr((newH,0,0))
-    # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
-    self.speed = 3*abs(random.gauss(0,.33333))
-    self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
-    self.nextUpdate = ttime + 10*random.random() # randomize when to update next
-    # fake some AI motion
-    for iNpc in tile.npcs:
-        if task.time > iNpc.nextUpdate:         # change direction and heading every so often
-            iNpc.makeChange(task.time)
-
-W = TileClient()
+#    def ProcessData(self,datagram):
+#        print time.ctime(),' <recv> '
+#        I = DatagramIterator(datagram)
+#        msgID = I.getInt32()
+#        data = rencode.loads(I.getString()) # data matching msgID
+#        print "</>"
+ 
+W = World()
 W.run()
 print "closing connection to server"
 W.disconnect()

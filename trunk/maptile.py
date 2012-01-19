@@ -4,11 +4,16 @@ Created on Wed Jan 18 19:06:16 2012
 
 @author: shawn
 """
-import random
-from panda3d.core import *
-from ScalingGeoMipTerrain import ScalingGeoMipTerrain
+import random, time
 
-class MapTile(NodePath):
+from panda3d.core import *
+
+from ScalingGeoMipTerrain import ScalingGeoMipTerrain
+from client import NetClient
+from common.NPC import DynamicObject
+from common import rencode as rencode
+
+class MapTile(NodePath,NetClient):
     # A tile is a chunk of a map.
     # TileManager determines what tiles are in scope for rendering on the client
 
@@ -21,11 +26,17 @@ class MapTile(NodePath):
 
     def __init__(self, name='Tile',focus=None):
         NodePath.__init__(self,name)
+        NetClient.__init__(self)
+        self.connect() # local loop if no address
+
         self.focusNode = focus
         self.terGeom = ScalingGeoMipTerrain("Tile Terrain")
         self.texTex = Texture()
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
-        self.npcs = [] # objects like other PCs and NPCs that move/change realtime
+         # objects like other PCs and dynObjs that move/change realtime
+        self.dynObjs=[]
+        for n in range(6):
+            self.dynObjs.append( DynamicObject('guy','resources/models/cone.egg',.6,self) )
         taskMgr.add(self.updateTile,'DoTileUpdates')
         
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
@@ -107,8 +118,8 @@ class MapTile(NodePath):
             model.instanceTo(lodNP)
         return lodNP
 
-#    def updateNPCs(self,task):
-#        for iNpc in self.npcs:
+#    def updatedynObjs(self,task):
+#        for iNpc in self.dynObjs:
 #            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
 #                iNpc.makeChange(task.time)
 #                self.write('time')
@@ -119,7 +130,27 @@ class MapTile(NodePath):
 
     def updateTile(self,task):
         if not self._brute: self.terGeom.update()    # update LOD geometry
-        for iNpc in self.npcs:
-            x,y,z = iNpc.calcPos(task.time)
+        for iNpc in self.dynObjs:
+            x,y,z = iNpc.calcPos(time.time())
             iNpc.setZ(self.terGeom.getElevation(x,y))
         return task.cont
+
+    # NETWORK DATAGRAM PROCESSING
+    def ProcessData(self,datagram):
+        print time.ctime(),' <recv> '
+        I = DatagramIterator(datagram)
+        msgID = I.getInt32()
+        data = rencode.loads(I.getString()) # data matching msgID
+        if msgID == 0:
+            for update in data:
+                print update
+                [utime,ID,x,y,z,h,p,r,speed] = update
+                Q = Quat()
+                Q.setHpr((h,0,0))
+                self.dynObjs[ID].updateCommandsBuffer(utime,[Vec3(x,y,z),Q.getForward()*speed,Vec3(0,0,0)])           
+        else:
+            print msgID,'::',data
+
+        print "</>"
+
+            
