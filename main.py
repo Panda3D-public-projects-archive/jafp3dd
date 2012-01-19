@@ -396,8 +396,9 @@ class TileClient(ShowBase,NetClient):
 #        lcx = x - curIJ[0]*TILE_SIZE[0]
 #        lcy = y - curIJ[1]*TILE_SIZE[1]
         self.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
-        hdg = self.avnp.getH()
-        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
+        h,p,r = self.avnp.getHpr()
+        self.textObject.setText(str((int(x),int(y),int(z),int(h))))
+        self.write(int(10),[x,y,z,h,p,r])
         return task.cont   
     
     
