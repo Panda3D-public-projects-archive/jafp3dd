@@ -5,23 +5,42 @@ Created on Mon Nov 28 13:24:03 2011
 @author: us997259
 """
 
-import time,random
+import time,random,os
+
 from direct.showbase.ShowBase import taskMgr, ShowBase
 from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
+
 import rencode
+
+NUM_NPC = 6
 
 class serverNPC(NodePath):
 # Data needed to sync: x,y,z,h,p,r,speed
+
     nextUpdate = 0
     speed = 0
-
+    def __init__(self,name):
+        NodePath.__init__(self, name)
+        self.ID = os.urandom(16)
+#        print self.ID
+        
     def makeChange(self,ttime):
-        self.speed = 10*abs(random.gauss(0,.33333))
+        self.speed = 4*abs(random.gauss(0,.33333))
         newH = random.gauss(0,60)
         self.setH(self,newH) #key input steer
-        self.nextUpdate = ttime + 5*random.random() # randomize when to update next
+        self.nextUpdate = ttime + 2 # randomize when to update next
+
+#   FOR BUFFERED DYNOBJECT:: ADD!       
+#    def fakeAIchange(self,ttime):
+#        Q = Quat()
+#        newH = random.gauss(-180,180)
+#        Q.setHpr((newH,0,0))
+#        # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
+#        self.speed = 3*abs(random.gauss(0,.33333))
+#        self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
+#        self.nextUpdate = ttime + 10*random.random() # randomize when to update next
 
 class ServerApp(DirectObject):
     def __init__(self):
@@ -42,7 +61,7 @@ class ServerApp(DirectObject):
         print "Server Adding pollers..."
         taskMgr.add(self.tskListenerPolling,'Poll connection listener',-39)
         taskMgr.add(self.tskReaderPolling,'Poll connection reader',-40)
-        taskMgr.add(self.tskCheckConnect,'Check for lost connections',-41)
+        taskMgr.doMethodLater(1,self.tskCheckConnect,'Check for lost connections')
         print "Server Initialization completed successfully!"
 
     def tskListenerPolling(self,task):
@@ -77,6 +96,7 @@ class ServerApp(DirectObject):
         return task.cont
 
     def tskCheckConnect(self,task):
+        print "in check"
         if self.cManager.resetConnectionAvailable() == True:
             ptc = PointerToConnection()
             self.cManager.getResetConnection(ptc)
@@ -87,7 +107,7 @@ class ServerApp(DirectObject):
                 print self.activeConnections
             print "CS: Client disconnected" ,con
             self.cManager.closeConnection(con)
-        return task.cont
+        return Task.again
         
     def write(self,messageID, data, connection=None):
         # a none entry results in a broadcast to all active clients
@@ -107,9 +127,11 @@ class TileServer(ServerApp):
         ServerApp.__init__(self)
         self.nextTx = 0
         self.npc = []
-        for n in range(10):
+        for n in range(NUM_NPC):
             self.npc.append( serverNPC('thisguy'+str(n)))
             self.npc[n].setPos(70,70,0)
+            self.npc[n].ID = n
+
         taskMgr.add(self.updateNPCs,'server NPCs')
 
     def ProcessData(self,datagram):
@@ -123,11 +145,11 @@ class TileServer(ServerApp):
 
     def updateNPCs(self,task):
         dt = task.getDt()
-        datagram = NetDatagram()
         data = []
         for iNpc in self.npc:
-            if time.time() > iNpc.nextUpdate:         # change direction and heading every so often
-                iNpc.makeChange(task.time)
+            tnow = time.time()
+            if tnow > iNpc.nextUpdate:         # change direction and heading every so often
+                iNpc.makeChange(time.time())
             iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            poslist.append(iNpc.getPos())
             x,y,z = iNpc.getPos()
@@ -140,7 +162,7 @@ class TileServer(ServerApp):
 #            for cv in iNpc.getHpr():
 #                datagram.addFloat32(cv)
 #            datagram.addFloat32(iNpc.speed)
-            data.append([x,y,z,h,p,r,iNpc.speed])
+            data.append([tnow,iNpc.ID,x,y,z,h,p,r,iNpc.speed])
         # send x,y,z's to client(s)
         if time.time() > self.nextTx:
             for client in self.activeConnections:

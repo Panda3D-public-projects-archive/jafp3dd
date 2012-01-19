@@ -63,18 +63,36 @@ Tile Object
 dynObject
 |- inherit NodePath: Pos,Hpr,Quat,...
 |- objectID (database ID for client to use)
-|- makeAI change (timestamp:pos,hpr,speed,action...):
+|-methods:
+    |- makeAI change (timestamp:pos,hpr,speed,action...):
+    |- interpolate pos (task)
+    |- sync commands(input is server command update)
+        (recalc the current pos from server info)
 
+ /---------------
+/ 
 
 CLIENTSIDE
-|- a tileMgr (already have it, just default to a single tile for now)
    |- Client Tile (currently "World")
         (Nodepath, NetClient: each tile talks to a tileserver...makes sense)
         |- global POS,HPR,setc
-        |- mapID
-        |- interp dynObj (NPC) pos
-        |- update dynObj pos (from incoming server update)
+        |- mapID (look up geom,texture, stat objects)
+        |- dyn objects list 
+        methods:
+        |- connect to tileServer 
+            |- * and reconnect
         |- listen for server msg's
-        |- connect to tileServer (and reconnect)
+        |- *ask server for "my map ID"
+            |- time out after interval
+        |- loadMap (on receipt of server mapID)
+        |- *update dynObj pos buffer(from incoming server update)
 
+        
 
+|- a tileMgr later...
+=====================================================================
+1/19
+
+ from 1/18:: Client Tile (currently "World") is not entirely correct
+    World controls the camera, inputs, the rendering options, it is more the "engine"   
+    based code
