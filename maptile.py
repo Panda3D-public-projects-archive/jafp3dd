@@ -23,21 +23,27 @@ class MapTile(NodePath,NetClient):
     _lod_far = 150
     _brute = False # use brute force
     _tree_lod_far = 128
-
+    
     def __init__(self, name='Tile',focus=None):
         NodePath.__init__(self,name)
         NetClient.__init__(self)
         self.connect() # local loop if no address
-
+        self.tickCount = 0
+        
         self.focusNode = focus
         self.terGeom = ScalingGeoMipTerrain("Tile Terrain")
         self.texTex = Texture()
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
          # objects like other PCs and dynObjs that move/change realtime
         self.dynObjs=[]
+        self.snapshot = dict()
+        
         for n in range(6):
             self.dynObjs.append( DynamicObject('guy','resources/models/cone.egg',.6,self) )
+        self.snapshot = {0:self.dynObjs}
+
         taskMgr.add(self.updateTile,'DoTileUpdates')
+        taskMgr.doMethodLater(.016,self.runTick,'discrete_tick')
         
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
@@ -118,21 +124,22 @@ class MapTile(NodePath,NetClient):
             model.instanceTo(lodNP)
         return lodNP
 
-#    def updatedynObjs(self,task):
-#        for iNpc in self.dynObjs:
-#            if task.time > iNpc.nextUpdate:         # change direction and heading every so often
-#                iNpc.makeChange(task.time)
-#                self.write('time')
-#            x,y,z = iNpc.calcPos(task.time)
-#            iNpc.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
-#        return task.cont
-
-
+    def runTick(self,task):
+        self.tickCount += 1
+        print self.snapshot
+        snap = self.snapshot[str(self.tickCount)]
+        for obj in snap:
+            id = obj[0]
+            x,y,z = obj[1:4] #iNpc.calcPos(time.time())
+            z = self.terGeom.getElevation(x,y)
+            self.dynObjs[id].setPos(x,y,z)
+        return task.again
+        
     def updateTile(self,task):
         if not self._brute: self.terGeom.update()    # update LOD geometry
-        for iNpc in self.dynObjs:
-            x,y,z = iNpc.calcPos(time.time())
-            iNpc.setZ(self.terGeom.getElevation(x,y))
+#        for iNpc in self.dynObjs:
+#            x,y,z = iNpc.calcPos(time.time())
+#            iNpc.setZ(self.terGeom.getElevation(x,y))
         return task.cont
 
     # NETWORK DATAGRAM PROCESSING
@@ -142,13 +149,13 @@ class MapTile(NodePath,NetClient):
         msgID = I.getInt32()
         data = rencode.loads(I.getString()) # data matching msgID
         if msgID == 0:
-            for update in data:
-                print update
-                [tick,ID,x,y,z,h,p,r,speed] = update
-                utime = tick*0.015
-                Q = Quat()
-                Q.setHpr((h,0,0))
-                self.dynObjs[ID].updateCommandsBuffer(utime,[Vec3(x,y,z),Q.getForward()*speed,Vec3(0,0,0)])           
+            tick = data.pop(0) # snapshot tick count
+            self.snapshot.update({str(tick):data})
+#            for snap in data:
+#                print snap                
+#                [tick,ID,x,y,z] = update                
+#                utime = tick*0.015
+#                self.dynObjs[ID].updateCommandsBuffer(utime,[Vec3(x,y,z),Vec3(0,0,0),Vec3(0,0,0)])           
         else:
             print msgID,'::',data
 
