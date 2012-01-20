@@ -14,8 +14,8 @@ from panda3d.core import *
 
 import rencode
 
-NUM_NPC = 3
-SERVER_TICK = 15.0/1000 # seconds
+NUM_NPC = 10
+SERVER_TICK = 0.040 # seconds
 
 class serverNPC(NodePath):
 # Data needed to sync: x,y,z,h,p,r,speed
@@ -32,18 +32,10 @@ class serverNPC(NodePath):
         newH = random.gauss(0,60)
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + 2 # randomize when to update next
-
-#   FOR BUFFERED DYNOBJECT:: ADD!       
-#    def fakeAIchange(self,ttime):
-#        Q = Quat()
-#        newH = random.gauss(-180,180)
-#        Q.setHpr((newH,0,0))
-#        # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
-#        self.speed = 3*abs(random.gauss(0,.33333))
-#        self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
-#        self.nextUpdate = ttime + 10*random.random() # randomize when to update next
+        
 
 class ServerApp(DirectObject):
+    # subclass from NetClient as clean up; Extend w/ listener task
     def __init__(self):
         DirectObject.__init__(self)
         print "Starting the world..."
@@ -129,6 +121,7 @@ class TileServer(ServerApp):
     def __init__(self):
         ServerApp.__init__(self)
         self.tickCount = 0
+        self.tlast = 0
         self.sendBuffer = []
         self.nextTx = 0
         self.npc = []
@@ -153,7 +146,10 @@ class TileServer(ServerApp):
     def calcTick(self,task):
         self.tickCount += 1
         snapshot = [self.tickCount]
-        dt = task.getDt()
+        # snapshot format [tick,(objectID,x,y,z),(ObjID,x..),...]
+        tnow = time.clock()
+        dt = tnow - self.tlast
+#        dt = task.getDt()
         for iNpc in self.npc:
             iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            iNpc.setZ(self.ttMgr.getElevation((x,y)))
@@ -161,18 +157,21 @@ class TileServer(ServerApp):
             x,y,z = iNpc.getPos()
             snapshot.append((iNpc.ID,x,y,z))
         self.sendBuffer.append(snapshot)
+        print "tick:",self.tickCount,snapshot
+        # sendBuffer = [snapshot1, snapshot2,...snapshotN] #since last TX
+        self.tlast = tnow
         return task.again
         
     def NpcAI(self,task):
         for iNpc in self.npc:
             tnow = time.time()
             if tnow > iNpc.nextUpdate:         # change direction and heading every so often
-                iNpc.makeChange(time.time())
+                iNpc.makeChange(tnow)
         return task.cont
         
     def sendThrottle(self,task):
-        print "TX>"
         for client in self.activeConnections:
+            print "TX>", client
             self.write(int(0),self.sendBuffer, client) # rencode lets me send objects??
         self.sendBuffer = []
         return task.again

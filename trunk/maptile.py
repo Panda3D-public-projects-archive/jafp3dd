@@ -28,19 +28,19 @@ class MapTile(NodePath,NetClient):
         NodePath.__init__(self,name)
         NetClient.__init__(self)
         self.connect() # local loop if no address
-        self.tickCount = 0
+        self.tickCount = -1
         
         self.focusNode = focus
         self.terGeom = ScalingGeoMipTerrain("Tile Terrain")
         self.texTex = Texture()
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
          # objects like other PCs and dynObjs that move/change realtime
-        self.dynObjs=[]
+        self.dynObjs=dict()
         self.snapshot = dict()
         
-        for n in range(6):
-            self.dynObjs.append( DynamicObject('guy','resources/models/cone.egg',.6,self) )
-        self.snapshot = {0:self.dynObjs}
+#        for n in range(6):
+#            self.dynObjs.append( DynamicObject('guy','resources/models/cone.egg',.6,self) )
+#        self.snapshot = {0:self.dynObjs}
 
         taskMgr.add(self.updateTile,'DoTileUpdates')
         taskMgr.doMethodLater(.016,self.runTick,'discrete_tick')
@@ -125,14 +125,18 @@ class MapTile(NodePath,NetClient):
         return lodNP
 
     def runTick(self,task):
-        self.tickCount += 1
-        print self.snapshot
-        snap = self.snapshot[str(self.tickCount)]
-        for obj in snap:
-            id = obj[0]
-            x,y,z = obj[1:4] #iNpc.calcPos(time.time())
-            z = self.terGeom.getElevation(x,y)
-            self.dynObjs[id].setPos(x,y,z)
+        if self.tickCount >= 0: # did we get a message yet?
+            snap = self.snapshot[self.tickCount]
+            for obj in snap:
+                print obj
+                ID,x,y,z = obj #iNpc.calcPos(time.time())
+                z = self.terGeom.getElevation(x,y)
+                if ID not in self.dynObjs:
+                    self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
+                self.dynObjs[ID].setPos(x,y,z)
+#                self.dynObjs[ID].printPos()
+            self.tickCount += 1
+
         return task.again
         
     def updateTile(self,task):
@@ -149,13 +153,10 @@ class MapTile(NodePath,NetClient):
         msgID = I.getInt32()
         data = rencode.loads(I.getString()) # data matching msgID
         if msgID == 0:
-            tick = data.pop(0) # snapshot tick count
-            self.snapshot.update({str(tick):data})
-#            for snap in data:
-#                print snap                
-#                [tick,ID,x,y,z] = update                
-#                utime = tick*0.015
-#                self.dynObjs[ID].updateCommandsBuffer(utime,[Vec3(x,y,z),Vec3(0,0,0),Vec3(0,0,0)])           
+            for entry in data:
+                tick = entry.pop(0) # snapshot tick count
+                if self.tickCount < 0: self.tickCount = tick
+                self.snapshot.update({tick:entry})
         else:
             print msgID,'::',data
 
