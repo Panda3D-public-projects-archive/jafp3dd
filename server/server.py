@@ -15,6 +15,7 @@ from panda3d.core import *
 import rencode
 
 NUM_NPC = 6
+SERVER_TICK = 15.0/1000 # seconds
 
 class serverNPC(NodePath):
 # Data needed to sync: x,y,z,h,p,r,speed
@@ -62,7 +63,7 @@ class ServerApp(DirectObject):
         taskMgr.add(self.tskListenerPolling,'Poll connection listener',-39)
         taskMgr.add(self.tskReaderPolling,'Poll connection reader',-40)
         taskMgr.doMethodLater(1,self.tskCheckConnect,'Check for lost connections')
-        print "Server Initialization completed successfully!"
+        print "Server listening!"
 
     def tskListenerPolling(self,task):
 #        for con in self.activeConnections:
@@ -125,6 +126,8 @@ class ServerApp(DirectObject):
 class TileServer(ServerApp):
     def __init__(self):
         ServerApp.__init__(self)
+        self.tickCount = 0
+        self.sendBuffer = []
         self.nextTx = 0
         self.npc = []
         for n in range(NUM_NPC):
@@ -132,8 +135,9 @@ class TileServer(ServerApp):
             self.npc[n].setPos(70,70,0)
             self.npc[n].ID = n
 
-        taskMgr.add(self.updateNPCs,'server NPCs')
-
+        taskMgr.add(self.NpcAI,'server NPCs')
+        taskMgr.doMethodLater(1.0,self.sendThrottle,'TXatRate')
+        
     def ProcessData(self,datagram):
         t0 = time.ctime()
         I = DatagramIterator(datagram)
@@ -143,9 +147,20 @@ class TileServer(ServerApp):
         if msgID == 10: print data
 #            self.write(t0,datagram.getConnection())
 
-    def updateNPCs(self,task):
+    def calcTick(self):
+        self.tickCount += 1
         dt = task.getDt()
         data = []
+        for iNpc in self.npc:
+            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            x,y,z = iNpc.getPos()
+            h,p,r = iNpc.getHpr()
+            data.append([self.tickCount,iNpc.ID,x,y,z,h,p,r,iNpc.speed])
+
+        
+    def NpcAI(self,task):
+        dt = task.getDt()
+        self.sendBuffer = []
         for iNpc in self.npc:
             tnow = time.time()
             if tnow > iNpc.nextUpdate:         # change direction and heading every so often
@@ -156,19 +171,14 @@ class TileServer(ServerApp):
             h,p,r = iNpc.getHpr()
 #            iNpc.setZ(self.ttMgr.getElevation((x,y)))
 #TODO: What to do about terrain heights???
+            self.sendBuffer.append([self.tickCount,iNpc.ID,x,y,z,h,p,r,iNpc.speed])
 
-#            for cv in iNpc.getPos():
-#                datagram.addFloat32(cv)
-#            for cv in iNpc.getHpr():
-#                datagram.addFloat32(cv)
-#            datagram.addFloat32(iNpc.speed)
-            data.append([tnow,iNpc.ID,x,y,z,h,p,r,iNpc.speed])
-        # send x,y,z's to client(s)
-        if time.time() > self.nextTx:
-            for client in self.activeConnections:
-                self.write(int(0),data, client) # rencode lets me send objects??
-            self.nextTx = time.time() + 1.100
-        return task.cont
+    def sendThrottle(self,task):
+        print "TX>"
+        for client in self.activeConnections:
+            self.write(int(0),self.sendBuffer, client) # rencode lets me send objects??
+        self.sendBuffer = []
+        return task.again
 
 
 

@@ -144,7 +144,8 @@ class MapTile(NodePath,NetClient):
         if msgID == 0:
             for update in data:
                 print update
-                [utime,ID,x,y,z,h,p,r,speed] = update
+                [tick,ID,x,y,z,h,p,r,speed] = update
+                utime = tick*0.015
                 Q = Quat()
                 Q.setHpr((h,0,0))
                 self.dynObjs[ID].updateCommandsBuffer(utime,[Vec3(x,y,z),Q.getForward()*speed,Vec3(0,0,0)])           

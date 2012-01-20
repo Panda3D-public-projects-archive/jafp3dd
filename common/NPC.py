@@ -21,12 +21,18 @@ class DynamicObject(NodePath):
         self.model.setColor(self.color)
         if parentNode: self.reparentTo(parentNode)
         
-    def calcPos(self,timenow):
+    def _timeToKey(self,timenow):
+        """ return the buffer key time just previous to timenow """
         # get time in buffer that is just previous to time now 
         utimes = self.commandsBuffer.keys()
         utimes.sort()
-        for ix in utimes:
-            if ix <= timenow: ts = ix # give me the index first entry in the dict that is < timenow
+        for t in utimes:
+            if t <= timenow: 
+                timekey = t # give me the index first entry in the dict that is < timenow 
+        return timekey
+        
+    def calcPos(self,timenow):
+        ts = self._timeToKey(timenow)
         dT = timenow-ts
         cmds = self.commandsBuffer[ts] # give me the command/state associated with time in [ix]
         # store commands as [Point3:pos,Vect3:vel,Vec3:accel,Vec3:Hpr] 
@@ -37,24 +43,12 @@ class DynamicObject(NodePath):
         return pos
     
     def updateCommandsBuffer(self,time,commands):
-        if time < (self.commandsBuffer.keys())[-1]: # adding a time before the last time in the list
         #assuming here that time keys are put in sequential; no sort needed
-            raise Exception('command update time before the latest update time!')
-        else:
+        if time > (self.commandsBuffer.keys())[-1]:
             self.commandsBuffer.update({time:commands})
-
-
-#    def makeChange(self,ttime):
-#        Q = Quat()
-#        newH = random.gauss(-180,180)
-#        Q.setHpr((newH,0,0))
-#        # GET CUR VELOC VECTOR to MULTUPLE WITH Quat
-#        self.speed = 3*abs(random.gauss(0,.33333))
-#        self.updateCommandsBuffer(ttime,[self.getPos(),Q.getForward()*self.speed,Vec3(0,0,0)])
-#    #        self.setH(self,newH) #key input steer
-#        self.nextUpdate = ttime + 10*random.random() # randomize when to update next
-
-#    def updateNpc(self):
-#        x,y,z = self.calcPos(task.time)
-#        self.setZ(self.ttMgr.tiles[self.ttMgr.curIJ].terGeom.getElevation(x,y))
- 
+        else:
+             # adding a time before the last time in the list triggers a recalc
+             # assumption is that this is a server based update, thus in the past
+             # and the new pos needs to be calculated
+            raise Exception('command update time before the latest update time!')
+             
