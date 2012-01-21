@@ -19,6 +19,7 @@ _AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
 #SERVER_IP = '192.168.1.188'
 SERVER_IP = None
+LERP_INTERVAL = 1
 
 class MapTile(NodePath,NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -137,16 +138,19 @@ class MapTile(NodePath,NetClient):
 
     def runTick(self,task):
         if self.snapCount >= 0 and self.snapCount in self.snapshot: # did we get a message yet?
-            snap = self.snapshot[self.snapCount] # get snapshot object for this tick
+            snap = self.snapshot[self.snapCount+1] # get NEXT snapshot to interp to
+            snap0 = self.snapshot[self.snapCount]
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
                 z = self.terGeom.getElevation(x,y)
                 if ID not in self.dynObjs:
                     self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
                 self.dynObjs[ID].setPos(x,y,z)
+#                else:
                 self.dynObjs[ID].setHpr(h,p,r)
-#                self.dynObjs[ID].printPos()
-            self.snapCount += 1
+#                    self.dynObjs[ID].posInterval(SNAP_INTERVAL,(x,y,z))
+                self.dynObjs[ID].printPos()
+        self.snapCount += 1
 
         return task.again
         
@@ -166,7 +170,7 @@ class MapTile(NodePath,NetClient):
         if msgID == 0:
             for entry in data:
                 snapNum = entry.pop(0) # snapshot tick count
-                if self.snapCount < 0: self.snapCount = snapNum
+                if self.snapCount < 0: self.snapCount = snapNum - LERP_INTERVAL
                 self.snapshot.update({snapNum:entry})
         else:
             print msgID,'::',data
