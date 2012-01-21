@@ -5,7 +5,7 @@ Created on Wed Jan 18 19:06:16 2012
 @author: shawn
 """
 import random, time
-
+import os
 from panda3d.core import *
 
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
@@ -13,24 +13,32 @@ from client import NetClient
 from common.NPC import DynamicObject
 from common import rencode as rencode
 
+_Datapath = "resources"
+_AVMODEL_ = os.path.join('models','MrStix.x')
+_STARTPOS_ = (64,64)
+
 class MapTile(NodePath,NetClient):
-    # A tile is a chunk of a map.
+    """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
     # TileManager determines what tiles are in scope for rendering on the client
 
     # Some hacky global consts for now
-    _block_size_ = 20    # for LOD chunking
+    _block_size_ = 32    # for LOD chunking
     _lod_near = 96 # ideal = Fog min distance
     _lod_far = 150
-    _brute = False # use brute force
+    _brute = 1 # use brute force
     _tree_lod_far = 128
     
     def __init__(self, name='Tile',focus=None):
         NodePath.__init__(self,name)
         NetClient.__init__(self)
-        self.connect() # local loop if no address
+        self.connect('192.168.1.188') # local loop if no address
         self.tickCount = -1
-        
-        self.focusNode = focus
+
+        self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
+        self.avnp.reparentTo(self)
+        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+
+        self.focusNode = focus or self.avnp
         self.terGeom = ScalingGeoMipTerrain("Tile Terrain")
         self.texTex = Texture()
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
@@ -43,7 +51,7 @@ class MapTile(NodePath,NetClient):
 #        self.snapshot = {0:self.dynObjs}
 
         taskMgr.add(self.updateTile,'DoTileUpdates')
-        taskMgr.doMethodLater(.016,self.runTick,'discrete_tick')
+        taskMgr.doMethodLater(.033,self.runTick,'discrete_tick')
         
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
@@ -125,11 +133,10 @@ class MapTile(NodePath,NetClient):
         return lodNP
 
     def runTick(self,task):
-        if self.tickCount >= 0: # did we get a message yet?
-            snap = self.snapshot[self.tickCount]
-            for obj in snap:
-                print obj
-                ID,x,y,z = obj #iNpc.calcPos(time.time())
+        if self.tickCount >= 0 and self.tickCount in self.snapshot: # did we get a message yet?
+            snap = self.snapshot[self.tickCount] # get snapshot object for this tick
+            for obj in snap: # update all objects in this snapshot
+                ID,x,y,z = obj
                 z = self.terGeom.getElevation(x,y)
                 if ID not in self.dynObjs:
                     self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
