@@ -4,8 +4,28 @@ Created on Sun Jan 15 20:57:23 2012
 
 @author: shawn
 """
-from panda3d.core import *
 import random
+from os import urandom
+
+from panda3d.core import *
+#from direct.showbase.Loader import Loader as loader
+
+class serverNPC(NodePath):
+# Data needed to sync: x,y,z,h,p,r,speed
+
+    nextUpdate = 0
+    speed = 0
+    def __init__(self,name):
+        NodePath.__init__(self, name)
+        self.ID = urandom(16)
+#        print self.ID
+        
+    def makeChange(self,ttime):
+        self.speed = .5 + 3.5*abs(random.gauss(0,.33333))
+        newH = random.gauss(0,60)
+        self.setH(self,newH) #key input steer
+        self.nextUpdate = ttime + 2 # randomize when to update next
+
 
 class DynamicObject(NodePath):
     def __init__(self,nodeName,modelName,modelScale,parentNode=None):

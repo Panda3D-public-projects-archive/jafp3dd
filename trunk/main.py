@@ -6,26 +6,23 @@ import sys
 _Datapath = "resources"
 
 import os.path
-from math import *
+from math import sin,cos,pi
 from numpy import sign
-import time
+#import time
 import cPickle as pickle
      
 from direct.showbase.ShowBase import ShowBase
-from direct.actor.Actor import Actor
 #from direct.showbase.DirectObject import DirectObject
+#from direct.actor.Actor import Actor
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 
-from panda3d.core import loadPrcFileData
-loadPrcFileData( '', 'sync-video 0' ) 
-
 from CelestialBody import CelestialBody
 from maptile import MapTile as MapTile
-from common.NPC import DynamicObject
-from client import NetClient
-from common import rencode as rencode
-from server.server import serverNPC as NPC
+from network.client import NetClient
+from network.rencode import *
+
+loadPrcFileData( '', 'sync-video 0' ) 
 
 TILE_SIZE = (128,128)
 
