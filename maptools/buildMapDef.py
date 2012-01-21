@@ -21,8 +21,8 @@ import cPickle as pickle
 _Datapath = 'resources'
 _templ = '%s_%s.x%dy%d.%s' #terrain image name template
 #_treePath = 'map1/treeList.dat'
-_mapName='map2'
-NUM_DIV = 16
+_mapName='map3'
+NUM_DIV = 1
 TILE_SIZE = 128
 
 def enumerateMapTiles(dirName,N,Objects):
@@ -32,7 +32,7 @@ def enumerateMapTiles(dirName,N,Objects):
     tileList = {}
     for nx in range(N):
         for ny in range(N):
-            tileList.update({(nx,ny):(_templ%(dirName,'HM',nx,ny,'png'), _templ%(dirName,'TX',nx,ny,'png'), Objects[(nx,ny)])})
+            tileList.update({(nx,ny):(_templ%(dirName,'HM',nx,ny,'png'), _templ%(dirName,'TX',nx,ny,'jpg'), Objects[(nx,ny)])})
     return tileList
 
 if __name__ == "__main__":

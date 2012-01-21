@@ -20,7 +20,7 @@ _maxAge = 3
 _modelID = 'resources/models/sampleTree%d.bam'
 #_treeMap = './addcli_TM.png'
 _treeMap = './uniform_TM.png'
-_mapName = 'map2'
+_mapName = 'map3'
 
 def calcTileTrees(tileSize=None, minSep=None, Lx=None,Ly=None,numSeeds=_startSeeds, numCycles=_growCycles,minAge=_minAge,maxAge=_maxAge):
     PM = PDFImage(_treeMap,tileSize) # Probability Map object

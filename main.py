@@ -25,12 +25,13 @@ from maptile import MapTile as MapTile
 from common.NPC import DynamicObject
 from client import NetClient
 from common import rencode as rencode
+from server.server import serverNPC as NPC
 
 TILE_SIZE = (128,128)
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 0
+_DoFog = 1
 _ShowSky = 0        # put up the sky dome
 _ShowClouds = 0
 _ShowOcean = 0
@@ -57,10 +58,8 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,150,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-_AVMODEL_ = os.path.join('models','MrStix.x')
-_STARTPOS_ = (64,64)
-_TURNRATE_ = 120    # Degrees per second
-_WALKRATE_ = 8
+TURN_RATE = 120    # Degrees per second
+WALK_RATE = 8
 _MINCAMDIST_ = 1
 _MaxCamDist = 20
  
@@ -80,7 +79,7 @@ class World(ShowBase,NetClient):
     Kzoom = 0
     Kpitch = 0
     Ktheta = 0
-    mbState = [0,0,0,0] # 3 mouse buttons + wheel, 1 down, 0 on up
+    mbState = [0,0,0,0] # 3 mouse buttons + wheel, 1 on down, 0 on up
 
     ## DO SOME CAM STUFF
     camVector = [10,0,15]    # [distance, heading, pitch ]
@@ -100,15 +99,10 @@ class World(ShowBase,NetClient):
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
         self.skynp = render.attachNewNode("SkyDome")               
-        self.floralNode = self.terraNode.attachNewNode('TreesAndFlowers') # child to inherit terrain fog
-
-        self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
-        #render.attachNewNode("Avatar")
         
-        self.camera.reparentTo(self.avnp)
-        self.camera.setY(-10)
-        self.camera.lookAt(self.avnp)
-        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+#        self.camera.setY(-10)
+#        self.camera.lookAt(self.mapTile.avnp)
+        self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
         if _DoLights: self.setupLights()        
         if _ShowSky: self.setupSky() # must occur after setupAvatar    
         
@@ -118,10 +112,12 @@ class World(ShowBase,NetClient):
 
         self.mapTile = self.newMapTile(_mapName)
         self.mapTile.reparentTo(self.terraNode)
-        self.avnp.reparentTo(self.mapTile)
-        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+        self.camera.reparentTo(self.mapTile.avnp)
 
-        self.sun = CelestialBody(self.render, self.avnp, './resources/models/plane', \
+#        self.avnp.reparentTo(self.mapTile)
+#        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+
+        self.sun = CelestialBody(self.render, self.mapTile.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
         self.sun.period = 1800
         self.sun.declin = 0
@@ -132,7 +128,7 @@ class World(ShowBase,NetClient):
         self.sun.dayColor = VBase4(_SKYCOLOR_)
         taskMgr.add(self.sun.updateTask,'sun task')
 #        
-#        self.moon = CelestialBody(self.render,self.avnp, './resources/models/plane', \
+#        self.moon = CelestialBody(self.render,self.mapTile.avnp, './resources/models/plane', \
 #        './resources/textures/copperMoon.png',radius=4000,Fov=12,phase=pi,eColor=VBase4(.5,1,1,1)) 
 #        self.moon.period = 30
 #        self.moon.declin = 20
@@ -202,7 +198,8 @@ class World(ShowBase,NetClient):
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
         tileID = (0,0)        
         HFname,texList,Objects = tileInfo[tileID][0:3]
-        mapTile = MapTile('mapTile',self.avnp)
+        
+        mapTile = MapTile('mapTile')
         mapTile.setPos(tileID[0]*TILE_SIZE[0],tileID[1]*TILE_SIZE[0],0)
         mapTile.setGeom(HFname, _terraScale, position=(0,0,0))
         mapTile.setTexture(texList)
@@ -221,7 +218,7 @@ class World(ShowBase,NetClient):
         skyModel = GeoMipTerrain("scene")
         skyModel.setHeightfield(os.path.join(_Datapath,_SkyModel)) # crude to save and read but works for now
         skyModel.setBruteforce(1)
-        skyModel.setFocalPoint(self.avnp)
+        skyModel.setFocalPoint(self.mapTile.avnp)
         npDome = skyModel.getRoot()
         skyModel.generate()
         npDome.setTwoSided(1)
@@ -256,33 +253,7 @@ class World(ShowBase,NetClient):
         self.alight.setColor(VBase4(.1,.1,.1,1))
         self.alnp = render.attachNewNode(self.alight)
 #        render.setLight(self.alnp)     
- 
-    def setupAvatar(self):    
-        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
-#        self.avnp.setBin('fixed',45)
-#        print self.avnp.getBinName()
-        
-#        ruler = loader.loadModel(_Datapath + '/models/plane')
-#        ruler.setPos(0,-.5,1) # .5 *2scale
-#        ruler.setScale(.05,1,2) #2 unit tall board
-#        ruler.setTwoSided(1)
-#        ruler.reparentTo(self.avnp)
-
-#        self.aVmodel = loader.loadModel(os.path.join(_Datapath,_AVMODEL_))
-        self.aVmodel = Actor(os.path.join(_Datapath,_AVMODEL_))
-        self.aVmodel.reparentTo(self.avnp)
-#        self.armCtrl = self.aVmodel.controlJoint(None,"modelRoot","Armature")
-#        print self.aVmodel.listJoints()
-        
-#        self.aVmodel.setScale(.5,.5,1)
-#        self.aVmodel.setScale(1.0/6)
-#        self.aVmodel.setZ(1)
-#        self.aVmodel.setH(180)
-#        self.aVmodel.setColor(.9,1,.9)
-        avMat = Material()
-        avMat.setShininess(0)
-        self.aVmodel.setMaterial(avMat)
-           
+            
     def setupKeys(self):
         _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
            
@@ -359,15 +330,15 @@ class World(ShowBase,NetClient):
             base.mouseWatcherNode.getMouseY()]
         dt = globalClock.getDt()
         if self.mbState[0] and not self.mbState[2]:
-            self.camVector[1] += -_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0])
-            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
+            self.camVector[1] += -TURN_RATE*(self.mousePos[0] - self.mousePos_old[0])
+            self.camVector[2] += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
         if self.mbState[2] and not self.mbState[0]:  # mouse Steer av
-            self.avnp.setH(self.avnp,-2*_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0]))
-            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
-        if self.mbState[2] and self.mbState[0]:  # mouse Steer av
-            self.Kwalk = 1
-            self.avnp.setH(self.avnp,-2*_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0]))
-            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
+            self.mapTile.avnp.setH(self.mapTile.avnp,-2*TURN_RATE*(self.mousePos[0] - self.mousePos_old[0]))
+            self.camVector[2] += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
+#        if self.mbState[2] and self.mbState[0]:  # mouse Steer av
+#            self.Kwalk = 1
+#            self.mapTile.avnp.setH(self.mapTile.avnp,-2*TURN_RATE*(self.mousePos[0] - self.mousePos_old[0]))
+#            self.camVector[2] += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
         
     #    print avHandler.mbState[3]
         mbWheel = self.mbState[3]
@@ -381,27 +352,24 @@ class World(ShowBase,NetClient):
   
     def updateAvnp(self,task):
         dt = globalClock.getDt()
-        self.avnp.setPos(self.avnp,_WALKRATE_*self.Kstrafe*dt,_WALKRATE_*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.Kstrafe*dt,WALK_RATE*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.mapTile.avnp.setH(self.mapTile.avnp,TURN_RATE*self.Kturn*dt) #key input steer
 
-        self.avnp.setH(self.avnp,_TURNRATE_*self.Kturn*dt) #key input steer
+        x,y,z = self.mapTile.avnp.getPos()
+        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
 
-        x,y,z = self.avnp.getPos()
-        self.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
-        h,p,r = self.avnp.getHpr()
-
-        self.textObject.setText(str((int(x),int(y),int(z),int(h))))
 #        self.write(int(10),[x,y,z,h,p,r])
         return task.cont   
     
 
     def updateCamera(self,task):
         epsilon = .333
-        aim = Point3(0,.333,2)
+        aim = Point3(0,.333,1)
         dt = globalClock.getDt() # to stay time based, not frame based
         self.camVector[0] += 8*(self.Kzoom)*dt
         self.camVector[0] = max(_MINCAMDIST_,min(_MaxCamDist,self.camVector[0]))
-        self.camVector[1] += .5*_TURNRATE_*self.Ktheta*dt
-        self.camVector[2] += .5*_TURNRATE_*self.Kpitch*dt
+        self.camVector[1] += .5*TURN_RATE*self.Ktheta*dt
+        self.camVector[2] += .5*TURN_RATE*self.Kpitch*dt
         
         phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
         theta = self.camVector[1]*pi/180 # orbit angle un    d this way
@@ -416,10 +384,14 @@ class World(ShowBase,NetClient):
         terZ = self.mapTile.terGeom.getElevation(cx,cy) # what is terrain elevation at new camera pos
         if cz <= terZ+epsilon:
             camera.setZ(self.terraNode,terZ+epsilon)
-        camera.lookAt(self.avnp,aim) # look at the avatar nodepath
+        camera.lookAt(self.mapTile.avnp,aim) # look at the avatar nodepath
 #        camera.lookAt(self.sun.model)
 
         if _DoFog: self.terraFog.setColor(base.getBackgroundColor()) # cheesy place to update this for now...       
+        x,y,z = self.mapTile.avnp.getPos()
+        h,p,r = self.mapTile.avnp.getHpr()
+        self.textObject.setText(str((int(x),int(y),int(z),int(h))))
+
         return task.cont
   
     def moveArm(self,task):

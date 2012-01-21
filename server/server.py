@@ -117,6 +117,7 @@ class ServerApp(DirectObject):
         pass
 
 
+
 class TileServer(ServerApp):
     def __init__(self):
         ServerApp.__init__(self)
@@ -157,8 +158,8 @@ class TileServer(ServerApp):
             x,y,z = iNpc.getPos()
             snapshot.append((iNpc.ID,x,y,z))
         self.sendBuffer.append(snapshot)
-        print "tick:",self.tickCount,snapshot
         # sendBuffer = [snapshot1, snapshot2,...snapshotN] #since last TX
+        print "tick:",self.tickCount
         self.tlast = tnow
         return task.again
         
