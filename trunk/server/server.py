@@ -28,7 +28,7 @@ class serverNPC(NodePath):
 #        print self.ID
         
     def makeChange(self,ttime):
-        self.speed = 4*abs(random.gauss(0,.33333))
+        self.speed = .5 + 3.5*abs(random.gauss(0,.33333))
         newH = random.gauss(0,60)
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + 2 # randomize when to update next
