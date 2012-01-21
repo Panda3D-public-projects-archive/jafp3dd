@@ -18,7 +18,11 @@ from network.client import NetServer
 
 NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
-SNAP_INTERVAL = 0.050
+SNAP_INTERVAL = 1.0/10
+
+# THIS MAP SETTINGS
+_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
+_mapName='map2'
 
 class TileServer(NetServer):
     def __init__(self):
@@ -29,6 +33,8 @@ class TileServer(NetServer):
         self.snapBuffer = []
         self.nextTx = 0
         self.npc = []
+        self.terGeom = None
+        
 
         for n in range(NUM_NPC):
             self.npc.append( serverNPC('someGuy'+str(n)))
@@ -40,6 +46,11 @@ class TileServer(NetServer):
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
         taskMgr.doMethodLater(1.0,self.sendThrottle,'TXatRate')
 
+    def loadTerrainMap(self,HFname):
+        self.terGeom = ScalingGeoMipTerrain("myHills",position)
+        self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class
+        self.terGeom.setBruteforce(self._brute) # skip all that LOD stuff
+
     def ProcessData(self,datagram):
         t0 = time.ctime()
         I = DatagramIterator(datagram)
@@ -48,6 +59,13 @@ class TileServer(NetServer):
         print t0,msgID,data
         if msgID == 10: print data
 #            self.write(t0,datagram.getConnection())
+        if msgID == 25:
+            # add to dynObjs
+            pc = serverNPC(data)
+            pc.setPos(64,64,0)
+            pc.ID = data
+            self.npc.append(pc)
+            print pc.ID, " added to server npcs"
 
     def calcTick(self,task):
         tnow = time.time()

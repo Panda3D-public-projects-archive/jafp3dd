@@ -22,9 +22,12 @@ from maptile import MapTile as MapTile
 from network.client import NetClient
 from network.rencode import *
 
+from pandac.PandaModules import loadPrcFileData
+loadPrcFileData("", "want-directtools #t")
+#loadPrcFileData("", "want-tk #t")
 loadPrcFileData( '', 'sync-video 0' ) 
 
-TILE_SIZE = (128,128)
+from maptile import SERVER_IP
 
 # RENDERING OPTIONS #
 _DoLights = 1
@@ -60,14 +63,11 @@ WALK_RATE = 8
 _MINCAMDIST_ = 1
 _MaxCamDist = 20
  
-# TERRAIN SETTINGS
-_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
-_mapName='map2'
-
-
 PStatClient.connect()
 #import pycallgraph
 #pycallgraph.start_trace()
+
+MY_ID = 'fahkohr'
        
 class World(ShowBase,NetClient):
     Kturn = 0
@@ -87,6 +87,8 @@ class World(ShowBase,NetClient):
     def __init__(self):
         ShowBase.__init__(self)
         NetClient.__init__(self)
+        self.connect(SERVER_IP)
+        self.write(int(25),MY_ID,self.myConnection)
         self.setBackgroundColor(_SKYCOLOR_)
         self.setFrameRateMeter(1)
         #app.disableMouse()
@@ -96,23 +98,15 @@ class World(ShowBase,NetClient):
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
         self.skynp = render.attachNewNode("SkyDome")               
+        self.mapTile = MapTile('Tile101',myNode=MY_ID)
+        self.mapTile.reparentTo(self.terraNode)
+        self.camera.reparentTo(self.mapTile.avnp)
         
-#        self.camera.setY(-10)
-#        self.camera.lookAt(self.mapTile.avnp)
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
         if _DoLights: self.setupLights()        
         if _ShowSky: self.setupSky() # must occur after setupAvatar    
         
         self.setupKeys()
-#        self.connect() # local loop if no address
-#        self.setupAvatar()     
-
-        self.mapTile = self.newMapTile(_mapName)
-        self.mapTile.reparentTo(self.terraNode)
-        self.camera.reparentTo(self.mapTile.avnp)
-
-#        self.avnp.reparentTo(self.mapTile)
-#        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
 
         self.sun = CelestialBody(self.render, self.mapTile.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
@@ -190,23 +184,23 @@ class World(ShowBase,NetClient):
 ###############
 #        render.analyze()
 
-    def newMapTile(self,mapDefName):
-        print 'loading map ', mapDefName,'...',
-        tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
-        tileID = (0,0)        
-        HFname,texList,Objects = tileInfo[tileID][0:3]
-        
-        mapTile = MapTile('mapTile')
-        mapTile.setPos(tileID[0]*TILE_SIZE[0],tileID[1]*TILE_SIZE[0],0)
-        mapTile.setGeom(HFname, _terraScale, position=(0,0,0))
-        mapTile.setTexture(texList)
-        for obj in Objects:
-#            r = random.randint(0,9)
-#            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
-            mapTile.addStaticObject(obj) # takes a an individual object for this tile
-        print "done"
-        return mapTile
-        
+#    def newMapTile(self,mapDefName):
+#        print 'loading map ', mapDefName,'...',
+#        tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
+#        tileID = (0,0)        
+#        HFname,texList,Objects = tileInfo[tileID][0:3]
+#        
+#        mapTile = MapTile('mapTile')
+##        mapTile.setPos(tileID[0]*TILE_SIZE[0],tileID[1]*TILE_SIZE[0],0)
+#        mapTile.setGeom(HFname, _terraScale, position=(0,0,0))
+#        mapTile.setTexture(texList)
+#        for obj in Objects:
+##            r = random.randint(0,9)
+##            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
+#            mapTile.addStaticObject(obj) # takes a an individual object for this tile
+#        print "done"
+#        return mapTile
+
     def setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
 #        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))
@@ -403,7 +397,6 @@ class World(ShowBase,NetClient):
 #        I = DatagramIterator(datagram)
 #        msgID = I.getInt32()
 #        data = rencode.loads(I.getString()) # data matching msgID
-#        print "</>"
  
 W = World()
 W.run()
