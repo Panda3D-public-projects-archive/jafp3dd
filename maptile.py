@@ -11,11 +11,14 @@ from panda3d.core import *
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
 from client import NetClient
 from common.NPC import DynamicObject
-from common import rencode as rencode
+from network import rencode as rencode
+from server import SNAP_INTERVAL
 
 _Datapath = "resources"
 _AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
+#SERVER_IP = '192.168.1.188'
+SERVER_IP = None
 
 class MapTile(NodePath,NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -31,8 +34,8 @@ class MapTile(NodePath,NetClient):
     def __init__(self, name='Tile',focus=None):
         NodePath.__init__(self,name)
         NetClient.__init__(self)
-        self.connect('192.168.1.188') # local loop if no address
-        self.tickCount = -1
+        self.connect(SERVER_IP) # local loop if no address
+        self.snapCount = -1
 
         self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp.reparentTo(self)
@@ -51,7 +54,7 @@ class MapTile(NodePath,NetClient):
 #        self.snapshot = {0:self.dynObjs}
 
         taskMgr.add(self.updateTile,'DoTileUpdates')
-        taskMgr.doMethodLater(.033,self.runTick,'discrete_tick')
+        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
         
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
@@ -133,16 +136,17 @@ class MapTile(NodePath,NetClient):
         return lodNP
 
     def runTick(self,task):
-        if self.tickCount >= 0 and self.tickCount in self.snapshot: # did we get a message yet?
-            snap = self.snapshot[self.tickCount] # get snapshot object for this tick
+        if self.snapCount >= 0 and self.snapCount in self.snapshot: # did we get a message yet?
+            snap = self.snapshot[self.snapCount] # get snapshot object for this tick
             for obj in snap: # update all objects in this snapshot
-                ID,x,y,z = obj
+                ID,x,y,z,h,p,r = obj
                 z = self.terGeom.getElevation(x,y)
                 if ID not in self.dynObjs:
                     self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
                 self.dynObjs[ID].setPos(x,y,z)
+                self.dynObjs[ID].setHpr(h,p,r)
 #                self.dynObjs[ID].printPos()
-            self.tickCount += 1
+            self.snapCount += 1
 
         return task.again
         
@@ -161,9 +165,9 @@ class MapTile(NodePath,NetClient):
         data = rencode.loads(I.getString()) # data matching msgID
         if msgID == 0:
             for entry in data:
-                tick = entry.pop(0) # snapshot tick count
-                if self.tickCount < 0: self.tickCount = tick
-                self.snapshot.update({tick:entry})
+                snapNum = entry.pop(0) # snapshot tick count
+                if self.snapCount < 0: self.snapCount = snapNum
+                self.snapshot.update({snapNum:entry})
         else:
             print msgID,'::',data
 
