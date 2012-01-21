@@ -41,9 +41,13 @@ class NetClient(DirectObject):
             self.ip_address = addr
         print "[NetClient]::Connecting to ", self.ip_address
         self.myConnection=self.cManager.openTCPClientConnection(self.ip_address,self.port_address,self.timeout_in_miliseconds)
-        if self.myConnection:
-          self.cReader.addConnection(self.myConnection)  # receive messages from server
-    
+        if self.myConnection:            
+            self.cReader.addConnection(self.myConnection)  # receive messages from server
+            return 1
+        else:
+            print "[NetClient]::Unable to Connect]"
+            return 0
+        
     def disconnect(self):
         self.cManager.closeConnection(myConnection)
 

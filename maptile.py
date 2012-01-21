@@ -6,13 +6,17 @@ Created on Wed Jan 18 19:06:16 2012
 """
 import random, time
 import os
+import cPickle as pickle
+
 from panda3d.core import *
+from direct.interval.IntervalGlobal import *
 
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
 from client import NetClient
 from common.NPC import DynamicObject
 from network import rencode as rencode
-from server import SNAP_INTERVAL
+from server import SNAP_INTERVAL, _mapName,_terraScale
+
 
 _Datapath = "resources"
 _AVMODEL_ = os.path.join('models','MrStix.x')
@@ -32,31 +36,43 @@ class MapTile(NodePath,NetClient):
     _brute = 1 # use brute force
     _tree_lod_far = 128
     
-    def __init__(self, name='Tile',focus=None):
-        NodePath.__init__(self,name)
+    def __init__(self, name, myNode, mapDefName=_mapName, focus=None):
         NetClient.__init__(self)
-        self.connect(SERVER_IP) # local loop if no address
+        NodePath.__init__(self,name)
+
+         # local loop if address = None
+        ok = self.connect(SERVER_IP)
+        self.myNode = myNode
         self.snapCount = -1
+        self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
+         # objects like other PCs and dynObjs that move/change realtime
+        self.dynObjs = dict()    # A dictionary of nodepaths representing the moving objects
+        self.snapshot = dict()
 
         self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp.reparentTo(self)
-        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
-
-        self.focusNode = focus or self.avnp
-        self.terGeom = ScalingGeoMipTerrain("Tile Terrain")
-        self.texTex = Texture()
-        self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
-         # objects like other PCs and dynObjs that move/change realtime
-        self.dynObjs=dict()
-        self.snapshot = dict()
+        self.dynObjs.update({myNode:self.avnp})
         
-#        for n in range(6):
-#            self.dynObjs.append( DynamicObject('guy','resources/models/cone.egg',.6,self) )
-#        self.snapshot = {0:self.dynObjs}
+#        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+    
+        self.focusNode = focus or self.avnp
+        self.terGeom = None #ScalingGeoMipTerrain("Tile Terrain")
+#            self.texTex = Texture()
 
         taskMgr.add(self.updateTile,'DoTileUpdates')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
+ 
+        print 'loading map ', mapDefName,'...',
+        tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
+#TODO: Clean Up this section after map defs are cleaned
+        tileID = (0,0)        
+        HFname,texList,Objects = tileInfo[tileID][0:3]
         
+        self.setGeom(HFname, _terraScale, position=(0,0,0))
+        self.setTexture(texList)
+        for obj in Objects:
+            self.addStaticObject(obj) # takes a an individual object for this tile
+       
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
         # Make an GeoMip Instance in this tile
@@ -138,18 +154,21 @@ class MapTile(NodePath,NetClient):
 
     def runTick(self,task):
         if self.snapCount >= 0 and self.snapCount in self.snapshot: # did we get a message yet?
+            print "Rendering from Snapshot: ",self.snapCount            
             snap = self.snapshot[self.snapCount+1] # get NEXT snapshot to interp to
-            snap0 = self.snapshot[self.snapCount]
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
                 z = self.terGeom.getElevation(x,y)
                 if ID not in self.dynObjs:
                     self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
-                self.dynObjs[ID].setPos(x,y,z)
-#                else:
-                self.dynObjs[ID].setHpr(h,p,r)
-#                    self.dynObjs[ID].posInterval(SNAP_INTERVAL,(x,y,z))
-                self.dynObjs[ID].printPos()
+                    self.dynObjs[ID].setPos(x,y,z)
+                else:
+#                self.dynObjs[ID].setHpr(h,p,r)
+                    i = LerpPosInterval(self.dynObjs[ID],SNAP_INTERVAL,(x,y,z))
+                    i.start()
+                    ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
+                    ih.start() # just trying both forms
+#                self.dynObjs[ID].printPos()
         self.snapCount += 1
 
         return task.again
