@@ -81,7 +81,7 @@ class World(ShowBase,NetClient):
     mousePos = [0,0]
 
     ## SOME CAM STUFF
-    camVector = [10,0,15]    # [distance, heading, pitch ]
+    camDist,camHdg,camPitch = [10,0,15]    # [distance, heading, pitch ]
     mousePos_old = mousePos
         
     def __init__(self):
@@ -249,7 +249,7 @@ class World(ShowBase,NetClient):
 #        render.setLight(self.alnp)     
             
     def _setupKeys(self):
-        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0, "zoom":0, "pitch":0, "theta":0, "mbState":[0,0,0,0], "mousePos":[0,0]}
+        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,'camHead':0,'camPitch':0, "mousePos":[0,0]}
 
         _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
            
@@ -305,6 +305,15 @@ class World(ShowBase,NetClient):
                 else:
                     self.controls["walk"] = 0  
 
+#            if key == 'mbutton': 
+#                b = value[0]
+#                s = value[1]
+#                mbstate = self.control['mbutton']
+#                if b == 4: # add up mouse wheel clicks
+#                    self.mbState[b-1] += s
+#                else:
+#                    self.mbState[b-1] = s
+
 #    def camPitch(self,dp): self.Kpitch = dp       
 #    def camHead(self,dp): self.Ktheta = dp
 #    def camZoom(self,dp): self.Kzoom = dp
@@ -324,7 +333,7 @@ class World(ShowBase,NetClient):
             self.mbState[b-1] += s
         else:
             self.mbState[b-1] = s
-#        print self.mbState
+        print self.mbState
         # ADD A L+R BUTTON WALK 
                    
        
@@ -336,20 +345,15 @@ class World(ShowBase,NetClient):
             base.mouseWatcherNode.getMouseY()]
         dt = globalClock.getDt()
         if self.mbState[0] and not self.mbState[2]:
-            self.camVector[1] += -TURN_RATE*(self.mousePos[0] - self.mousePos_old[0])
-            self.camVector[2] += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
+            self.camHdg += -TURN_RATE*(self.mousePos[0] - self.mousePos_old[0])
+            self.camPitch += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
         if self.mbState[2] and not self.mbState[0]:  # mouse Steer av
             self.mapTile.avnp.setH(self.mapTile.avnp,-2*TURN_RATE*(self.mousePos[0] - self.mousePos_old[0]))
-            self.camVector[2] += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
-#        if self.mbState[2] and self.mbState[0]:  # mouse Steer av
-#            self.Kwalk = 1
-#            self.mapTile.avnp.setH(self.mapTile.avnp,-2*TURN_RATE*(self.mousePos[0] - self.mousePos_old[0]))
-#            self.camVector[2] += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
-        
-    #    print avHandler.mbState[3]
+            self.camPitch += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
+
         mbWheel = self.mbState[3]
         if mbWheel:
-            self.camVector[0] += 5*(sign(mbWheel))*dt
+            self.camDist += 5*(sign(mbWheel))*dt
             self.mbState[3] -= 3*sign(mbWheel)*dt
             if abs(self.mbState[3]) < .15: self.mbState[3] = 0 # anti-jitter on cam
     
@@ -374,17 +378,16 @@ class World(ShowBase,NetClient):
         epsilon = .333 # Minimum distance above the terrain to float the camera
         aim = Point3(0,.333,1)
         dt = globalClock.getDt() # to stay time based, not frame based
-        self.camVector[0] += 8*(self.controls['zoom'])*dt
-        self.camVector[0] = max(_MINCAMDIST_,min(_MaxCamDist,self.camVector[0]))
-        self.camVector[1] += .5*TURN_RATE*self.controls['theta']*dt
-        self.camVector[2] += .5*TURN_RATE*self.controls['pitch']*dt
+        self.camDist += 8*(self.controls['camZoom'])*dt
+        self.camDist = max(_MINCAMDIST_,min(_MaxCamDist,self.camDist))
+        self.camHdg += .5*TURN_RATE*self.controls['camHead']*dt
+        self.camPitch += .5*TURN_RATE*self.controls['camPitch']*dt
         
-        phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
-        theta = self.camVector[1]*pi/180 # orbit angle un    d this way
-        radius = self.camVector[0]
-        camera.setX(radius*cos(phi)*sin(theta))
-        camera.setY(-radius*cos(phi)*cos(theta))
-        camera.setZ(radius*sin(phi)+aim[2])
+        phi = max(-pi/2,min(pi/2,self.camPitch*pi/180))
+        theta = self.camHdg*pi/180 # orbit angle un    d this way
+        camera.setX(self.camDist*cos(phi)*sin(theta))
+        camera.setY(-self.camDist*cos(phi)*cos(theta))
+        camera.setZ(self.camDist*sin(phi)+aim[2])
         
 # TODO: Object occlusion with camera intersection
         # Keep Camera above terrain        
@@ -406,6 +409,7 @@ class World(ShowBase,NetClient):
         if self.snapCount >= 0: # did we get a message yet?
             self.mapTile.updateSnap(self.snapCount)
         self.snapCount += 1
+        print self.controls
         return task.again
 
     def moveArm(self,task):
