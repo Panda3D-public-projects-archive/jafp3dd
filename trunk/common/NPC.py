@@ -26,6 +26,16 @@ class serverNPC(NodePath):
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + 2 # randomize when to update next
 
+class serverPC(NodePath):
+    """ Objects that represent the game clients. Inputs from game client snapshots
+    sent from the client app are used to update serverPC object position, header, state
+    etcetera. The server calculated state is then included in the snapshot for that frame
+    and sent out to all clients, including the source client"""
+    
+    def __init__(self,name):
+        NodePath.__init__(self, name)
+        self.ID = urandom(16)
+#        print self.ID
 
 class DynamicObject(NodePath):
     def __init__(self,nodeName,modelName,modelScale,parentNode=None):

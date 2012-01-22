@@ -17,16 +17,16 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 
+from pandac.PandaModules import loadPrcFileData
+#loadPrcFileData("", "want-directtools #t")
+#loadPrcFileData("", "want-tk #t")
+loadPrcFileData( '', 'sync-video 0' ) 
+
 from CelestialBody import CelestialBody
 from maptile import MapTile as MapTile
 from network.client import NetClient
 from network.rencode import *
-
-from pandac.PandaModules import loadPrcFileData
-loadPrcFileData("", "want-directtools #t")
-#loadPrcFileData("", "want-tk #t")
-loadPrcFileData( '', 'sync-video 0' ) 
-
+from server import SNAP_INTERVAL
 from maptile import SERVER_IP
 
 # RENDERING OPTIONS #
@@ -70,43 +70,46 @@ PStatClient.connect()
 MY_ID = 'fahkohr'
        
 class World(ShowBase,NetClient):
-    Kturn = 0
-    Kwalk = 0
-    Kstrafe = 0
-    Kzoom = 0
-    Kpitch = 0
-    Ktheta = 0
-    mbState = [0,0,0,0] # 3 mouse buttons + wheel, 1 on down, 0 on up
 
-    ## DO SOME CAM STUFF
-    camVector = [10,0,15]    # [distance, heading, pitch ]
+#    Kturn = 0
+#    Kwalk = 0
+#    Kstrafe = 0
+#    Kzoom = 0
+#    Kpitch = 0
+#    Ktheta = 0
+    mbState = [0,0,0,0] # 3 mouse buttons + wheel, 1 on down, 0 on up
     mousePos = [0,0]
+
+    ## SOME CAM STUFF
+    camVector = [10,0,15]    # [distance, heading, pitch ]
     mousePos_old = mousePos
-    
         
     def __init__(self):
         ShowBase.__init__(self)
         NetClient.__init__(self)
         self.connect(SERVER_IP)
-        self.write(int(25),MY_ID,self.myConnection)
+        self.write(int(25),MY_ID,self.myConnection) # Tell Server Who we are
+        
         self.setBackgroundColor(_SKYCOLOR_)
         self.setFrameRateMeter(1)
-        #app.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
         render.setShaderAuto()
 
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
         self.skynp = render.attachNewNode("SkyDome")               
-        self.mapTile = MapTile('Tile101',myNode=MY_ID)
+        self.mapTile = MapTile('Tile101',myNode='notfah')
         self.mapTile.reparentTo(self.terraNode)
         self.camera.reparentTo(self.mapTile.avnp)
         
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
-        if _DoLights: self.setupLights()        
+        if _DoLights: self._setupLights()        
         if _ShowSky: self.setupSky() # must occur after setupAvatar    
         
-        self.setupKeys()
+        self._setupKeys()
+        
+        self.snapCount = -1
+        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
 
         self.sun = CelestialBody(self.render, self.mapTile.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
@@ -229,7 +232,7 @@ class World(ShowBase,NetClient):
         self.skynp.setPos(-128*sxy,-128*sxy,0)
         npDome.reparentTo(self.skynp)
         
-    def setupLights(self):
+    def _setupLights(self):
         self.dlight = DirectionalLight('dlight')
         self.dlight.setColor(VBase4(1, 1, 1, 1))
 #        self.slight.getLens().setNearFar(32,128)
@@ -245,39 +248,41 @@ class World(ShowBase,NetClient):
         self.alnp = render.attachNewNode(self.alight)
 #        render.setLight(self.alnp)     
             
-    def setupKeys(self):
+    def _setupKeys(self):
+        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0, "zoom":0, "pitch":0, "theta":0, "mbState":[0,0,0,0], "mousePos":[0,0]}
+
         _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
            
-        self.accept(_KeyMap['left'],self.turn,[1])
-        self.accept(_KeyMap['left']+"-up",self.turn,[0])
-        self.accept(_KeyMap['right'],self.turn,[-1])
-        self.accept(_KeyMap['right']+"-up",self.turn,[0])
+        self.accept(_KeyMap['left'],self._setControls,["turn",1])
+        self.accept(_KeyMap['left']+"-up",self._setControls,["turn",0])
+        self.accept(_KeyMap['right'],self._setControls,["turn",-1])
+        self.accept(_KeyMap['right']+"-up",self._setControls,["turn",0])
     
         
-        self.accept(_KeyMap['strafe_L'],self.strafe,[-1])
-        self.accept(_KeyMap['strafe_L']+"-up",self.strafe,[0])
-        self.accept(_KeyMap['strafe_R'],self.strafe,[1])
-        self.accept(_KeyMap['strafe_R']+"-up",self.strafe,[0])
+        self.accept(_KeyMap['strafe_L'],self._setControls,["strafe",-1])
+        self.accept(_KeyMap['strafe_L']+"-up",self._setControls,["strafe",0])
+        self.accept(_KeyMap['strafe_R'],self._setControls,["strafe",1])
+        self.accept(_KeyMap['strafe_R']+"-up",self._setControls,["strafe",0])
         
-        self.accept("w",self.walk,[1])
-        self.accept("s",self.walk,[-1])
-        self.accept("s-up",self.walk,[0])
-        self.accept("w-up",self.walk,[0])
-        self.accept("r",self.autoWalk) 
+        self.accept("w",self._setControls,["walk",1])
+        self.accept("s",self._setControls,["walk",-1])
+        self.accept("s-up",self._setControls,["walk",0])
+        self.accept("w-up",self._setControls,["walk",0])
+        self.accept("r",self._setControls,["autoWalk",1]) 
         
-        self.accept("page_up",self.camPitch,[-1])
-        self.accept("page_down",self.camPitch,[1])
-        self.accept("page_up-up",self.camPitch,[0])
-        self.accept("page_down-up",self.camPitch,[0])
-        self.accept("arrow_left",self.camHead,[-1])
-        self.accept("arrow_right",self.camHead,[1])
-        self.accept("arrow_left-up",self.camHead,[0])
-        self.accept("arrow_right-up",self.camHead,[0])
+        self.accept("page_up",self._setControls,["camPitch",-1])
+        self.accept("page_down",self._setControls,["camPitch",1])
+        self.accept("page_up-up",self._setControls,["camPitch",0])
+        self.accept("page_down-up",self._setControls,["camPitch",0])
+        self.accept("arrow_left",self._setControls,["camHead",-1])
+        self.accept("arrow_right",self._setControls,["camHead",1])
+        self.accept("arrow_left-up",self._setControls,["camHead",0])
+        self.accept("arrow_right-up",self._setControls,["camHead",0])
     
-        self.accept("arrow_down",self.camZoom,[1])        
-        self.accept("arrow_up",self.camZoom,[-1])
-        self.accept("arrow_down-up",self.camZoom,[0])
-        self.accept("arrow_up-up",self.camZoom,[0])
+        self.accept("arrow_down",self._setControls,["camZoom",1])        
+        self.accept("arrow_up",self._setControls,["camZoom",-1])
+        self.accept("arrow_down-up",self._setControls,["camZoom",0])
+        self.accept("arrow_up-up",self._setControls,["camZoom",0])
     
         self.accept("mouse1",self.mbutton,[1,1])
         self.accept("mouse1-up",self.mbutton,[1,0])
@@ -292,6 +297,28 @@ class World(ShowBase,NetClient):
         self.accept(_KeyMap['wire'],self.toggleWireframe)
         self.accept("escape",sys.exit)
 
+    def _setControls(self,key,value):
+            self.controls[key] = value
+            if key == 'autoWalk':
+                if self.controls["walk"] == 0:
+                    self.controls["walk"] = 1
+                else:
+                    self.controls["walk"] = 0  
+
+#    def camPitch(self,dp): self.Kpitch = dp       
+#    def camHead(self,dp): self.Ktheta = dp
+#    def camZoom(self,dp): self.Kzoom = dp
+        
+#    def strafe(self,dp): self.Kstrafe = dp
+#    def turn(self,dp): self.Kturn = dp
+#    def walk(self,dp): self.Kwalk = dp    
+    
+#    def autoWalk(self):
+#        if self.Kwalk == 0:
+#            self.Kwalk = 1
+#        else:
+#            self.Kwalk = 0  
+        
     def mbutton(self,b,s): 
         if b == 4: # add up mouse wheel clicks
             self.mbState[b-1] += s
@@ -300,18 +327,6 @@ class World(ShowBase,NetClient):
 #        print self.mbState
         # ADD A L+R BUTTON WALK 
                    
-    def camPitch(self,dp): self.Kpitch = dp       
-    def camHead(self,dp): self.Ktheta = dp
-    def camZoom(self,dp): self.Kzoom = dp
-        
-    def strafe(self,dp): self.Kstrafe = dp
-    def turn(self,dp): self.Kturn = dp
-    def walk(self,dp): self.Kwalk = dp    
-    def autoWalk(self):
-        if self.Kwalk == 0:
-            self.Kwalk = 1
-        else:
-            self.Kwalk = 0  
        
     def mouseHandler(self,task):
        
@@ -343,24 +358,26 @@ class World(ShowBase,NetClient):
   
     def updateAvnp(self,task):
         dt = globalClock.getDt()
-        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.Kstrafe*dt,WALK_RATE*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.mapTile.avnp.setH(self.mapTile.avnp,TURN_RATE*self.Kturn*dt) #key input steer
+        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.mapTile.avnp.setH(self.mapTile.avnp,TURN_RATE*self.controls['turn']*dt) #key input steer
 
         x,y,z = self.mapTile.avnp.getPos()
         self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
 
-#        self.write(int(10),[x,y,z,h,p,r])
         return task.cont   
     
 
     def updateCamera(self,task):
-        epsilon = .333
+        """There is probably a whole lot better way of doing this...one of the 
+        first things I worked on...but it works"""
+        
+        epsilon = .333 # Minimum distance above the terrain to float the camera
         aim = Point3(0,.333,1)
         dt = globalClock.getDt() # to stay time based, not frame based
-        self.camVector[0] += 8*(self.Kzoom)*dt
+        self.camVector[0] += 8*(self.controls['zoom'])*dt
         self.camVector[0] = max(_MINCAMDIST_,min(_MaxCamDist,self.camVector[0]))
-        self.camVector[1] += .5*TURN_RATE*self.Ktheta*dt
-        self.camVector[2] += .5*TURN_RATE*self.Kpitch*dt
+        self.camVector[1] += .5*TURN_RATE*self.controls['theta']*dt
+        self.camVector[2] += .5*TURN_RATE*self.controls['pitch']*dt
         
         phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
         theta = self.camVector[1]*pi/180 # orbit angle un    d this way
@@ -384,7 +401,13 @@ class World(ShowBase,NetClient):
         self.textObject.setText(str((int(x),int(y),int(z),int(h))))
 
         return task.cont
-  
+
+    def runTick(self,task):
+        if self.snapCount >= 0: # did we get a message yet?
+            self.mapTile.updateSnap(self.snapCount)
+        self.snapCount += 1
+        return task.again
+
     def moveArm(self,task):
         t = task.time/3.0
         self.armCtrl.setHpr(0,90*sin(2*pi*t),0)
