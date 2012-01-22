@@ -43,12 +43,12 @@ class MapTile(NodePath,NetClient):
          # local loop if address = None
         ok = self.connect(SERVER_IP)
         self.myNode = myNode
-        self.snapCount = -1
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
          # objects like other PCs and dynObjs that move/change realtime
         self.dynObjs = dict()    # A dictionary of nodepaths representing the moving objects
         self.snapshot = dict()
-
+        self.minSnap = -1
+        
         self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp.reparentTo(self)
         self.dynObjs.update({myNode:self.avnp})
@@ -60,7 +60,6 @@ class MapTile(NodePath,NetClient):
 #            self.texTex = Texture()
 
         taskMgr.add(self.updateTile,'DoTileUpdates')
-        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
  
         print 'loading map ', mapDefName,'...',
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
@@ -152,10 +151,10 @@ class MapTile(NodePath,NetClient):
             model.instanceTo(lodNP)
         return lodNP
 
-    def runTick(self,task):
-        if self.snapCount >= 0 and self.snapCount in self.snapshot: # did we get a message yet?
-            print "Rendering from Snapshot: ",self.snapCount            
-            snap = self.snapshot[self.snapCount+1] # get NEXT snapshot to interp to
+    def updateSnap(self,snapNum):
+        if snapNum >= 0 and snapNum in self.snapshot: # did we get a message yet?
+            print "Rendering from Snapshot: ",snapNum            
+            snap = self.snapshot[snapNum+1] # get NEXT snapshot to interp to
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
                 z = self.terGeom.getElevation(x,y)
@@ -169,9 +168,7 @@ class MapTile(NodePath,NetClient):
                     ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
                     ih.start() # just trying both forms
 #                self.dynObjs[ID].printPos()
-        self.snapCount += 1
 
-        return task.again
         
     def updateTile(self,task):
         if not self._brute: self.terGeom.update()    # update LOD geometry
@@ -189,7 +186,7 @@ class MapTile(NodePath,NetClient):
         if msgID == 0:
             for entry in data:
                 snapNum = entry.pop(0) # snapshot tick count
-                if self.snapCount < 0: self.snapCount = snapNum - LERP_INTERVAL
+                if self.minSnap < 0: self.minSnap = snapNum - LERP_INTERVAL
                 self.snapshot.update({snapNum:entry})
         else:
             print msgID,'::',data
