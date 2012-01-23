@@ -35,7 +35,8 @@ class Player():
     def __init__(self,name):
         self.root = NodePath(PandaNode('player_node'))
         self.ID = name
-        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,'camHead':0,'camPitch':0, "mousePos":[0,0]}
+        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
+        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
 
 
 class DynamicObject(NodePath):

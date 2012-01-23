@@ -18,7 +18,10 @@ from network.client import NetServer
 
 NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
-SNAP_INTERVAL = 1.0/10
+SNAP_INTERVAL = 1.0/20
+TX_INTERVAL = 1.0/20
+
+# Player control constants
 TURN_RATE = 120    # Degrees per second
 WALK_RATE = 8
 
@@ -36,8 +39,8 @@ class TileServer(NetServer):
         self.nextTx = 0
         self.npc = []
         self.players = []
-        self.terGeom = None
-        
+        print "MAKE PLAYER LIST A DICTION"
+        self.terGeom = None       
 
         for n in range(NUM_NPC):
             self.npc.append( serverNPC('someGuy'+str(n)))
@@ -47,7 +50,7 @@ class TileServer(NetServer):
         taskMgr.add(self.NpcAI,'server NPCs')
         taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
-        taskMgr.doMethodLater(1.0,self.sendThrottle,'TXatRate')
+        taskMgr.doMethodLater(TX_INTERVAL,self.sendThrottle,'TXatRate')
 
     def loadTerrainMap(self,HFname):
         self.terGeom = ScalingGeoMipTerrain("myHills",position)
@@ -62,8 +65,8 @@ class TileServer(NetServer):
 #        print dt
 
         for player in self.players:        
-            player.root.setPos(player.root,WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-            player.root.setH(player.root,TURN_RATE*player.controls['turn']*dt) #key input steer
+            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
 #        x,y,z = self.mapTile.avnp.getPos()
 #        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
 
@@ -103,7 +106,7 @@ class TileServer(NetServer):
 
     def sendThrottle(self,task):
         for client in self.activeConnections:
-            print "<TX> tick:",self.tickCount," -> ", client.getAddress()
+            print "<TX> snapshot# ",self.snapCount," -> ", client.getAddress()
             self.write(int(0),self.snapBuffer, client) # rencode lets me send objects??
         self.snapBuffer = []
         return task.again
@@ -124,7 +127,6 @@ class TileServer(NetServer):
             print pc.ID, " added to server players"
         if msgID == 26:
             self.players[0].controls = data
-            print "MAKE PLAYER LIST A DICTION"
             
 if __name__ == '__main__':
     server = TileServer()

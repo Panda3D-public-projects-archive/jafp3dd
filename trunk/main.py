@@ -100,16 +100,12 @@ class World(ShowBase,NetClient):
         self.mapTile = MapTile('Tile101',myNode=MY_ID)#'notfah')
         self.mapTile.reparentTo(self.terraNode)
         self.camera.reparentTo(self.mapTile.avnp)
+        self._setupKeys()
         
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
         if _DoLights: self._setupLights()        
         if _ShowSky: self._setupSky() # must occur after setupAvatar    
-        
-        self._setupKeys()
-        
-        self.snapCount = -1
-        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
-
+                
         self.sun = CelestialBody(self.render, self.mapTile.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
         self.sun.period = 1800
@@ -177,9 +173,10 @@ class World(ShowBase,NetClient):
             render.setShaderAuto()
             
 ######### TASKS ADDS
-        taskMgr.add(self.updatePlayer,"update Av node")
+        taskMgr.add(self.updatePlayer,"updatePlayer")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
+        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
 
 #        taskMgr.add(self.moveArm,'pjoint test')
 #        initText.destroy()
@@ -232,7 +229,8 @@ class World(ShowBase,NetClient):
 #        render.setLight(self.alnp)     
             
     def _setupKeys(self):
-        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,'camHead':0,'camPitch':0, "mousePos":[0,0]}
+        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
+        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
 
         _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
            
@@ -305,7 +303,7 @@ class World(ShowBase,NetClient):
             self.camHdg += -TURN_RATE*(self.mousePos[0] - self.mousePos_old[0])
             self.camPitch += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
         if self.mbState[2] and not self.mbState[0]:  # mouse Steer av
-            self.mapTile.avnp.setH(self.mapTile.avnp,-2*TURN_RATE*(self.mousePos[0] - self.mousePos_old[0]))
+            self.controls['mouseTurn'] = -2*TURN_RATE*(self.mousePos[0] - self.mousePos_old[0])
             self.camPitch += -TURN_RATE*(self.mousePos[1] - self.mousePos_old[1])
 
         mbWheel = self.mbState[3]
@@ -321,6 +319,7 @@ class World(ShowBase,NetClient):
 #        dt = globalClock.getDt()
 #        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #        self.mapTile.avnp.setH(self.mapTile.avnp,TURN_RATE*self.controls['turn']*dt) #key input steer
+#        self.mapTile.avnp.setH(self.mapTile.avnp,self.controls['mouseTurn'])
 
         x,y,z = self.mapTile.avnp.getPos()
         self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
@@ -363,9 +362,7 @@ class World(ShowBase,NetClient):
         return task.cont
 
     def runTick(self,task):
-        if self.snapCount >= 0: # did we get a message yet?
-            self.mapTile.updateSnap(self.snapCount)
-        self.snapCount += 1
+        self.mapTile.updateSnap()
         self.write(int(26),self.controls,self.myConnection)
         return task.again
 

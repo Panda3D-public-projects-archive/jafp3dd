@@ -47,7 +47,7 @@ class MapTile(NodePath,NetClient):
          # objects like other PCs and dynObjs that move/change realtime
         self.dynObjs = dict()    # A dictionary of nodepaths representing the moving objects
         self.snapshot = dict()
-        self.minSnap = -1
+        self.maxSnap = -1
         
         self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp.reparentTo(self)
@@ -151,10 +151,14 @@ class MapTile(NodePath,NetClient):
             model.instanceTo(lodNP)
         return lodNP
 
-    def updateSnap(self,snapNum):
-        if snapNum >= 0 and snapNum in self.snapshot: # did we get a message yet?
+    def updateSnap(self):
+        """update scene with maxSnapshot - Lerp interval. Always some amount of 
+        time behind the latest server snapshot."""
+        if self.maxSnap > 0 :
+            snapNum = self.maxSnap - LERP_INTERVAL
             print "Rendering from Snapshot: ",snapNum            
             snap = self.snapshot[snapNum+1] # get NEXT snapshot to interp to
+#TODO: THIS IS NOT ROBUST TO LOST SNAPSHOTS. MAKE IT SO!
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
                 if ID == self.myNode: print "updating", ID
@@ -187,7 +191,7 @@ class MapTile(NodePath,NetClient):
         if msgID == 0:
             for entry in data:
                 snapNum = entry.pop(0) # snapshot tick count
-                if self.minSnap < 0: self.minSnap = snapNum - LERP_INTERVAL
+                if self.maxSnap < snapNum: self.maxSnap = snapNum
                 self.snapshot.update({snapNum:entry})
         else:
             print msgID,'::',data
