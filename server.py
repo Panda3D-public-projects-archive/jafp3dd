@@ -12,13 +12,15 @@ from direct.showbase.ShowBase import taskMgr
 #import direct.directbase.DirectStart
 from panda3d.core import *
 
-from common.NPC import serverNPC
+from common.NPC import serverNPC, Player
 import network.rencode as rencode
 from network.client import NetServer
 
 NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
 SNAP_INTERVAL = 1.0/10
+TURN_RATE = 120    # Degrees per second
+WALK_RATE = 8
 
 # THIS MAP SETTINGS
 _terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
@@ -33,6 +35,7 @@ class TileServer(NetServer):
         self.snapBuffer = []
         self.nextTx = 0
         self.npc = []
+        self.players = []
         self.terGeom = None
         
 
@@ -51,28 +54,19 @@ class TileServer(NetServer):
         self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class
         self.terGeom.setBruteforce(self._brute) # skip all that LOD stuff
 
-    def ProcessData(self,datagram):
-        t0 = time.ctime()
-        I = DatagramIterator(datagram)
-        msgID = I.getInt32() # what type of message
-        data = rencode.loads(I.getString()) # data matching msgID
-        print t0,msgID,data
-        if msgID == 10: print data
-#            self.write(t0,datagram.getConnection())
-        if msgID == 25:
-            # add to dynObjs
-            pc = serverNPC(data)
-            pc.setPos(64,64,0)
-            pc.ID = data
-            self.npc.append(pc)
-            print pc.ID, " added to server npcs"
 
     def calcTick(self,task):
         tnow = time.time()
         self.tickCount += 1
         dt = tnow - self.tlast
 #        print dt
-#        dt = task.getDt()
+
+        for player in self.players:        
+            player.root.setPos(player.root,WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            player.root.setH(player.root,TURN_RATE*player.controls['turn']*dt) #key input steer
+#        x,y,z = self.mapTile.avnp.getPos()
+#        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
+
         for iNpc in self.npc:
             iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            iNpc.setZ(self.ttMgr.getElevation((x,y)))
@@ -87,6 +81,10 @@ class TileServer(NetServer):
         self.snapCount += 1
         snapshot = [self.snapCount]
         # snapshot format [tick,(objectID,x,y,z),(ObjID,x..),...]
+        for player in self.players:
+            x,y,z = player.root.getPos()
+            h,p,r = player.root.getHpr()
+            snapshot.append((player.ID,x,y,z,h,p,r))
         for iNpc in self.npc:
             x,y,z = iNpc.getPos()
             h,p,r = iNpc.getHpr()
@@ -95,6 +93,7 @@ class TileServer(NetServer):
         # snapBuffer = [snapshot1, snapshot2,...snapshotN] #since last TX
 
         return task.again
+        
     def NpcAI(self,task):
         for iNpc in self.npc:
             tnow = time.time()
@@ -104,12 +103,29 @@ class TileServer(NetServer):
 
     def sendThrottle(self,task):
         for client in self.activeConnections:
-            print "tick:",self.tickCount," TX->", client.getAddress()
+            print "<TX> tick:",self.tickCount," -> ", client.getAddress()
             self.write(int(0),self.snapBuffer, client) # rencode lets me send objects??
         self.snapBuffer = []
         return task.again
 
 
+    def ProcessData(self,datagram):
+        t0 = time.ctime()
+        I = DatagramIterator(datagram)
+        msgID = I.getInt32() # what type of message
+        data = rencode.loads(I.getString()) # data matching msgID
+#        print t0,msgID,data
+        if msgID == 10: print data
+        if msgID == 25:
+            # add new player
+            pc = Player(data)
+            pc.root.setPos(64,64,0)
+            self.players.append(pc)
+            print pc.ID, " added to server players"
+        if msgID == 26:
+            self.players[0].controls = data
+            print "MAKE PLAYER LIST A DICTION"
+            
 if __name__ == '__main__':
     server = TileServer()
 #    nMgr = NPCmanager()
