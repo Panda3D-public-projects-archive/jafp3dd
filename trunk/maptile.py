@@ -157,6 +157,7 @@ class MapTile(NodePath,NetClient):
             snap = self.snapshot[snapNum+1] # get NEXT snapshot to interp to
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
+                if ID == self.myNode: print "updating", ID
                 z = self.terGeom.getElevation(x,y)
                 if ID not in self.dynObjs:
                     self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})

@@ -26,7 +26,8 @@ from CelestialBody import CelestialBody
 from maptile import MapTile as MapTile
 from network.client import NetClient
 from network.rencode import *
-from server import SNAP_INTERVAL
+from server import SNAP_INTERVAL,TURN_RATE,WALK_RATE
+
 from maptile import SERVER_IP
 
 # RENDERING OPTIONS #
@@ -58,8 +59,6 @@ _Suntex = 'textures/blueSun.png'
 fogPm = (96,150,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
-TURN_RATE = 120    # Degrees per second
-WALK_RATE = 8
 _MINCAMDIST_ = 1
 _MaxCamDist = 20
  
@@ -98,13 +97,13 @@ class World(ShowBase,NetClient):
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
         self.skynp = render.attachNewNode("SkyDome")               
-        self.mapTile = MapTile('Tile101',myNode='notfah')
+        self.mapTile = MapTile('Tile101',myNode=MY_ID)#'notfah')
         self.mapTile.reparentTo(self.terraNode)
         self.camera.reparentTo(self.mapTile.avnp)
         
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
         if _DoLights: self._setupLights()        
-        if _ShowSky: self.setupSky() # must occur after setupAvatar    
+        if _ShowSky: self._setupSky() # must occur after setupAvatar    
         
         self._setupKeys()
         
@@ -178,7 +177,7 @@ class World(ShowBase,NetClient):
             render.setShaderAuto()
             
 ######### TASKS ADDS
-        taskMgr.add(self.updateAvnp,"update Av node")
+        taskMgr.add(self.updatePlayer,"update Av node")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
 
@@ -187,24 +186,8 @@ class World(ShowBase,NetClient):
 ###############
 #        render.analyze()
 
-#    def newMapTile(self,mapDefName):
-#        print 'loading map ', mapDefName,'...',
-#        tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
-#        tileID = (0,0)        
-#        HFname,texList,Objects = tileInfo[tileID][0:3]
-#        
-#        mapTile = MapTile('mapTile')
-##        mapTile.setPos(tileID[0]*TILE_SIZE[0],tileID[1]*TILE_SIZE[0],0)
-#        mapTile.setGeom(HFname, _terraScale, position=(0,0,0))
-#        mapTile.setTexture(texList)
-#        for obj in Objects:
-##            r = random.randint(0,9)
-##            obj[2] = 'resources/models/sampleTree'+str(r)+'.bam'    # DEBUG OVERRIDE TO TEST MODEL
-#            mapTile.addStaticObject(obj) # takes a an individual object for this tile
-#        print "done"
-#        return mapTile
 
-    def setupSky(self):
+    def _setupSky(self):
         # MAKE A DIFFERENT SETUP DEF IF GOING MODEL PATH
 #        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))
 #        npDome.setHpr(0,90,0)
@@ -304,38 +287,12 @@ class World(ShowBase,NetClient):
                     self.controls["walk"] = 1
                 else:
                     self.controls["walk"] = 0  
-
-#            if key == 'mbutton': 
-#                b = value[0]
-#                s = value[1]
-#                mbstate = self.control['mbutton']
-#                if b == 4: # add up mouse wheel clicks
-#                    self.mbState[b-1] += s
-#                else:
-#                    self.mbState[b-1] = s
-
-#    def camPitch(self,dp): self.Kpitch = dp       
-#    def camHead(self,dp): self.Ktheta = dp
-#    def camZoom(self,dp): self.Kzoom = dp
-        
-#    def strafe(self,dp): self.Kstrafe = dp
-#    def turn(self,dp): self.Kturn = dp
-#    def walk(self,dp): self.Kwalk = dp    
-    
-#    def autoWalk(self):
-#        if self.Kwalk == 0:
-#            self.Kwalk = 1
-#        else:
-#            self.Kwalk = 0  
         
     def mbutton(self,b,s): 
         if b == 4: # add up mouse wheel clicks
             self.mbState[b-1] += s
         else:
-            self.mbState[b-1] = s
-        print self.mbState
-        # ADD A L+R BUTTON WALK 
-                   
+            self.mbState[b-1] = s                   
        
     def mouseHandler(self,task):
        
@@ -360,10 +317,10 @@ class World(ShowBase,NetClient):
         return task.cont
 
   
-    def updateAvnp(self,task):
-        dt = globalClock.getDt()
-        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.mapTile.avnp.setH(self.mapTile.avnp,TURN_RATE*self.controls['turn']*dt) #key input steer
+    def updatePlayer(self,task):
+#        dt = globalClock.getDt()
+#        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#        self.mapTile.avnp.setH(self.mapTile.avnp,TURN_RATE*self.controls['turn']*dt) #key input steer
 
         x,y,z = self.mapTile.avnp.getPos()
         self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
@@ -409,7 +366,7 @@ class World(ShowBase,NetClient):
         if self.snapCount >= 0: # did we get a message yet?
             self.mapTile.updateSnap(self.snapCount)
         self.snapCount += 1
-        print self.controls
+        self.write(int(26),self.controls,self.myConnection)
         return task.again
 
     def moveArm(self,task):

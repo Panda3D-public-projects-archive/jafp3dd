@@ -26,16 +26,17 @@ class serverNPC(NodePath):
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + 2 # randomize when to update next
 
-class serverPC(NodePath):
+class Player():
     """ Objects that represent the game clients. Inputs from game client snapshots
     sent from the client app are used to update serverPC object position, header, state
     etcetera. The server calculated state is then included in the snapshot for that frame
     and sent out to all clients, including the source client"""
     
     def __init__(self,name):
-        NodePath.__init__(self, name)
-        self.ID = urandom(16)
-#        print self.ID
+        self.root = NodePath(PandaNode('player_node'))
+        self.ID = name
+        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,'camHead':0,'camPitch':0, "mousePos":[0,0]}
+
 
 class DynamicObject(NodePath):
     def __init__(self,nodeName,modelName,modelScale,parentNode=None):
