@@ -38,7 +38,7 @@ class TileServer(NetServer):
         self.snapBuffer = []
         self.nextTx = 0
         self.npc = []
-        self.players = []
+        self.players = dict()
         print "MAKE PLAYER LIST A DICTION"
         self.terGeom = None       
 
@@ -64,7 +64,7 @@ class TileServer(NetServer):
         dt = tnow - self.tlast
 #        print dt
 
-        for player in self.players:        
+        for player in self.players.value():        
             player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
             player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
 #        x,y,z = self.mapTile.avnp.getPos()
@@ -84,7 +84,7 @@ class TileServer(NetServer):
         self.snapCount += 1
         snapshot = [self.snapCount]
         # snapshot format [tick,(objectID,x,y,z),(ObjID,x..),...]
-        for player in self.players:
+        for player in self.players.value():
             x,y,z = player.root.getPos()
             h,p,r = player.root.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
@@ -113,20 +113,20 @@ class TileServer(NetServer):
 
 
     def ProcessData(self,datagram):
-        t0 = time.ctime()
         I = DatagramIterator(datagram)
+        clientAddress = datagram.getAddress()
         msgID = I.getInt32() # what type of message
         data = rencode.loads(I.getString()) # data matching msgID
 #        print t0,msgID,data
         if msgID == 10: print data
         if msgID == 25:
             # add new player
-            pc = Player(data)
+            pc = Player(data) #data is the ID of the client
             pc.root.setPos(64,64,0)
-            self.players.append(pc)
+            self.players.update({clientAddress:pc})
             print pc.ID, " added to server players"
-        if msgID == 26:
-            self.players[0].controls = data
+        if msgID == 26: # This is a control snapshot from client X
+            self.players[clientAddress].controls = data
             
 if __name__ == '__main__':
     server = TileServer()
