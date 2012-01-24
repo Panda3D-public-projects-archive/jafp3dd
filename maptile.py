@@ -21,8 +21,8 @@ from server import SNAP_INTERVAL, _mapName,_terraScale
 _Datapath = "resources"
 _AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
-SERVER_IP = '192.168.1.188'
-#SERVER_IP = None
+#SERVER_IP = '192.168.1.188'
+SERVER_IP = None
 LERP_INTERVAL = 1
 
 class MapTile(NodePath,NetClient):
@@ -167,11 +167,11 @@ class MapTile(NodePath,NetClient):
                     self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
                     self.dynObjs[ID].setPos(x,y,z)
                 else:
-#                self.dynObjs[ID].setHpr(h,p,r)
+                    self.dynObjs[ID].setHpr(h,p,r)
                     i = LerpPosInterval(self.dynObjs[ID],SNAP_INTERVAL,(x,y,z))
                     i.start()
-                    ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
-                    ih.start() # just trying both forms
+#                    ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
+#                    ih.start() # just trying both forms
 #                self.dynObjs[ID].printPos()
 
         
