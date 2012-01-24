@@ -21,8 +21,8 @@ from server import SNAP_INTERVAL, _mapName,_terraScale
 _Datapath = "resources"
 _AVMODEL_ = os.path.join('models','MrStix.x')
 _STARTPOS_ = (64,64)
-#SERVER_IP = '192.168.1.188'
-SERVER_IP = None
+SERVER_IP = '192.168.1.188'
+#SERVER_IP = None
 LERP_INTERVAL = 1
 
 class MapTile(NodePath,NetClient):
