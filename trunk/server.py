@@ -39,7 +39,6 @@ class TileServer(NetServer):
         self.nextTx = 0
         self.npc = []
         self.players = dict()
-        print "MAKE PLAYER LIST A DICTION"
         self.terGeom = None       
 
         for n in range(NUM_NPC):
