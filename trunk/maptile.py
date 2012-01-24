@@ -156,12 +156,12 @@ class MapTile(NodePath,NetClient):
         time behind the latest server snapshot."""
         if self.maxSnap > 0 :
             snapNum = self.maxSnap - LERP_INTERVAL
-            print "Rendering from Snapshot: ",snapNum            
+#            print "Rendering from Snapshot: ",snapNum            
             snap = self.snapshot[snapNum+1] # get NEXT snapshot to interp to
 #TODO: THIS IS NOT ROBUST TO LOST SNAPSHOTS. MAKE IT SO!
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
-                if ID == self.myNode: print "updating", ID
+#                if ID == self.myNode: print "updating", ID
                 z = self.terGeom.getElevation(x,y)
                 if ID not in self.dynObjs:
                     self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
@@ -184,7 +184,6 @@ class MapTile(NodePath,NetClient):
 
     # NETWORK DATAGRAM PROCESSING
     def ProcessData(self,datagram):
-        print time.ctime(),' <recv> '
         I = DatagramIterator(datagram)
         msgID = I.getInt32()
         data = rencode.loads(I.getString()) # data matching msgID
@@ -195,7 +194,4 @@ class MapTile(NodePath,NetClient):
                 self.snapshot.update({snapNum:entry})
         else:
             print msgID,'::',data
-
-        print "</>"
-
             

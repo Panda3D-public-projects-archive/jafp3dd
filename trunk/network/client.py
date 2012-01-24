@@ -64,8 +64,9 @@ class NetClient(DirectObject):
         return task.cont
 
     def ProcessData(self,datagram):
-        print time.ctime(),' <recv> ',
-        print "</>"
+        pass
+#        print time.ctime(),' <recv> ',
+#        print "</>"
 
 #    def write(self,messageID,data,toCon=None):
 #        if self.myConnection or toCon:
