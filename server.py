@@ -64,7 +64,7 @@ class TileServer(NetServer):
         dt = tnow - self.tlast
 #        print dt
 
-        for player in self.players.value():        
+        for player in self.players.values():        
             player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
             player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
 #        x,y,z = self.mapTile.avnp.getPos()
@@ -84,7 +84,7 @@ class TileServer(NetServer):
         self.snapCount += 1
         snapshot = [self.snapCount]
         # snapshot format [tick,(objectID,x,y,z),(ObjID,x..),...]
-        for player in self.players.value():
+        for player in self.players.values():
             x,y,z = player.root.getPos()
             h,p,r = player.root.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
@@ -114,7 +114,7 @@ class TileServer(NetServer):
 
     def ProcessData(self,datagram):
         I = DatagramIterator(datagram)
-        clientAddress = datagram.getAddress()
+        clientAddress = datagram.getAddress().getIpString()
         msgID = I.getInt32() # what type of message
         data = rencode.loads(I.getString()) # data matching msgID
 #        print t0,msgID,data
@@ -124,7 +124,7 @@ class TileServer(NetServer):
             pc = Player(data) #data is the ID of the client
             pc.root.setPos(64,64,0)
             self.players.update({clientAddress:pc})
-            print pc.ID, " added to server players"
+            print clientAddress, pc.ID, " added to server players"
         if msgID == 26: # This is a control snapshot from client X
             self.players[clientAddress].controls = data
             
