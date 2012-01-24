@@ -87,6 +87,7 @@ class TileServer(NetServer):
             x,y,z = player.root.getPos()
             h,p,r = player.root.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
+            print h,p,r
         for iNpc in self.npc:
             x,y,z = iNpc.getPos()
             h,p,r = iNpc.getHpr()
@@ -105,7 +106,7 @@ class TileServer(NetServer):
 
     def sendThrottle(self,task):
         for client in self.activeConnections:
-            print "<TX> snapshot# ",self.snapCount," -> ", client.getAddress()
+#            print "<TX> snapshot# ",self.snapCount," -> ", client.getAddress()
             self.write(int(0),self.snapBuffer, client) # rencode lets me send objects??
         self.snapBuffer = []
         return task.again
@@ -126,6 +127,7 @@ class TileServer(NetServer):
             print clientAddress, pc.ID, " added to server players"
         if msgID == 26: # This is a control snapshot from client X
             self.players[clientAddress].controls = data
+#            print self.players[clientAddress].controls['turn']
             
 if __name__ == '__main__':
     server = TileServer()
