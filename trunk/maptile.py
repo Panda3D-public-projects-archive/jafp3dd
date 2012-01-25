@@ -5,17 +5,19 @@ Created on Wed Jan 18 19:06:16 2012
 @author: shawn
 """
 import random, time
+from numpy import sign
 import os
 import cPickle as pickle
 
 from panda3d.core import *
 from direct.interval.IntervalGlobal import *
+from direct.showbase import PythonUtil
 
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
 from client import NetClient
 from common.NPC import DynamicObject
 from network import rencode as rencode
-from server import SNAP_INTERVAL, _mapName,_terraScale
+from server import SNAP_INTERVAL, TURN_RATE, _mapName,_terraScale
 
 
 _Datapath = "resources"
@@ -48,12 +50,17 @@ class MapTile(NodePath,NetClient):
         self.dynObjs = dict()    # A dictionary of nodepaths representing the moving objects
         self.snapshot = dict()
         self.maxSnap = -1
+
+        self.ghost = DynamicObject('ghostnode', os.path.join(_Datapath,_AVMODEL_),1)
+        self.ghost.reparentTo(self)
+        self.ghost.setColor((0,0,1,.4))
+        self.dynObjs.update({'ghost':self.ghost})
         
         self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp.reparentTo(self)
         self.dynObjs.update({myNode:self.avnp})
         
-#        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
     
         self.focusNode = focus or self.avnp
         self.terGeom = None #ScalingGeoMipTerrain("Tile Terrain")
@@ -161,18 +168,27 @@ class MapTile(NodePath,NetClient):
 #TODO: THIS IS NOT ROBUST TO LOST SNAPSHOTS. MAKE IT SO!
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
-#                if ID == self.myNode: print "updating", ID
                 z = self.terGeom.getElevation(x,y)
-                if ID not in self.dynObjs:
-                    self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
-                    self.dynObjs[ID].setPos(x,y,z)
+                if ID == self.myNode: 
+                    # calculate the prediction errors
+#                    print "updating", ID
+                    print "Prediction Errors: ", self.avnp.getPos() - Point3(x,y,z)
+                    self.dynObjs['ghost'].setPos(x,y,z)
+                    self.dynObjs['ghost'].setHpr(h,p,r)
+                    
                 else:
-                    self.dynObjs[ID].setHpr(h,p,r)
-                    i = LerpPosInterval(self.dynObjs[ID],SNAP_INTERVAL,(x,y,z))
-                    i.start()
-#                    ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
-#                    ih.start() # just trying both forms
-#                self.dynObjs[ID].printPos()
+                    if ID not in self.dynObjs: # spawn new object
+                        self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
+                        self.dynObjs[ID].setPos(x,y,z)
+                        self.dynObjs[ID].setHpr(h,p,r)
+                    else:
+                        ch,cp,cr = self.dynObjs[ID].getHpr() # current hpr's
+                        h = PythonUtil.fitDestAngle2Src(ch, h)
+                        i = LerpPosInterval(self.dynObjs[ID],SNAP_INTERVAL,(x,y,z))
+                        i.start()
+                        ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
+                        ih.start() # just trying both forms
+    #                self.dynObjs[ID].printPos()
 
         
     def updateTile(self,task):
