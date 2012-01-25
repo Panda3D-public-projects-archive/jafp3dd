@@ -87,7 +87,6 @@ class TileServer(NetServer):
             x,y,z = player.root.getPos()
             h,p,r = player.root.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
-            print h,p,r
         for iNpc in self.npc:
             x,y,z = iNpc.getPos()
             h,p,r = iNpc.getHpr()

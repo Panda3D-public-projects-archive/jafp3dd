@@ -8,7 +8,7 @@ _Datapath = "resources"
 import os.path
 from math import sin,cos,pi
 from numpy import sign
-#import time
+import time
 import cPickle as pickle
      
 from direct.showbase.ShowBase import ShowBase
@@ -101,6 +101,7 @@ class World(ShowBase,NetClient):
         self.mapTile.reparentTo(self.terraNode)
         self.camera.reparentTo(self.mapTile.avnp)
         self._setupKeys()
+        self.tlast = time.time()
         
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
         if _DoLights: self._setupLights()        
@@ -317,18 +318,24 @@ class World(ShowBase,NetClient):
   
     def updatePlayer(self,task):
 #        dt = globalClock.getDt()
-#        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#        self.mapTile.avnp.setH(self.mapTile.avnp,TURN_RATE*self.controls['turn']*dt) #key input steer
-#        self.mapTile.avnp.setH(self.mapTile.avnp,self.controls['mouseTurn'])
+        tnow = time.time()
+        dt = tnow - self.tlast
+
+        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.mapTile.avnp.setH(self.mapTile.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
+
+#    SERVER SIDE VERSIONS FOR REFERENCE
+#            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
 
         x,y,z = self.mapTile.avnp.getPos()
         self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
-
+        self.tlast = tnow
         return task.cont   
     
 
     def updateCamera(self,task):
-        """There is probably a whole lot better way of doing this...one of the 
+        """There is probably a whole lot better ways of doing this...one of the 
         first things I worked on...but it works"""
         
         epsilon = .333 # Minimum distance above the terrain to float the camera
