@@ -26,6 +26,7 @@ _STARTPOS_ = (64,64)
 #SERVER_IP = '192.168.1.188'
 SERVER_IP = None
 LERP_INTERVAL = 1
+_ghost = 0
 
 class MapTile(NodePath,NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -51,10 +52,11 @@ class MapTile(NodePath,NetClient):
         self.snapshot = dict()
         self.maxSnap = -1
 
-        self.ghost = DynamicObject('ghostnode', os.path.join(_Datapath,_AVMODEL_),1)
-        self.ghost.reparentTo(self)
-        self.ghost.setColor((0,0,1,.4))
-        self.dynObjs.update({'ghost':self.ghost})
+        if _ghost:
+            self.ghost = DynamicObject('ghostnode', os.path.join(_Datapath,_AVMODEL_),1)
+            self.ghost.reparentTo(self)
+#            self.ghost.setColor(0,0,1,.4,1)
+#            self.dynObjs.update({'ghost':self.ghost})
         
         self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp.reparentTo(self)
@@ -172,10 +174,13 @@ class MapTile(NodePath,NetClient):
                 if ID == self.myNode: 
                     # calculate the prediction errors
 #                    print "updating", ID
-                    print "Prediction Errors: ", self.avnp.getPos() - Point3(x,y,z)
-                    self.dynObjs['ghost'].setPos(x,y,z)
-                    self.dynObjs['ghost'].setHpr(h,p,r)
-                    
+#                    print "Prediction Errors: ", self.avnp.getPos() - Point3(x,y,z)
+                    if _ghost:
+                        self.dynObjs['ghost'].setPos(x,y,z)
+                        self.dynObjs['ghost'].setHpr(h,p,r)
+#                    self.dynObjs[self.myNode].setPos(x,y,z)
+#                    self.dynObjs[self.myNode].setHpr(h,p,r)
+                  
                 else:
                     if ID not in self.dynObjs: # spawn new object
                         self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
