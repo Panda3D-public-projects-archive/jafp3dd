@@ -16,6 +16,7 @@ from panda3d.ai import *
 from common.NPC import serverNPC, Player
 import network.rencode as rencode
 from network.client import NetServer
+from maptile import MapTile
 
 NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
@@ -27,7 +28,6 @@ TURN_RATE = 120    # Degrees per second
 WALK_RATE = 8
 
 # THIS MAP SETTINGS
-_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
 _mapName='map2'
 
 class TileServer(NetServer):
@@ -42,6 +42,7 @@ class TileServer(NetServer):
         self.npc = []
         self.players = dict()
         self.terGeom = None       
+        self.mapTile = MapTile('TileServerX',_mapName, self.root)
 
 
         self.setAI()
@@ -78,10 +79,10 @@ class TileServer(NetServer):
         self.AIworld.update()            
         return task.cont
         
-    def loadTerrainMap(self,HFname):
-        self.terGeom = ScalingGeoMipTerrain("myHills",position)
-        self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class
-        self.terGeom.setBruteforce(self._brute) # skip all that LOD stuff
+#    def loadTerrainMap(self,HFname):
+#        self.terGeom = ScalingGeoMipTerrain("myHills",position)
+#        self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class
+#        self.terGeom.setBruteforce(self._brute) # skip all that LOD stuff
 
 
     def calcTick(self,task):
