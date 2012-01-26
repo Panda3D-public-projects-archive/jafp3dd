@@ -10,13 +10,13 @@ from os import urandom
 from panda3d.core import *
 #from direct.showbase.Loader import Loader as loader
 
-class serverNPC(NodePath):
+class serverNPC():
 # Data needed to sync: x,y,z,h,p,r,speed
-
+    
     nextUpdate = 0
     speed = 0
     def __init__(self,name):
-        NodePath.__init__(self, name)
+        self.root = NodePath(PandaNode(name))
         self.ID = urandom(16)
 #        print self.ID
         

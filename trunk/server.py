@@ -11,6 +11,7 @@ from direct.showbase.ShowBase import taskMgr
 #from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
+from panda3d.ai import *
 
 from common.NPC import serverNPC, Player
 import network.rencode as rencode
@@ -32,6 +33,7 @@ _mapName='map2'
 class TileServer(NetServer):
     def __init__(self):
         NetServer.__init__(self)
+        self.root = NodePath(PandaNode('ServerRoot'))
         self.tickCount = 0
         self.snapCount = 0
         self.tlast = time.time()
@@ -41,16 +43,41 @@ class TileServer(NetServer):
         self.players = dict()
         self.terGeom = None       
 
-        for n in range(NUM_NPC):
-            self.npc.append( serverNPC('someGuy'+str(n)))
-            self.npc[n].setPos(70,70,0)
-            self.npc[n].ID = n
 
-        taskMgr.add(self.NpcAI,'server NPCs')
+        self.setAI()
+        
+#        taskMgr.add(self.NpcAI,'server NPCs')
         taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
         taskMgr.doMethodLater(TX_INTERVAL,self.sendThrottle,'TXatRate')
 
+    def setAI(self):
+        #Creating AI World
+        self.AIworld = AIWorld(self.root)
+ 
+        self.AIchar=[]
+        self.AIbehaviors=[]
+        for n in range(NUM_NPC):
+            self.npc.append( serverNPC('someGuy'+str(n)))
+            self.npc[n].root.setPos(70,70,0)
+            self.npc[n].ID = n
+
+            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n].root, 100, 0.05, 5))
+            self.AIworld.addAiChar(self.AIchar[n])
+            self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
+            
+            self.AIbehaviors[n].wander(5, 0, 10, 1.0)
+#            self.AIbehaviors.seek(self.target)
+#            self.seeker.loop("run") # starts actor animations
+     
+        #AI World update        
+#        taskMgr.add(self.AIUpdate,"AIUpdate")
+ 
+    #to update the AIWorld    
+    def AIUpdate(self,task):
+        self.AIworld.update()            
+        return task.cont
+        
     def loadTerrainMap(self,HFname):
         self.terGeom = ScalingGeoMipTerrain("myHills",position)
         self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class
@@ -69,13 +96,15 @@ class TileServer(NetServer):
 #        x,y,z = self.mapTile.avnp.getPos()
 #        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
 
-        for iNpc in self.npc:
-            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#        for iNpc in self.npc:
+#            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            iNpc.setZ(self.ttMgr.getElevation((x,y)))
 #TODO: What to do about terrain heights???
 #            iNpc.printPos()
 #        print "tick:",self.tickCount
-        self.tlast = tnow
+#        self.tlast = tnow
+        self.AIworld.update()            
+ 
         return task.again
 
     def takeSnapshot(self,task):
@@ -88,20 +117,20 @@ class TileServer(NetServer):
             h,p,r = player.root.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
         for iNpc in self.npc:
-            x,y,z = iNpc.getPos()
-            h,p,r = iNpc.getHpr()
+            x,y,z = iNpc.root.getPos()
+            h,p,r = iNpc.root.getHpr()
             snapshot.append((iNpc.ID,x,y,z,h,p,r))
         self.snapBuffer.append(snapshot)
         # snapBuffer = [snapshot1, snapshot2,...snapshotN] #since last TX
 
         return task.again
         
-    def NpcAI(self,task):
-        for iNpc in self.npc:
-            tnow = time.time()
-            if tnow > iNpc.nextUpdate:         # change direction and heading every so often
-                iNpc.makeChange(tnow)
-        return task.cont
+#    def NpcAI(self,task):
+#        for iNpc in self.npc:
+#            tnow = time.time()
+#            if tnow > iNpc.nextUpdate:         # change direction and heading every so often
+#                iNpc.makeChange(tnow)
+#        return task.cont
 
     def sendThrottle(self,task):
         for client in self.activeConnections:

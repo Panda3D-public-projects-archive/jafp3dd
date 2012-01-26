@@ -104,6 +104,15 @@ class World(ShowBase,NetClient):
         self.tlast = time.time()
         
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+######### TASKS ADDS
+        taskMgr.add(self.updatePlayer,"updatePlayer")
+        taskMgr.add(self.mouseHandler,"mouseHandler")
+        taskMgr.add(self.updateCamera,"UpdateCamera")
+        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
+
+#        taskMgr.add(self.moveArm,'pjoint test')
+###############
+   
         if _DoLights: self._setupLights()        
         if _ShowSky: self._setupSky() # must occur after setupAvatar    
                 
@@ -173,15 +182,6 @@ class World(ShowBase,NetClient):
             print "NO FOG. Using auto shader"
             render.setShaderAuto()
             
-######### TASKS ADDS
-        taskMgr.add(self.updatePlayer,"updatePlayer")
-        taskMgr.add(self.mouseHandler,"mouseHandler")
-        taskMgr.add(self.updateCamera,"UpdateCamera")
-        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
-
-#        taskMgr.add(self.moveArm,'pjoint test')
-#        initText.destroy()
-###############
 #        render.analyze()
 
 
@@ -313,26 +313,7 @@ class World(ShowBase,NetClient):
             self.mbState[3] -= 3*sign(mbWheel)*dt
             if abs(self.mbState[3]) < .15: self.mbState[3] = 0 # anti-jitter on cam
     
-        return task.cont
-
-  
-    def updatePlayer(self,task):
-#        dt = globalClock.getDt()
-        tnow = time.time()
-        dt = tnow - self.tlast
-
-        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.mapTile.avnp.setH(self.mapTile.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
-
-#    SERVER SIDE VERSIONS FOR REFERENCE
-#            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
-
-        x,y,z = self.mapTile.avnp.getPos()
-        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
-        self.tlast = tnow
-        return task.cont   
-    
+        return task.cont    
 
     def updateCamera(self,task):
         """There is probably a whole lot better ways of doing this...one of the 
@@ -368,9 +349,26 @@ class World(ShowBase,NetClient):
 
         return task.cont
 
+    def updatePlayer(self,task):
+#        dt = globalClock.getDt()
+        self.write(int(26),self.controls,self.myConnection)
+
+        tnow = time.time()
+        dt = tnow - self.tlast
+        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.mapTile.avnp.setH(self.mapTile.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
+
+#    SERVER SIDE VERSIONS FOR REFERENCE
+#            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
+
+        x,y,z = self.mapTile.avnp.getPos()
+        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
+        self.tlast = tnow
+        return task.cont   
+
     def runTick(self,task):
         self.mapTile.updateSnap()
-        self.write(int(26),self.controls,self.myConnection)
         return task.again
 
     def moveArm(self,task):

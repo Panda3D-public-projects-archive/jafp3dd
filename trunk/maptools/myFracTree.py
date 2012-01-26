@@ -361,18 +361,18 @@ if __name__ == "__main__":
     Lnoise = 3    # percent(0-1) length variation of new branches
 
     _uvScale = (2,1.0/3) #repeats per unit length (around perimeter, along the tree axis) 
-    _BarkTex_ = "barkTexture.jpg"
+    _BarkTex_ = "../barkTexture.jpg"
 #    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
     
 
     # LEAF PARAMETERS
 #    _LeafTex = 'Green Leaf.png'
-    _LeafModel = 'myLeafModel8.x'
+    _LeafModel = 'myLeafModel10.x'
 #    _LeafModel = 'shrubbery'
 #    _LeafTex = 'material-10-cl.png'
     
 #    leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
-    leafMod = base.loader.loadModel('./resources/models/'+ _LeafModel)
+    leafMod = base.loader.loadModel('../resources/models/'+ _LeafModel)
 #    leafMod.setScale(.01)
     leafMod.setZ(-.5)
 #    leafMod.setScale(2,2,1)
@@ -409,7 +409,7 @@ if __name__ == "__main__":
 
 ##############################
 
-    ruler = base.loader.loadModel('./resources/models/plane')
+    ruler = base.loader.loadModel('../resources/models/plane')
     ruler.setPos(-(R0+.25),0,1) # z = .5 *2scale
     ruler.setScale(.05,1,2) #2 unit tall board
     ruler.setTwoSided(1)
