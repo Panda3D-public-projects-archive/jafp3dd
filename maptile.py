@@ -4,31 +4,19 @@ Created on Wed Jan 18 19:06:16 2012
 
 @author: shawn
 """
-import random, time
-from numpy import sign
+import random
 import os
 import cPickle as pickle
 
 from panda3d.core import *
-from direct.interval.IntervalGlobal import *
-from direct.showbase import PythonUtil
 
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
-from client import NetClient
-from common.NPC import DynamicObject
-from network import rencode as rencode
-from server import SNAP_INTERVAL, TURN_RATE, _mapName,_terraScale
+from server import _terraScale
 
 
 _Datapath = "resources"
-_AVMODEL_ = os.path.join('models','MrStix.x')
-_STARTPOS_ = (64,64)
-#SERVER_IP = '192.168.1.188'
-SERVER_IP = None
-LERP_INTERVAL = 1
-_ghost = 0
 
-class MapTile(NetClient):
+class MapTile():
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
     # TileManager determines what tiles are in scope for rendering on the client
 
@@ -39,32 +27,13 @@ class MapTile(NetClient):
     _brute = 1 # use brute force
     _tree_lod_far = 128
     
-    def __init__(self, name, myNode, mapDefName=_mapName, focus=None):
-        NetClient.__init__(self)
-        self.root = NodePath(PandaNode(name))
+    def __init__(self, name, mapDefName,parentNode, focus=None):
+        self.root = parentNode #NodePath(PandaNode(name))
 
          # local loop if address = None
-        ok = self.connect(SERVER_IP)
-        self.myNode = myNode
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
-         # objects like other PCs and dynObjs that move/change realtime
-        self.dynObjs = dict()    # A dictionary of nodepaths representing the moving objects
-        self.snapshot = dict()
-        self.maxSnap = -1
-
-        if _ghost:
-            self.ghost = DynamicObject('ghostnode', os.path.join(_Datapath,_AVMODEL_),1)
-            self.ghost.reparentTo(self.root)
-#            self.ghost.setColor(0,0,1,.4,1)
-#            self.dynObjs.update({'ghost':self.ghost})
-        
-        self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
-        self.avnp.reparentTo(self.root)
-        self.dynObjs.update({myNode:self.avnp})
-        
-        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
     
-        self.focusNode = focus or self.avnp
+        self.focusNode = focus or self.root
         self.terGeom = None #ScalingGeoMipTerrain("Tile Terrain")
 #            self.texTex = Texture()
 
@@ -160,56 +129,7 @@ class MapTile(NetClient):
             model.instanceTo(lodNP)
         return lodNP
 
-    def updateSnap(self):
-        """update scene with maxSnapshot - Lerp interval. Always some amount of 
-        time behind the latest server snapshot."""
-        if self.maxSnap > 0 :
-            snapNum = self.maxSnap - LERP_INTERVAL
-#            print "Rendering from Snapshot: ",snapNum            
-            snap = self.snapshot[snapNum+1] # get NEXT snapshot to interp to
-#TODO: THIS IS NOT ROBUST TO LOST SNAPSHOTS. MAKE IT SO!
-            for obj in snap: # update all objects in this snapshot
-                ID,x,y,z,h,p,r = obj
-                z = self.terGeom.getElevation(x,y)
-                if ID == self.myNode: 
-                    # calculate the prediction errors
-#                    print "updating", ID
-#                    print "Prediction Errors: ", self.avnp.getPos() - Point3(x,y,z)
-                    if _ghost:
-                        self.dynObjs['ghost'].setPos(x,y,z)
-                        self.dynObjs['ghost'].setHpr(h,p,r)
-#                    self.dynObjs[self.myNode].setPos(x,y,z)
-#                    self.dynObjs[self.myNode].setHpr(h,p,r)
-                  
-                else:
-                    if ID not in self.dynObjs: # spawn new object
-                        self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self.root)})
-                        self.dynObjs[ID].setPos(x,y,z)
-                        self.dynObjs[ID].setHpr(h,p,r)
-                    else:
-                        ch,cp,cr = self.dynObjs[ID].getHpr() # current hpr's
-                        h = PythonUtil.fitDestAngle2Src(ch, h)
-                        i = LerpPosInterval(self.dynObjs[ID],SNAP_INTERVAL,(x,y,z))
-                        i.start()
-                        ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
-                        ih.start() # just trying both forms
-    #                self.dynObjs[ID].printPos()
-
-        
     def updateTerra(self,task):
         if not self._brute: self.terGeom.update()    # update LOD geometry
         return task.cont
-
-    # NETWORK DATAGRAM PROCESSING
-    def ProcessData(self,datagram):
-        I = DatagramIterator(datagram)
-        msgID = I.getInt32()
-        data = rencode.loads(I.getString()) # data matching msgID
-        if msgID == 0:
-            for entry in data:
-                snapNum = entry.pop(0) # snapshot tick count
-                if self.maxSnap < snapNum: self.maxSnap = snapNum
-                self.snapshot.update({snapNum:entry})
-        else:
-            print msgID,'::',data
-            
+          
