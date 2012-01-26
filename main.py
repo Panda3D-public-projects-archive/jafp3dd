@@ -98,7 +98,7 @@ class World(ShowBase,NetClient):
         self.terraNode.flattenStrong()
         self.skynp = render.attachNewNode("SkyDome")               
         self.mapTile = MapTile('Tile101',myNode=MY_ID)#'notfah')
-        self.mapTile.reparentTo(self.terraNode)
+        self.mapTile.root.reparentTo(self.terraNode)
         self.camera.reparentTo(self.mapTile.avnp)
         self._setupKeys()
         self.tlast = time.time()

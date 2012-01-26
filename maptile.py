@@ -28,7 +28,7 @@ SERVER_IP = None
 LERP_INTERVAL = 1
 _ghost = 0
 
-class MapTile(NodePath,NetClient):
+class MapTile(NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
     # TileManager determines what tiles are in scope for rendering on the client
 
@@ -41,7 +41,7 @@ class MapTile(NodePath,NetClient):
     
     def __init__(self, name, myNode, mapDefName=_mapName, focus=None):
         NetClient.__init__(self)
-        NodePath.__init__(self,name)
+        self.root = NodePath(PandaNode(name))
 
          # local loop if address = None
         ok = self.connect(SERVER_IP)
@@ -54,12 +54,12 @@ class MapTile(NodePath,NetClient):
 
         if _ghost:
             self.ghost = DynamicObject('ghostnode', os.path.join(_Datapath,_AVMODEL_),1)
-            self.ghost.reparentTo(self)
+            self.ghost.reparentTo(self.root)
 #            self.ghost.setColor(0,0,1,.4,1)
 #            self.dynObjs.update({'ghost':self.ghost})
         
         self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
-        self.avnp.reparentTo(self)
+        self.avnp.reparentTo(self.root)
         self.dynObjs.update({myNode:self.avnp})
         
         self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
@@ -68,7 +68,7 @@ class MapTile(NodePath,NetClient):
         self.terGeom = None #ScalingGeoMipTerrain("Tile Terrain")
 #            self.texTex = Texture()
 
-        taskMgr.add(self.updateTile,'DoTileUpdates')
+        taskMgr.add(self.updateTerra,'DoTileUpdates')
  
         print 'loading map ', mapDefName,'...',
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
@@ -106,7 +106,7 @@ class MapTile(NodePath,NetClient):
 
 #        self.terGeom.root.setColor(_SKYCOLOR_) # skycolor may make loading blips on horz less obvious
 #        self.terGeom.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
-        self.terGeom.root.reparentTo(self)
+        self.terGeom.root.reparentTo(self.root)
         self.terGeom.setFocalPoint(self.focusNode)
         self.terGeom.generate()
 
@@ -135,8 +135,8 @@ class MapTile(NodePath,NetClient):
     def addStaticObject(self, obj):
         # These are intended to be things like trees, rocks, minerals, etc
         # that get updated on a push from the server. They aren't changing quickly
-        tileNode = self.attachNewNode('StaticObject')
-        tileNode.reparentTo(self)
+        tileNode = self.root.attachNewNode('StaticObject')
+        tileNode.reparentTo(self.root)
         tmpModel = loader.loadModel(obj[2]) # name
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
@@ -183,7 +183,7 @@ class MapTile(NodePath,NetClient):
                   
                 else:
                     if ID not in self.dynObjs: # spawn new object
-                        self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self)})
+                        self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self.root)})
                         self.dynObjs[ID].setPos(x,y,z)
                         self.dynObjs[ID].setHpr(h,p,r)
                     else:
@@ -196,11 +196,8 @@ class MapTile(NodePath,NetClient):
     #                self.dynObjs[ID].printPos()
 
         
-    def updateTile(self,task):
+    def updateTerra(self,task):
         if not self._brute: self.terGeom.update()    # update LOD geometry
-#        for iNpc in self.dynObjs:
-#            x,y,z = iNpc.calcPos(time.time())
-#            iNpc.setZ(self.terGeom.getElevation(x,y))
         return task.cont
 
     # NETWORK DATAGRAM PROCESSING

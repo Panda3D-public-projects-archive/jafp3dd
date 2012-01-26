@@ -62,7 +62,7 @@ class TileServer(NetServer):
             self.npc[n].root.setPos(70,70,0)
             self.npc[n].ID = n
 
-            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n].root, 100, 0.05, 5))
+            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n].root, 300, 0.05, 5))
             self.AIworld.addAiChar(self.AIchar[n])
             self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
             
