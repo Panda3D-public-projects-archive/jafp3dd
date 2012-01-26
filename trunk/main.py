@@ -9,7 +9,6 @@ import os.path
 from math import sin,cos,pi
 from numpy import sign
 import time
-import cPickle as pickle
      
 from direct.showbase.ShowBase import ShowBase
 #from direct.showbase.DirectObject import DirectObject
@@ -23,12 +22,11 @@ from pandac.PandaModules import loadPrcFileData
 loadPrcFileData( '', 'sync-video 0' ) 
 
 from CelestialBody import CelestialBody
-from maptile import MapTile as MapTile
 from network.client import NetClient
 from network.rencode import *
-from server import SNAP_INTERVAL,TURN_RATE,WALK_RATE
+from server import SNAP_INTERVAL,TURN_RATE,WALK_RATE, _mapName
 
-from maptile import SERVER_IP
+from TileClient import TileClient, SERVER_IP
 
 # RENDERING OPTIONS #
 _DoLights = 1
@@ -96,10 +94,12 @@ class World(ShowBase,NetClient):
 
         self.terraNode = render.attachNewNode('Terrain Node') 
         self.terraNode.flattenStrong()
-        self.skynp = render.attachNewNode("SkyDome")               
-        self.mapTile = MapTile('Tile101',myNode=MY_ID)#'notfah')
+        self.skynp = render.attachNewNode("SkyDome")   
+
+        self.client = TileClient('Tile001', MY_ID, _mapName)
+        self.mapTile = self.client.mapTile
         self.mapTile.root.reparentTo(self.terraNode)
-        self.camera.reparentTo(self.mapTile.avnp)
+        self.camera.reparentTo(self.client.avnp)
         self._setupKeys()
         self.tlast = time.time()
         
@@ -116,7 +116,7 @@ class World(ShowBase,NetClient):
         if _DoLights: self._setupLights()        
         if _ShowSky: self._setupSky() # must occur after setupAvatar    
                 
-        self.sun = CelestialBody(self.render, self.mapTile.avnp, './resources/models/plane', \
+        self.sun = CelestialBody(self.render, self.client.avnp, './resources/models/plane', \
         './resources/textures/blueSun.png',radius=4000,Fov=7,phase=pi/9)
         self.sun.period = 1800
         self.sun.declin = 0
@@ -127,7 +127,7 @@ class World(ShowBase,NetClient):
         self.sun.dayColor = VBase4(_SKYCOLOR_)
         taskMgr.add(self.sun.updateTask,'sun task')
 #        
-#        self.moon = CelestialBody(self.render,self.mapTile.avnp, './resources/models/plane', \
+#        self.moon = CelestialBody(self.render,self.client.avnp, './resources/models/plane', \
 #        './resources/textures/copperMoon.png',radius=4000,Fov=12,phase=pi,eColor=VBase4(.5,1,1,1)) 
 #        self.moon.period = 30
 #        self.moon.declin = 20
@@ -193,7 +193,7 @@ class World(ShowBase,NetClient):
         skyModel = GeoMipTerrain("scene")
         skyModel.setHeightfield(os.path.join(_Datapath,_SkyModel)) # crude to save and read but works for now
         skyModel.setBruteforce(1)
-        skyModel.setFocalPoint(self.mapTile.avnp)
+        skyModel.setFocalPoint(self.client.avnp)
         npDome = skyModel.getRoot()
         skyModel.generate()
         npDome.setTwoSided(1)
@@ -339,12 +339,12 @@ class World(ShowBase,NetClient):
         terZ = self.mapTile.terGeom.getElevation(cx,cy) # what is terrain elevation at new camera pos
         if cz <= terZ+epsilon:
             camera.setZ(self.terraNode,terZ+epsilon)
-        camera.lookAt(self.mapTile.avnp,aim) # look at the avatar nodepath
+        camera.lookAt(self.client.avnp,aim) # look at the avatar nodepath
 #        camera.lookAt(self.sun.model)
 
         if _DoFog: self.terraFog.setColor(base.getBackgroundColor()) # cheesy place to update this for now...       
-        x,y,z = self.mapTile.avnp.getPos()
-        h,p,r = self.mapTile.avnp.getHpr()
+        x,y,z = self.client.avnp.getPos()
+        h,p,r = self.client.avnp.getHpr()
         self.textObject.setText(str((int(x),int(y),int(z),int(h))))
 
         return task.cont
@@ -355,20 +355,20 @@ class World(ShowBase,NetClient):
 
         tnow = time.time()
         dt = tnow - self.tlast
-        self.mapTile.avnp.setPos(self.mapTile.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.mapTile.avnp.setH(self.mapTile.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
+        self.client.avnp.setPos(self.client.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.client.avnp.setH(self.client.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
 
 #    SERVER SIDE VERSIONS FOR REFERENCE
 #            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
 
-        x,y,z = self.mapTile.avnp.getPos()
-        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
+        x,y,z = self.client.avnp.getPos()
+        self.client.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
         self.tlast = tnow
         return task.cont   
 
     def runTick(self,task):
-        self.mapTile.updateSnap()
+        self.client.updateSnap()
         return task.again
 
     def moveArm(self,task):
