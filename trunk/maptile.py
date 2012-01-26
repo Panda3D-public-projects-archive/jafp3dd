@@ -9,14 +9,15 @@ import os
 import cPickle as pickle
 
 from panda3d.core import *
+from direct.showbase import Loader
+from direct.showbase.DirectObject import DirectObject
 
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
-from server import _terraScale
-
 
 _Datapath = "resources"
+_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
 
-class MapTile():
+class MapTile(DirectObject):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
     # TileManager determines what tiles are in scope for rendering on the client
 
@@ -29,15 +30,22 @@ class MapTile():
     
     def __init__(self, name, mapDefName,parentNode, focus=None):
         self.root = parentNode #NodePath(PandaNode(name))
-
+        self.loader = Loader.Loader(self)
+        
          # local loop if address = None
         self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
     
-        self.focusNode = focus or self.root
+        if focus:
+            self.focusNode = focus 
+            self._brute = False
+        else:
+            self._brute = True
+            self.focusNode = None
+            
         self.terGeom = None #ScalingGeoMipTerrain("Tile Terrain")
 #            self.texTex = Texture()
 
-        taskMgr.add(self.updateTerra,'DoTileUpdates')
+#        taskMgr.add(self.updateTerra,'DoTileUpdates')
  
         print 'loading map ', mapDefName,'...',
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
@@ -76,7 +84,8 @@ class MapTile():
 #        self.terGeom.root.setColor(_SKYCOLOR_) # skycolor may make loading blips on horz less obvious
 #        self.terGeom.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
         self.terGeom.root.reparentTo(self.root)
-        self.terGeom.setFocalPoint(self.focusNode)
+        if self.focusNode:
+            self.terGeom.setFocalPoint(self.focusNode)
         self.terGeom.generate()
 
     def setTexture(self,texList):
@@ -106,7 +115,7 @@ class MapTile():
         # that get updated on a push from the server. They aren't changing quickly
         tileNode = self.root.attachNewNode('StaticObject')
         tileNode.reparentTo(self.root)
-        tmpModel = loader.loadModel(obj[2]) # name
+        tmpModel = self.loader.loadModel(obj[2]) # name
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
         np.reparentTo(tileNode)

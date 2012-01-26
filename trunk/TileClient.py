@@ -13,6 +13,7 @@ from panda3d.core import *
 from direct.interval.IntervalGlobal import *
 from direct.showbase import PythonUtil
 
+
 from client import NetClient
 from common.NPC import DynamicObject
 from network import rencode as rencode
@@ -62,7 +63,8 @@ class TileClient(NetClient):
         self.dynObjs.update({myNode:self.avnp})      
         
         self.mapTile = MapTile(name,mapDefName, self.root, self.avnp)
-#        self.mapTile.root.reparentTo(self.root)
+        taskMgr.add(self.mapTile.updateTerra,'GeoMIPupdate')
+
 
     def updateSnap(self):
         """update scene with maxSnapshot - Lerp interval. Always some amount of 
