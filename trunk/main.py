@@ -355,15 +355,15 @@ class World(ShowBase,NetClient):
 
         tnow = time.time()
         dt = tnow - self.tlast
-        self.client.avnp.setPos(self.client.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.client.avnp.setH(self.client.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
+#        self.client.avnp.setPos(self.client.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#        self.client.avnp.setH(self.client.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
 
 #    SERVER SIDE VERSIONS FOR REFERENCE
 #            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
 
-        x,y,z = self.client.avnp.getPos()
-        self.client.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
+#        x,y,z = self.client.avnp.getPos()
+#        self.client.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
         self.tlast = tnow
         return task.cont   
 

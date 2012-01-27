@@ -22,7 +22,6 @@ from maptile import MapTile
 
 _Datapath = "resources"
 _AVMODEL_ = os.path.join('models','MrStix.x')
-_STARTPOS_ = (64,64)
 #SERVER_IP = '192.168.1.188'
 SERVER_IP = None
 LERP_INTERVAL = 1
@@ -58,7 +57,7 @@ class TileClient(NetClient):
         av = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp = av.root
         self.avnp.reparentTo(self.root)
-        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+#        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
         self.myNode = myNode
         self.dynObjs.update({myNode:self.avnp})      
         
@@ -84,8 +83,8 @@ class TileClient(NetClient):
                     if _ghost:
                         self.dynObjs['ghost'].setPos(x,y,z)
                         self.dynObjs['ghost'].setHpr(h,p,r)
-#                    self.dynObjs[self.myNode].setPos(x,y,z)
-#                    self.dynObjs[self.myNode].setHpr(h,p,r)
+                    self.avnp.setPos(x,y,z)
+                    self.avnp.setHpr(h,p,r)
                   
                 else:
                     if ID not in self.dynObjs: # spawn new object
