@@ -33,7 +33,7 @@ class MapTile(DirectObject):
         self.loader = Loader.Loader(self)
         
          # local loop if address = None
-        self.staticObjs = dict() # {objectKey:objNode}. add remove like any other dictionary
+        self.staticObjs = list() # a list of node paths
     
         if focus:
             self.focusNode = focus 
@@ -56,7 +56,7 @@ class MapTile(DirectObject):
         self.setGeom(HFname, _terraScale, position=(0,0,0))
         self.setTexture(texList)
         for obj in Objects:
-            self.addStaticObject(obj) # takes a an individual object for this tile
+            self.staticObjs.append( self.addStaticObject(obj) ) # takes a an individual object for this tile
        
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
@@ -114,12 +114,13 @@ class MapTile(DirectObject):
         # These are intended to be things like trees, rocks, minerals, etc
         # that get updated on a push from the server. They aren't changing quickly
         tileNode = self.root.attachNewNode('StaticObject')
-        tileNode.reparentTo(self.root)
+#        tileNode.reparentTo(self.root)
         tmpModel = self.loader.loadModel(obj[2]) # name
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
         np.reparentTo(tileNode)
-
+        return np
+        
     def attachLODobj(self, modelList, pos,state=1):
         # attaches subsequent models in modelList at pos x,y
         # different models are to be LODs of the model

@@ -55,8 +55,8 @@ class TileClient(NetClient):
             self.ghost.reparentTo(self.root)
 #            self.ghost.setColor(0,0,1,.4,1)
 #            self.dynObjs.update({'ghost':self.ghost})
-        
-        self.avnp = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
+        av = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
+        self.avnp = av.root
         self.avnp.reparentTo(self.root)
         self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
         self.myNode = myNode
@@ -76,7 +76,7 @@ class TileClient(NetClient):
 #TODO: THIS IS NOT ROBUST TO LOST SNAPSHOTS. MAKE IT SO!
             for obj in snap: # update all objects in this snapshot
                 ID,x,y,z,h,p,r = obj
-                z = self.mapTile.terGeom.getElevation(x,y)
+#                z = self.mapTile.terGeom.getElevation(x,y)
                 if ID == self.myNode: 
                     # calculate the prediction errors
 #                    print "updating", ID
@@ -89,15 +89,15 @@ class TileClient(NetClient):
                   
                 else:
                     if ID not in self.dynObjs: # spawn new object
-                        self.dynObjs.update({ID: DynamicObject('guy','resources/models/cone.egg',.6,self.root)})
-                        self.dynObjs[ID].setPos(x,y,z)
-                        self.dynObjs[ID].setHpr(h,p,r)
+                        self.dynObjs.update({ID: DynamicObject('guy','resources/models/golfie.x',.6,self.root)})
+                        self.dynObjs[ID].root.setPos(x,y,z)
+                        self.dynObjs[ID].root.setHpr(h,p,r)
                     else:
-                        ch,cp,cr = self.dynObjs[ID].getHpr() # current hpr's
+                        ch,cp,cr = self.dynObjs[ID].root.getHpr() # current hpr's
                         h = PythonUtil.fitDestAngle2Src(ch, h)
-                        i = LerpPosInterval(self.dynObjs[ID],SNAP_INTERVAL,(x,y,z))
+                        i = LerpPosInterval(self.dynObjs[ID].root,SNAP_INTERVAL,(x,y,z))
                         i.start()
-                        ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
+                        ih=self.dynObjs[ID].root.hprInterval(3*SNAP_INTERVAL,(h,p,r))
                         ih.start() # just trying both forms
     #                self.dynObjs[ID].printPos()
 
