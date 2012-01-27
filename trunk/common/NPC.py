@@ -8,7 +8,7 @@ import random
 from os import urandom
 
 from panda3d.core import *
-#from direct.showbase.Loader import Loader as loader
+from direct.showbase import Loader
 
 class serverNPC():
 # Data needed to sync: x,y,z,h,p,r,speed
@@ -39,19 +39,20 @@ class Player():
         'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
 
 
-class DynamicObject(NodePath):
+class DynamicObject():
     def __init__(self,nodeName,modelName,modelScale,parentNode=None):
-        NodePath.__init__(self,nodeName)
+        self.root = NodePath(PandaNode(nodeName))
+        self.loader = Loader.Loader(self)
         self.commandsBuffer = dict({0:[Vec3(70,70,0),Vec3(0,0,0),Vec3(0,0,0),Vec3(0,0,0)]}) # {time:[list of commands]}
         self.speed = 0
         self.nextUpdate = 0
         self.color = (VBase4(random.random(),random.random(),random.random(),1))
-        self.model = loader.loadModel(modelName)
+        self.model = self.loader.loadModel(modelName)
 #TODO: Load ACTORS as well as static models...        
-        self.model.reparentTo(self)
-        self.setScale(modelScale)
+        self.model.reparentTo(self.root)
+        self.root.setScale(modelScale)
         self.model.setColor(self.color)
-        if parentNode: self.reparentTo(parentNode)
+        if parentNode: self.root.reparentTo(parentNode)
         
     def _timeToKey(self,timenow):
         """ return the buffer key time just previous to timenow """

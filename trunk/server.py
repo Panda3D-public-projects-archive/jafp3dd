@@ -7,16 +7,20 @@ Created on Mon Nov 28 13:24:03 2011
 
 import time
 
+#import direct.directbase.DirectStart
 from direct.showbase.ShowBase import taskMgr
 #from direct.showbase.DirectObject import DirectObject
 #import direct.directbase.DirectStart
 from panda3d.core import *
 from panda3d.ai import *
 
-from common.NPC import serverNPC, Player
+from common.NPC import DynamicObject, Player
 import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
+
+loadPrcFileData("", "want-directtools #t")
+loadPrcFileData("", "want-tk #t")
 
 NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
@@ -44,7 +48,6 @@ class TileServer(NetServer):
         self.terGeom = None       
         self.mapTile = MapTile('TileServerX',_mapName, self.root)
 
-
         self.setAI()
         
 #        taskMgr.add(self.NpcAI,'server NPCs')
@@ -55,20 +58,25 @@ class TileServer(NetServer):
     def setAI(self):
         #Creating AI World
         self.AIworld = AIWorld(self.root)
- 
+#        for obj in self.mapTile.staticObjs[0:1]:
+#            self.AIworld.addObstacle(obj)
+
         self.AIchar=[]
         self.AIbehaviors=[]
         for n in range(NUM_NPC):
-            self.npc.append( serverNPC('someGuy'+str(n)))
+            self.npc.append( DynamicObject('someguy'+str(n),'resources/models/golfie.x',.6,self.root) )
             self.npc[n].root.setPos(70,70,0)
             self.npc[n].ID = n
-
+            self.AIworld.addObstacle(self.npc[n].root)
+            
             self.AIchar.append( AICharacter("conie"+str(n),self.npc[n].root, 300, 0.05, 5))
             self.AIworld.addAiChar(self.AIchar[n])
             self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
             
-            self.AIbehaviors[n].wander(5, 0, 10, 1.0)
-#            self.AIbehaviors.seek(self.target)
+            self.AIbehaviors[n].wander(5, 0, 10, .50)
+#            self.AIbehaviors[n].obstacleAvoidance(1.0)    
+#        self.AIworld.addObstacle(self.obstacle1)
+        
 #            self.seeker.loop("run") # starts actor animations
      
         #AI World update        
@@ -79,10 +87,6 @@ class TileServer(NetServer):
         self.AIworld.update()            
         return task.cont
         
-#    def loadTerrainMap(self,HFname):
-#        self.terGeom = ScalingGeoMipTerrain("myHills",position)
-#        self.terGeom.setScale(geomScale[0],geomScale[1],geomScale[2]) # for objects of my class
-#        self.terGeom.setBruteforce(self._brute) # skip all that LOD stuff
 
 
     def calcTick(self,task):
@@ -94,17 +98,18 @@ class TileServer(NetServer):
         for player in self.players.values():        
             player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
             player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
-#        x,y,z = self.mapTile.avnp.getPos()
 #        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
 
+        self.AIworld.update()
+            
 #        for iNpc in self.npc:
 #            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#            iNpc.setZ(self.ttMgr.getElevation((x,y)))
-#TODO: What to do about terrain heights???
+#            x,y,z = iNpc.root.getPos()
+#            z = self.mapTile.terGeom.getElevation(x,y)
+#            iNpc.root.setZ(z)
 #            iNpc.printPos()
 #        print "tick:",self.tickCount
 #        self.tlast = tnow
-        self.AIworld.update()            
  
         return task.again
 
@@ -119,6 +124,7 @@ class TileServer(NetServer):
             snapshot.append((player.ID,x,y,z,h,p,r))
         for iNpc in self.npc:
             x,y,z = iNpc.root.getPos()
+            z = self.mapTile.terGeom.getElevation(x,y)
             h,p,r = iNpc.root.getHpr()
             snapshot.append((iNpc.ID,x,y,z,h,p,r))
         self.snapBuffer.append(snapshot)
