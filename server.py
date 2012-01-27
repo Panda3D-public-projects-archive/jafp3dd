@@ -19,8 +19,8 @@ import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
 
-loadPrcFileData("", "want-directtools #t")
-loadPrcFileData("", "want-tk #t")
+#loadPrcFileData("", "want-directtools #t")
+#loadPrcFileData("", "want-tk #t")
 
 NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
@@ -30,6 +30,7 @@ TX_INTERVAL = 1.0/20
 # Player control constants
 TURN_RATE = 120    # Degrees per second
 WALK_RATE = 8
+PLAYER_START_POS = (64,64)
 
 # THIS MAP SETTINGS
 _mapName='map2'
@@ -98,7 +99,8 @@ class TileServer(NetServer):
         for player in self.players.values():        
             player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
             player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
-#        self.mapTile.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
+            x,y,z = player.root.getPos()
+            player.root.setZ(self.mapTile.terGeom.getElevation(x,y))
 
         self.AIworld.update()
             
@@ -157,7 +159,7 @@ class TileServer(NetServer):
         if msgID == 25:
             # add new player
             pc = Player(data) #data is the ID of the client
-            pc.root.setPos(64,64,0)
+            pc.root.setPos(PLAYER_START_POS[0],PLAYER_START_POS[1],0)
             self.players.update({clientAddress:pc})
             print clientAddress, pc.ID, " added to server players"
         if msgID == 26: # This is a control snapshot from client X
