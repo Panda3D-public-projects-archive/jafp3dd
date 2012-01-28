@@ -400,7 +400,7 @@ if __name__ == "__main__":
         tree.setH(180)
         tree.setZ(-0.1)
         tree.flattenStrong()
-        tree.writeBamFile('./resources/models/sampleTree'+str(it)+'.bam')
+        tree.writeBamFile('../resources/models/sampleTree'+str(it)+'.bam')
 
         p = random.choice(plts)
         tx = ds*(p/np)
