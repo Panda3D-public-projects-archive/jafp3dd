@@ -17,8 +17,8 @@ from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 
 from pandac.PandaModules import loadPrcFileData
-loadPrcFileData("", "want-directtools #t")
-loadPrcFileData("", "want-tk #t")
+#loadPrcFileData("", "want-directtools #t")
+#loadPrcFileData("", "want-tk #t")
 loadPrcFileData( '', 'sync-video 0' ) 
 
 from CelestialBody import CelestialBody

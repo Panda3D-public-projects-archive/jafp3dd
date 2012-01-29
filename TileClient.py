@@ -12,6 +12,7 @@ import cPickle as pickle
 from panda3d.core import *
 from direct.interval.IntervalGlobal import *
 from direct.showbase import PythonUtil
+from direct.gui.OnscreenText import OnscreenText
 
 
 from client import NetClient
@@ -25,7 +26,7 @@ _AVMODEL_ = os.path.join('models','MrStix.x')
 #SERVER_IP = '192.168.1.188'
 SERVER_IP = None
 LERP_INTERVAL = 1
-_ghost = 1
+_ghost = 0
 
 class TileClient(NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -41,7 +42,8 @@ class TileClient(NetClient):
     def __init__(self, name, myNode, mapDefName, focus=None):
         NetClient.__init__(self)
         self.root = NodePath(PandaNode(name))
-        
+#        self.osd = OnscreenText(text = '', pos = (0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+
          # local loop if address = None
         ok = self.connect(SERVER_IP)
          # objects like other PCs and dynObjs that move/change realtime
@@ -81,9 +83,13 @@ class TileClient(NetClient):
                     # calculate the prediction errors
 #                    print "updating", ID
 #                    print "Prediction Errors: ", self.avnp.getPos() - Point3(x,y,z)
+#                    self.osd.setText(str(self.avnp.getPos() - Point3(x,y,z))) 
                     if _ghost:
                         self.dynObjs['ghost'].root.setPos(x,y,z)
                         self.dynObjs['ghost'].root.setHpr(h,p,r)
+                    iv = LerpPosHprInterval(self.avnp,SNAP_INTERVAL,(x,y,z),(h,p,r))
+                    iv.start()
+                    
 #                    self.avnp.setPos(x,y,z)
 #                    self.avnp.setHpr(h,p,r)
                   
