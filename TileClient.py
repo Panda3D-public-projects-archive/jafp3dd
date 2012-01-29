@@ -25,7 +25,7 @@ _AVMODEL_ = os.path.join('models','MrStix.x')
 #SERVER_IP = '192.168.1.188'
 SERVER_IP = None
 LERP_INTERVAL = 1
-_ghost = 0
+_ghost = 1
 
 class TileClient(NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -51,13 +51,14 @@ class TileClient(NetClient):
 
         if _ghost:
             self.ghost = DynamicObject('ghostnode', os.path.join(_Datapath,_AVMODEL_),1)
-            self.ghost.reparentTo(self.root)
+            self.ghost.root.reparentTo(self.root)
 #            self.ghost.setColor(0,0,1,.4,1)
-#            self.dynObjs.update({'ghost':self.ghost})
+            self.dynObjs.update({'ghost':self.ghost})
         av = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
         self.avnp = av.root
         self.avnp.reparentTo(self.root)
-#        self.avnp.setPos(_STARTPOS_[0],_STARTPOS_[1],0)  
+        print "debug tileclient set av pos"
+        self.avnp.setPos(64,64,0)  
         self.myNode = myNode
         self.dynObjs.update({myNode:self.avnp})      
         
@@ -81,10 +82,10 @@ class TileClient(NetClient):
 #                    print "updating", ID
 #                    print "Prediction Errors: ", self.avnp.getPos() - Point3(x,y,z)
                     if _ghost:
-                        self.dynObjs['ghost'].setPos(x,y,z)
-                        self.dynObjs['ghost'].setHpr(h,p,r)
-                    self.avnp.setPos(x,y,z)
-                    self.avnp.setHpr(h,p,r)
+                        self.dynObjs['ghost'].root.setPos(x,y,z)
+                        self.dynObjs['ghost'].root.setHpr(h,p,r)
+#                    self.avnp.setPos(x,y,z)
+#                    self.avnp.setHpr(h,p,r)
                   
                 else:
                     if ID not in self.dynObjs: # spawn new object

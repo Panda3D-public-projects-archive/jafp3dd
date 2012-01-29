@@ -17,14 +17,14 @@ from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 
 from pandac.PandaModules import loadPrcFileData
-#loadPrcFileData("", "want-directtools #t")
-#loadPrcFileData("", "want-tk #t")
+loadPrcFileData("", "want-directtools #t")
+loadPrcFileData("", "want-tk #t")
 loadPrcFileData( '', 'sync-video 0' ) 
 
 from CelestialBody import CelestialBody
 from network.client import NetClient
 from network.rencode import *
-from server import SNAP_INTERVAL,TURN_RATE,WALK_RATE, _mapName
+from server import SNAP_INTERVAL,SERVER_TICK, TURN_RATE,WALK_RATE, _mapName
 
 from TileClient import TileClient, SERVER_IP
 
@@ -54,7 +54,7 @@ _Sealevel = 2
 _Suntex = 'textures/blueSun.png'
 
 
-fogPm = (96,150,45,250,500) # last 3 params for linfalloff - not used atm
+fogPm = (80,100,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
 _MINCAMDIST_ = 1
@@ -105,10 +105,11 @@ class World(ShowBase,NetClient):
         
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 ######### TASKS ADDS
-        taskMgr.add(self.updatePlayer,"updatePlayer")
+#        taskMgr.add(self.calcTick,"updatePlayer")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
-        taskMgr.doMethodLater(SNAP_INTERVAL,self.runTick,'discrete_tick')
+        taskMgr.doMethodLater(SNAP_INTERVAL,self.updateSnap,'discrete_tick')
+        taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
 
 #        taskMgr.add(self.moveArm,'pjoint test')
 ###############
@@ -349,25 +350,20 @@ class World(ShowBase,NetClient):
 
         return task.cont
 
-    def updatePlayer(self,task):
+    def calcTick(self,task):
 #        dt = globalClock.getDt()
         self.write(int(26),self.controls,self.myConnection)
 
         tnow = time.time()
         dt = tnow - self.tlast
-#        self.client.avnp.setPos(self.client.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#        self.client.avnp.setH(self.client.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
-
-#    SERVER SIDE VERSIONS FOR REFERENCE
-#            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
-
-#        x,y,z = self.client.avnp.getPos()
-#        self.client.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
+        self.client.avnp.setPos(self.client.avnp,WALK_RATE*self.controls['strafe']*dt,WALK_RATE*self.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.client.avnp.setH(self.client.avnp,self.controls['mouseTurn'] + TURN_RATE*self.controls['turn']*dt) #key input steer
+        x,y,z = self.client.avnp.getPos()
+        self.client.avnp.setZ(self.mapTile.terGeom.getElevation(x,y))
         self.tlast = tnow
-        return task.cont   
+        return task.again
 
-    def runTick(self,task):
+    def updateSnap(self,task):
         self.client.updateSnap()
         return task.again
 
