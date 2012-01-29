@@ -51,7 +51,6 @@ class TileServer(NetServer):
 
         self.setAI()
         
-#        taskMgr.add(self.NpcAI,'server NPCs')
         taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
         taskMgr.doMethodLater(TX_INTERVAL,self.sendThrottle,'TXatRate')
@@ -111,8 +110,8 @@ class TileServer(NetServer):
 #            iNpc.root.setZ(z)
 #            iNpc.printPos()
 #        print "tick:",self.tickCount
-#        self.tlast = tnow
- 
+
+        self.tlast = tnow 
         return task.again
 
     def takeSnapshot(self,task):
