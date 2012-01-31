@@ -97,6 +97,18 @@ class World(ShowBase,NetClient):
         self.skynp = render.attachNewNode("SkyDome")   
 
         self.client = TileClient('Tile001', MY_ID, _mapName)
+
+        cs = CollisionSphere(0, 0, 1, 1.1)
+        cnodePath = self.client.avnp.attachNewNode(CollisionNode('cnode'))
+#        cnodePath.setPos(0,0,1)
+        cnodePath.node().addSolid(cs)
+        cnodePath.show()
+        self.pusher = CollisionHandlerPusher()
+        self.pusher.addCollider(cnodePath, self.client.avnp)
+        
+        base.cTrav = CollisionTraverser('traverser name')
+        base.cTrav.addCollider(cnodePath, self.pusher)
+        
         self.mapTile = self.client.mapTile
         self.mapTile.root.reparentTo(self.terraNode)
         self.camera.reparentTo(self.client.avnp)
