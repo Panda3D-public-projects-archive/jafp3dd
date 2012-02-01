@@ -110,14 +110,14 @@ class MapTile(DirectObject):
 #        terrainRoot.setTexture(flowerStage,loader.loadTexture(os.path.join(_DATAPATH_,_TEXNAME_[2])))
 #        terrainRoot.setTexScale(flowerStage, 100, 100)
 
-    def addStaticObject(self, obj):
+    def addStaticObject(self, obj, collide=False):
         # These are intended to be things like trees, rocks, minerals, etc
         # that get updated on a push from the server. They aren't changing quickly
-#        tileNode = self.root.attachNewNode('StaticObject')
         tmpModel = self.loader.loadModel(obj[2]) # name
-#        colNP = tileNode.attachNewNode(CollisionNode('StatCollisObj'))
-#        colNP.node().addSolid(CollisionSphere(0,0,1,1))
-#        colNP.show()
+        
+        colNP = tmpModel.attachNewNode(CollisionNode('StatCollisObj'))
+        colNP.node().addSolid(CollisionSphere(0,0,1,1))
+        colNP.show()
         
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
