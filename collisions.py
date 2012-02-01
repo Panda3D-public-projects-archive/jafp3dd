@@ -55,11 +55,11 @@ class World(ShowBase):
         cnodePath = avmod.attachNewNode(CollisionNode('cnode'))
         cnodePath.node().addSolid(CollisionSphere(0, 0, 1, 1.1))
         cnodePath.show()
-        self.pusher.addCollider(cnodePath, avmod,base.drive.node())
+        self.pusher.addCollider(cnodePath, self.avnp, base.drive.node())
         self.cTrav.addCollider(cnodePath, self.pusher)
         
         self.cubenp = render.attachNewNode(CollisionNode('obstacle'))
-        self.cubenp.node().addSolid(CollisionSphere(0,0,0,.5))
+        self.cubenp.node().addSolid(CollisionSphere(0,0,1,.25))
         self.cubenp.show()
         
         camera.reparentTo(self.avnp)

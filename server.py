@@ -14,7 +14,8 @@ from direct.showbase.ShowBase import taskMgr
 from panda3d.core import *
 from panda3d.ai import *
 
-from common.NPC import DynamicObject, Player
+from common.NPC import Player
+from common.loadObject import loadObject
 import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
@@ -64,12 +65,12 @@ class TileServer(NetServer):
         self.AIchar=[]
         self.AIbehaviors=[]
         for n in range(NUM_NPC):
-            self.npc.append( DynamicObject('someguy'+str(n),'resources/models/golfie.x',.6,self.root) )
-            self.npc[n].root.setPos(70,70,0)
-            self.npc[n].ID = n
-            self.AIworld.addObstacle(self.npc[n].root)
+            self.npc.append( loadObject('resources/models/golfie.x',.6,'dude#'+str(n)) )
+            self.npc[n].setPos(70,70,0)
+            self.npc[n].setTag('ID',str(n))
+#            self.AIworld.addObstacle(self.npc[n])
             
-            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n].root, 300, 0.05, 5))
+            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n], 300, 0.05, 5))
             self.AIworld.addAiChar(self.AIchar[n])
             self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
             
@@ -124,10 +125,10 @@ class TileServer(NetServer):
             h,p,r = player.root.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
         for iNpc in self.npc:
-            x,y,z = iNpc.root.getPos()
+            x,y,z = iNpc.getPos()
             z = self.mapTile.terGeom.getElevation(x,y)
-            h,p,r = iNpc.root.getHpr()
-            snapshot.append((iNpc.ID,x,y,z,h,p,r))
+            h,p,r = iNpc.getHpr()
+            snapshot.append((int(iNpc.getTag('ID')),x,y,z,h,p,r))
         self.snapBuffer.append(snapshot)
         # snapBuffer = [snapshot1, snapshot2,...snapshotN] #since last TX
 

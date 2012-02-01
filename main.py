@@ -17,8 +17,8 @@ from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 
 from pandac.PandaModules import loadPrcFileData
-#loadPrcFileData("", "want-directtools #t")
-#loadPrcFileData("", "want-tk #t")
+loadPrcFileData("", "want-directtools #t")
+loadPrcFileData("", "want-tk #t")
 loadPrcFileData( '', 'sync-video 0' ) 
 
 from CelestialBody import CelestialBody
@@ -97,20 +97,20 @@ class World(ShowBase,NetClient):
         self.skynp = render.attachNewNode("SkyDome")   
 
         self.client = TileClient('Tile001', MY_ID, _mapName)
-
-        cs = CollisionSphere(0, 0, 1, 1.1)
-        cnodePath = self.client.avnp.attachNewNode(CollisionNode('cnode'))
-#        cnodePath.setPos(0,0,1)
-        cnodePath.node().addSolid(cs)
-        cnodePath.show()
-        self.pusher = CollisionHandlerPusher()
-        self.pusher.addCollider(cnodePath, self.client.avnp)
+        self.client.np.reparentTo(self.terraNode)
         
-        base.cTrav = CollisionTraverser('traverser name')
-        base.cTrav.addCollider(cnodePath, self.pusher)
+#        cs = CollisionSphere(0, 0, 1, 1.1)
+#        cnodePath = self.client.avnp.attachNewNode(CollisionNode('cnode'))
+##        cnodePath.setPos(0,0,1)
+#        cnodePath.node().addSolid(cs)
+#        cnodePath.show()
+#        self.pusher = CollisionHandlerPusher()
+#        self.pusher.addCollider(cnodePath, self.client.avnp)
+#        
+#        base.cTrav = CollisionTraverser('traverser name')
+#        base.cTrav.addCollider(cnodePath, self.pusher)
         
         self.mapTile = self.client.mapTile
-        self.mapTile.root.reparentTo(self.terraNode)
         self.camera.reparentTo(self.client.avnp)
         self._setupKeys()
         self.tlast = time.time()
