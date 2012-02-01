@@ -83,7 +83,7 @@ class MapTile(DirectObject):
 
 #        self.terGeom.root.setColor(_SKYCOLOR_) # skycolor may make loading blips on horz less obvious
 #        self.terGeom.setColorMap(os.path.join(_DATAPATH_,_TEXNAME_[0]))
-        self.terGeom.root.reparentTo(self.root)
+        self.terGeom.root.reparentTo(NodePath(self.root))
         if self.focusNode:
             self.terGeom.setFocalPoint(self.focusNode)
         self.terGeom.generate()
@@ -113,14 +113,15 @@ class MapTile(DirectObject):
     def addStaticObject(self, obj):
         # These are intended to be things like trees, rocks, minerals, etc
         # that get updated on a push from the server. They aren't changing quickly
-        tileNode = self.root.attachNewNode('StaticObject')
-        colNP = tileNode.attachNewNode(CollisionNode('StatCollisObj'))
-        colNP.node().addSolid(CollisionSphere(0,0,1,1))
-        colNP.show()
+#        tileNode = self.root.attachNewNode('StaticObject')
         tmpModel = self.loader.loadModel(obj[2]) # name
+#        colNP = tileNode.attachNewNode(CollisionNode('StatCollisObj'))
+#        colNP.node().addSolid(CollisionSphere(0,0,1,1))
+#        colNP.show()
+        
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
-        np.reparentTo(tileNode)
+        np.reparentTo(NodePath(self.root))
         return np
         
     def attachLODobj(self, modelList, pos,state=1):

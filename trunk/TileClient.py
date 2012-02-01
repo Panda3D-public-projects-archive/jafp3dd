@@ -17,6 +17,7 @@ from direct.gui.OnscreenText import OnscreenText
 
 from client import NetClient
 from common.NPC import DynamicObject
+from common.loadObject import loadObject
 from network import rencode as rencode
 from server import SNAP_INTERVAL, TURN_RATE
 from maptile import MapTile
@@ -41,7 +42,8 @@ class TileClient(NetClient):
     
     def __init__(self, name, myNode, mapDefName, focus=None):
         NetClient.__init__(self)
-        self.root = NodePath(PandaNode(name))
+        self.root = PandaNode(name)
+        self.np = NodePath(self.root)
 #        self.osd = OnscreenText(text = '', pos = (0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 
          # local loop if address = None
@@ -52,13 +54,13 @@ class TileClient(NetClient):
         self.maxSnap = -1
 
         if _ghost:
-            self.ghost = DynamicObject('ghostnode', os.path.join(_Datapath,_AVMODEL_),1)
-            self.ghost.root.reparentTo(self.root)
-#            self.ghost.setColor(0,0,1,.4,1)
+            self.ghost = loadObject(os.path.join(_Datapath,_AVMODEL_),1,'ghost')
+            self.ghost.reparentTo(self.np)
+            self.ghost.setColor(0,0,1,.4,1)
+            
             self.dynObjs.update({'ghost':self.ghost})
-        av = DynamicObject('AVNP', os.path.join(_Datapath,_AVMODEL_),1)
-        self.avnp = av.root
-        self.avnp.reparentTo(self.root)
+        self.avnp = loadObject(os.path.join(_Datapath,_AVMODEL_),1,'avnp')
+        self.avnp.reparentTo(self.np)
         print "debug tileclient set av pos"
         self.avnp.setPos(64,64,0)  
         self.myNode = myNode
@@ -85,21 +87,22 @@ class TileClient(NetClient):
 #                    print "Prediction Errors: ", self.avnp.getPos() - Point3(x,y,z)
 #                    self.osd.setText(str(self.avnp.getPos() - Point3(x,y,z))) 
                     if _ghost:
-                        self.dynObjs['ghost'].root.setPos(x,y,z)
-                        self.dynObjs['ghost'].root.setHpr(h,p,r)
+                        self.dynObjs['ghost'].setPos(x,y,z)
+                        self.dynObjs['ghost'].setHpr(h,p,r)
 #                    iv = LerpPosHprInterval(self.avnp,SNAP_INTERVAL,(x,y,z),(h,p,r))
 #                    iv.start()
                 else:
                     if ID not in self.dynObjs: # spawn new object
-                        self.dynObjs.update({ID: DynamicObject('guy','resources/models/golfie.x',.6,self.root)})
-                        self.dynObjs[ID].root.setPos(x,y,z)
-                        self.dynObjs[ID].root.setHpr(h,p,r)
+                        self.dynObjs.update({ID: loadObject('resources/models/golfie.x',1,'little piggie')})
+                        self.dynObjs[ID].setPos(x,y,z)
+                        self.dynObjs[ID].setHpr(h,p,r)
+                        self.dynObjs[ID].reparentTo(self.np)
                     else:
-                        ch,cp,cr = self.dynObjs[ID].root.getHpr() # current hpr's
+                        ch,cp,cr = self.dynObjs[ID].getHpr() # current hpr's
                         h = PythonUtil.fitDestAngle2Src(ch, h)
-                        i = LerpPosInterval(self.dynObjs[ID].root,SNAP_INTERVAL,(x,y,z))
+                        i = LerpPosInterval(self.dynObjs[ID],SNAP_INTERVAL,(x,y,z))
                         i.start()
-                        ih=self.dynObjs[ID].root.hprInterval(3*SNAP_INTERVAL,(h,p,r))
+                        ih=self.dynObjs[ID].hprInterval(3*SNAP_INTERVAL,(h,p,r))
                         ih.start() # just trying both forms
     #                self.dynObjs[ID].printPos()
 

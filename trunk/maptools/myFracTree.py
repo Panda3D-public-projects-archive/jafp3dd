@@ -28,13 +28,13 @@ from collections import namedtuple
 _polySize = 7
 
 
-class Bud(object):
-    # still need bud objects to pack info by name; easier that way
-    def __init__(self,position=Vec3(0,0,0),Hpr=Vec3(0,0,0),length=0,rad=0):
-        self.pos = position
-        self.Hpr = Hpr
-        self.maxL = length
-        self.maxRad = rad
+#class Bud(object):
+#    # still need bud objects to pack info by name; easier that way
+#    def __init__(self,position=Vec3(0,0,0),Hpr=Vec3(0,0,0),length=0,rad=0):
+#        self.pos = position
+#        self.Hpr = Hpr
+#        self.maxL = length
+#        self.maxRad = rad
         
 class Branch(NodePath):
     def __init__(self, nodeName, L, initRadius, nSeg):
@@ -53,9 +53,9 @@ class Branch(NodePath):
         self.bodies = NodePath("Bodies")
         self.bodies.reparentTo(self)
         
-        self.coll = self.attachNewNode(CollisionNode("Collision"))       
-        self.coll.show()       
-        self.coll.reparentTo(self)
+#        self.coll = self.attachNewNode(CollisionNode("Collision"))       
+#        self.coll.show()       
+#        self.coll.reparentTo(self)
 
     #this draws the body of the tree. This draws a ring of vertices and connects the rings with
     #triangles to form the body.
