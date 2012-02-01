@@ -113,8 +113,9 @@ class MapTile(DirectObject):
     def addStaticObject(self, obj, collide=False):
         # These are intended to be things like trees, rocks, minerals, etc
         # that get updated on a push from the server. They aren't changing quickly
+        print "debug::addStaticObject >> overriding model name"
+        obj[2] = 'resources\models\simpleTree2.x'
         tmpModel = self.loader.loadModel(obj[2]) # name
-        
         colNP = tmpModel.attachNewNode(CollisionNode('StatCollisObj'))
         colNP.node().addSolid(CollisionSphere(0,0,1,1))
         colNP.show()
