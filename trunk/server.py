@@ -7,10 +7,8 @@ Created on Mon Nov 28 13:24:03 2011
 
 import time
 
-#import direct.directbase.DirectStart
 from direct.showbase.ShowBase import taskMgr
 #from direct.showbase.DirectObject import DirectObject
-#import direct.directbase.DirectStart
 from panda3d.core import *
 from panda3d.ai import *
 
@@ -19,9 +17,6 @@ from common.loadObject import loadObject
 import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
-
-#loadPrcFileData("", "want-directtools #t")
-#loadPrcFileData("", "want-tk #t")
 
 NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
@@ -66,6 +61,9 @@ class TileServer(NetServer):
         self.AIbehaviors=[]
         for n in range(NUM_NPC):
             self.npc.append( loadObject('resources/models/golfie.x',.6,'dude#'+str(n)) )
+            cnp = self.npc[n].attachNewNode(CollisionNode('model-collision'))
+            cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+
             self.npc[n].setPos(70,70,0)
             self.npc[n].setTag('ID',str(n))
 #            self.AIworld.addObstacle(self.npc[n])
@@ -97,10 +95,10 @@ class TileServer(NetServer):
 #        print dt
 
         for player in self.players.values():        
-            player.root.setPos(player.root, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-            player.root.setH(player.root, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
-            x,y,z = player.root.getPos()
-            player.root.setZ(self.mapTile.terGeom.getElevation(x,y))
+            player.np.setPos(player.np, WALK_RATE*player.controls['strafe']*dt,WALK_RATE*player.controls['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            player.np.setH(player.np, player.controls['mouseTurn'] + TURN_RATE*player.controls['turn']*dt)
+            x,y,z = player.np.getPos()
+            player.np.setZ(self.mapTile.terGeom.getElevation(x,y))
 
         self.AIworld.update()
             
@@ -121,8 +119,8 @@ class TileServer(NetServer):
         snapshot = [self.snapCount]
         # snapshot format [tick,(objectID,x,y,z),(ObjID,x..),...]
         for player in self.players.values():
-            x,y,z = player.root.getPos()
-            h,p,r = player.root.getHpr()
+            x,y,z = player.np.getPos()
+            h,p,r = player.np.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
         for iNpc in self.npc:
             x,y,z = iNpc.getPos()
@@ -159,7 +157,7 @@ class TileServer(NetServer):
         if msgID == 25:
             # add new player
             pc = Player(data) #data is the ID of the client
-            pc.root.setPos(PLAYER_START_POS[0],PLAYER_START_POS[1],0)
+            pc.np.setPos(PLAYER_START_POS[0],PLAYER_START_POS[1],0)
             self.players.update({clientAddress:pc})
             print clientAddress, pc.ID, " added to server players"
         if msgID == 26: # This is a control snapshot from client X

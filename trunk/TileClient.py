@@ -27,7 +27,7 @@ _AVMODEL_ = os.path.join('models','MrStix.x')
 #SERVER_IP = '192.168.1.188'
 SERVER_IP = None
 LERP_INTERVAL = 1
-_ghost = 1
+_ghost = 0
 
 class TileClient(NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -89,11 +89,15 @@ class TileClient(NetClient):
                     if _ghost:
                         self.dynObjs['ghost'].setPos(x,y,z)
                         self.dynObjs['ghost'].setHpr(h,p,r)
-#                    iv = LerpPosHprInterval(self.avnp,SNAP_INTERVAL,(x,y,z),(h,p,r))
-#                    iv.start()
+                    iv = LerpPosHprInterval(self.avnp,SNAP_INTERVAL,(x,y,z),(h,p,r))
+                    iv.start()
                 else:
                     if ID not in self.dynObjs: # spawn new object
                         self.dynObjs.update({ID: loadObject('resources/models/golfie.x',1,'little piggie')})
+                        cnp = self.dynObjs[ID].attachNewNode(CollisionNode('model-collision'))
+                        cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+#                        cnp.show()
+
                         self.dynObjs[ID].setPos(x,y,z)
                         self.dynObjs[ID].setHpr(h,p,r)
                         self.dynObjs[ID].reparentTo(self.np)

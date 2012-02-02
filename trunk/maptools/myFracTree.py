@@ -390,7 +390,11 @@ if __name__ == "__main__":
     plts = range(np**2) # 6x6 array
     ds = 5.0
     for it in range(10):
-        tree = GeneralTree(L0,R0,numSegs,bark,"my tree")    
+        tree = GeneralTree(L0,R0,numSegs,bark,"my tree")
+        cnp = tree.attachNewNode(CollisionNode('TreeCollisionSolid'))        
+        cnp.node().addSolid(CollisionTube(0,0,R0,0,0,R0+3, R0))
+#        cnp.show()
+        
         tree.generate(Params,baseflair=1.45)
         tree.reparentTo(base.render)
 

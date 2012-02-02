@@ -30,6 +30,7 @@ class MapTile(DirectObject):
     
     def __init__(self, name, mapDefName,parentNode, focus=None):
         self.root = parentNode #NodePath(PandaNode(name))
+        self.np = NodePath(self.root)
         self.loader = Loader.Loader(self)
         
          # local loop if address = None
@@ -56,6 +57,7 @@ class MapTile(DirectObject):
         self.setGeom(HFname, _terraScale, position=(0,0,0))
         self.setTexture(texList)
         for obj in Objects:
+            
             self.staticObjs.append( self.addStaticObject(obj) ) # takes a an individual object for this tile
        
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
@@ -113,24 +115,17 @@ class MapTile(DirectObject):
     def addStaticObject(self, obj, collide=False):
         # These are intended to be things like trees, rocks, minerals, etc
         # that get updated on a push from the server. They aren't changing quickly
-        print "debug::addStaticObject >> overriding model name"
-        obj[2] = 'resources\models\simpleTree2.x'
-        tmpModel = self.loader.loadModel(obj[2]) # name
-        colNP = tmpModel.attachNewNode(CollisionNode('StatCollisObj'))
-        colNP.node().addSolid(CollisionSphere(0,0,1,1))
-        colNP.show()
-        
+#        print "debug::addStaticObject >> overriding model name"
+#        obj[2] = 'resources\models\simpleTree2.x'
+        tmpModel = self.loader.loadModel(obj[2]) # name        
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
-        np.reparentTo(NodePath(self.root))
         return np
         
     def attachLODobj(self, modelList, pos,state=1):
         # attaches subsequent models in modelList at pos x,y
         # different models are to be LODs of the model
-        lodNode = FadeLODNode('Tree LOD node')
-        lodNP = NodePath(lodNode)
-#        lodNP.reparentTo(attachNode)
+        lodNP = self.np.attachNewNode(FadeLODNode('Tree LOD node'))
         lodNP.setPos(pos)
         lodNP.setH(random.randint(0,360))
         lodNP.setScale(state)
@@ -138,7 +133,7 @@ class MapTile(DirectObject):
             near = i*self._tree_lod_far
             far = near + self._tree_lod_far
 #                print near,far,model
-            lodNode.addSwitch(far,near)
+            lodNP.node().addSwitch(far,near)
 #                if i==1: lodNP.setBillboardAxis()     # try billboard effect
             model.instanceTo(lodNP)
         return lodNP

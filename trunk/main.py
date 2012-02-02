@@ -31,7 +31,7 @@ from TileClient import TileClient, SERVER_IP
 # RENDERING OPTIONS #
 _DoLights = 1
 _DoFog = 1
-_ShowSky = 0        # put up the sky dome
+_ShowSky = 1        # put up the sky dome
 _ShowClouds = 0
 _ShowOcean = 0
 
@@ -43,8 +43,8 @@ _WHITE_= VBase4(1,1,1,1)
 
 
 # SKY PARMS
-#_SkyTex = ('textures/sky0.png',1,1)
-_SkyTex = ('textures/skyTexPolar.png',1,1)
+_SkyTex = ('textures/sky0.png',1,1)
+#_SkyTex = ('textures/skyTexPolar.png',1,1)
 _SkyModel = 'textures/curved.png'
 _SKYCOLOR_ = _DARKBLUE_
 
@@ -99,10 +99,9 @@ class World(ShowBase,NetClient):
         self.client = TileClient('Tile001', MY_ID, _mapName)
         self.client.np.reparentTo(self.terraNode)
         
-        cs = CollisionSphere(0, 0, 1.2, 1)
         cnodePath = self.client.avnp.attachNewNode(CollisionNode('cnode'))
-        cnodePath.node().addSolid(cs)
-        cnodePath.show()
+        cnodePath.node().addSolid(CollisionSphere(0, 0, 1, .25))
+#        cnodePath.show()
         self.pusher = CollisionHandlerPusher()
         self.pusher.addCollider(cnodePath, self.client.avnp)
         
