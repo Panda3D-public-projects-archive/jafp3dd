@@ -33,7 +33,10 @@ class Player():
     and sent out to all clients, including the source client"""
     
     def __init__(self,name):
-        self.root = NodePath(PandaNode('player_node'))
+        self.root = PandaNode('player_node')
+        self.np = NodePath(self.root)
+        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
+        self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         self.ID = name
         self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
         'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
