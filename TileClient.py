@@ -16,10 +16,9 @@ from direct.gui.OnscreenText import OnscreenText
 
 
 from client import NetClient
-from common.NPC import DynamicObject
 from common.loadObject import loadObject
 from network import rencode as rencode
-from server import SNAP_INTERVAL, TURN_RATE
+from server import SNAP_INTERVAL
 from maptile import MapTile
 
 _Datapath = "resources"
@@ -28,6 +27,7 @@ _AVMODEL_ = os.path.join('models','MrStix.x')
 SERVER_IP = None
 LERP_INTERVAL = 1
 _ghost = 0
+_serversync = 0
 
 class TileClient(NetClient):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -89,8 +89,9 @@ class TileClient(NetClient):
                     if _ghost:
                         self.dynObjs['ghost'].setPos(x,y,z)
                         self.dynObjs['ghost'].setHpr(h,p,r)
-                    iv = LerpPosHprInterval(self.avnp,SNAP_INTERVAL,(x,y,z),(h,p,r))
-                    iv.start()
+                    if _serversync:
+                        iv = LerpPosHprInterval(self.avnp,SNAP_INTERVAL,(x,y,z),(h,p,r))
+                        iv.start()
                 else:
                     if ID not in self.dynObjs: # spawn new object
                         self.dynObjs.update({ID: loadObject('resources/models/golfie.x',1,'little piggie')})
