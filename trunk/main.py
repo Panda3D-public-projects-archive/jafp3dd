@@ -30,7 +30,7 @@ from TileClient import TileClient, SERVER_IP
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 1
+_DoFog = 0
 _ShowSky = 1        # put up the sky dome
 _ShowClouds = 0
 _ShowOcean = 0
@@ -67,13 +67,6 @@ PStatClient.connect()
 MY_ID = 'fahkohr'
        
 class World(ShowBase,NetClient):
-
-#    Kturn = 0
-#    Kwalk = 0
-#    Kstrafe = 0
-#    Kzoom = 0
-#    Kpitch = 0
-#    Ktheta = 0
     mbState = [0,0,0,0] # 3 mouse buttons + wheel, 1 on down, 0 on up
     mousePos = [0,0]
 
@@ -81,7 +74,7 @@ class World(ShowBase,NetClient):
     camDist,camHdg,camPitch = [10,0,15]    # [distance, heading, pitch ]
     mousePos_old = mousePos
         
-    def __init__(self):
+    def __init__(self,local=False):
         ShowBase.__init__(self)
         NetClient.__init__(self)
         self.connect(SERVER_IP)
@@ -115,7 +108,7 @@ class World(ShowBase,NetClient):
         
         self.textObject = OnscreenText(text = '', pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 ######### TASKS ADDS
-#        taskMgr.add(self.calcTick,"updatePlayer")
+        taskMgr.add(self.calcTick,"updatePlayer")
         taskMgr.add(self.mouseHandler,"mouseHandler")
         taskMgr.add(self.updateCamera,"UpdateCamera")
         taskMgr.doMethodLater(SNAP_INTERVAL,self.updateSnap,'discrete_tick')

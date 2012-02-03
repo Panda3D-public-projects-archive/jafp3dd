@@ -9,7 +9,65 @@ from os import urandom
 
 from panda3d.core import *
 #from direct.showbase import Loader
+from direct.fsm.FSM import FSM
+from panda3d.ai import *
+ 
+class Gatherer(FSM):
 
+    def __init__(self,name,nodePath):
+        FSM.__init__(self, 'aGatherer')
+#        self.defaultTransitions = {
+#            'Walk' : [ 'Walk2Swim' ],
+#            'Walk2Swim' : [ 'Swim' ],
+#            'Swim' : [ 'Swim2Walk', 'Drowning' ],
+#            'Swim2Walk' : [ 'Walk' ],
+#            'Drowning' : [ ],
+#            } 
+        self.AI = AIcharacter(name,nodePath, 500, 0.05, 5)
+        self.AIbehaviors = self.AI.getAiBehaviors()    
+
+
+            
+    def enterSearch(self):
+        self.AIbehaviors.wander(10, 0, 64, 1.0)
+        
+    def exitSearch(self):
+        pass
+    
+    def enterSeekToResource(self):
+        target=Vec3(10,20,20)
+        self.AIbehaviors.seek(target,1.0)
+        
+    def exitSeekToResource(self):
+        pass
+
+    def enterSeekToCenter(self):
+        target=Vec3(64,64,20)
+        self.AIbehaviors.seek(target,1.0)
+        
+    def exitSeekToCenter(self):
+        pass
+        
+    def enterGathering(self):
+        pass
+        
+    def exitGathering(self):
+        pass
+
+    def enterDeliver(self):
+        pass
+        
+    def exitDeliver(self):
+        pass
+
+    def enterDanger(self):
+        print "Aahhh! Implement me!"
+        
+    def exitDanger(self):
+        pass
+
+
+        
 class serverNPC():
 # Data needed to sync: x,y,z,h,p,r,speed
     
@@ -25,21 +83,6 @@ class serverNPC():
         newH = random.gauss(0,60)
         self.setH(self,newH) #key input steer
         self.nextUpdate = ttime + 2 # randomize when to update next
-
-class Player():
-    """ Objects that represent the game clients. Inputs from game client snapshots
-    sent from the client app are used to update server PC object position, heading, state
-    etcetera. The server calculated state is then included in the snapshot for that frame
-    and sent out to all clients, including the source client"""
-    
-    def __init__(self,name):
-        self.root = PandaNode('player_node')
-        self.np = NodePath(self.root)
-        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
-        self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-        self.ID = name
-        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
-        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
 
 
 class DynamicObject():

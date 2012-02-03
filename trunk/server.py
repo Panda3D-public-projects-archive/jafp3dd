@@ -12,13 +12,13 @@ from direct.showbase.ShowBase import taskMgr
 from panda3d.core import *
 from panda3d.ai import *
 
-from common.NPC import Player
+from common.player import Player
 from common.loadObject import loadObject
 import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
 
-NUM_NPC = 10
+NUM_NPC = 5
 SERVER_TICK = 0.0166 # seconds
 SNAP_INTERVAL = 1.0/20
 TX_INTERVAL = 1.0/20
@@ -46,11 +46,15 @@ class TileServer(NetServer):
         self.mapTile = MapTile('TileServerX',_mapName, self.root)
 
         self.setAI()
+        self.cTrav = None
+#        self.cTrav = CollisionTraverser('Server Collision Traversal')
+#        self.pusher = CollisionHandlerPusher()
         
         taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
         taskMgr.doMethodLater(TX_INTERVAL,self.sendThrottle,'TXatRate')
-
+        print "[TileServer]::Ready"
+        
     def setAI(self):
         #Creating AI World
         self.AIworld = AIWorld(self.root)
@@ -66,13 +70,14 @@ class TileServer(NetServer):
 
             self.npc[n].setPos(70,70,0)
             self.npc[n].setTag('ID',str(n))
-#            self.AIworld.addObstacle(self.npc[n])
-            
-            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n], 300, 0.05, 5))
+
+            self.AIworld.addObstacle(self.npc[n])
+            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n], 500, 0.05, 5))
             self.AIworld.addAiChar(self.AIchar[n])
             self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
             
-            self.AIbehaviors[n].wander(5, 0, 10, .50)
+            self.AIbehaviors[n].wander(10, 0, 50, .50)
+            self.AIbehaviors[n].seek(Vec3(10,20,20),.0)
 #            self.AIbehaviors[n].obstacleAvoidance(1.0)    
 #        self.AIworld.addObstacle(self.obstacle1)
         
@@ -80,7 +85,7 @@ class TileServer(NetServer):
      
         #AI World update        
 #        taskMgr.add(self.AIUpdate,"AIUpdate")
- 
+
     #to update the AIWorld    
     def AIUpdate(self,task):
         self.AIworld.update()            
@@ -101,14 +106,9 @@ class TileServer(NetServer):
             player.np.setZ(self.mapTile.terGeom.getElevation(x,y))
 
         self.AIworld.update()
-            
-#        for iNpc in self.npc:
-#            iNpc.setPos(iNpc,0,iNpc.speed*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#            x,y,z = iNpc.root.getPos()
-#            z = self.mapTile.terGeom.getElevation(x,y)
-#            iNpc.root.setZ(z)
-#            iNpc.printPos()
-#        print "tick:",self.tickCount
+        
+        if self.cTrav:
+            self.cTrav.traverse(self.root)
 
         self.tlast = tnow 
         return task.again
@@ -146,7 +146,15 @@ class TileServer(NetServer):
         self.snapBuffer = []
         return task.again
 
-
+    def spawnNewPlayer(self, name):
+        #TODO: ADD CHECK IF THIS A A RECONNECT
+        pObj = Player(name) #data is the ID of the client
+        pObj.np.setPos(PLAYER_START_POS[0],PLAYER_START_POS[1],0)
+        if self.cTrav:
+            self.pusher.addCollider(pObj.cnp, pObj.np)  
+            self.cTrav.addCollider(pObj.cnp, self.pusher)
+        return pObj
+        
     def ProcessData(self,datagram):
         I = DatagramIterator(datagram)
         clientAddress = datagram.getAddress().getIpString()
@@ -154,12 +162,11 @@ class TileServer(NetServer):
         data = rencode.loads(I.getString()) # data matching msgID
 #        print t0,msgID,data
         if msgID == 10: print data
-        if msgID == 25:
-            # add new player
-            pc = Player(data) #data is the ID of the client
-            pc.np.setPos(PLAYER_START_POS[0],PLAYER_START_POS[1],0)
+        if msgID == 25: 
+            pc = self.spawnNewPlayer(data) # add new player
             self.players.update({clientAddress:pc})
             print clientAddress, pc.ID, " added to server players"
+
         if msgID == 26: # This is a control snapshot from client X
             self.players[clientAddress].controls = data
 #            print self.players[clientAddress].controls['turn']
