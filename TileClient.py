@@ -66,7 +66,9 @@ class TileClient(NetClient):
         self.myNode = myNode
         self.dynObjs.update({myNode:self.avnp})      
         
-        self.mapTile = MapTile(name,mapDefName, self.root, self.avnp)
+#        self.mapTile = MapTile(name,mapDefName, self.root, self.avnp)
+        self.mapTile = MapTile(name,mapDefName, self.root)
+
         taskMgr.add(self.mapTile.updateTerra,'GeoMIPupdate')
 
 
