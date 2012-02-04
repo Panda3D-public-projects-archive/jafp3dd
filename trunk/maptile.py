@@ -15,7 +15,7 @@ from direct.showbase.DirectObject import DirectObject
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
 
 _Datapath = "resources"
-_terraScale = (1,1,60) # xy scaling not working right as of 12-10-11. prob the LOD impacts
+_terraScale = (4,4,64) # xy scaling not working right as of 12-10-11. prob the LOD impacts
 
 class MapTile(DirectObject):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -48,7 +48,7 @@ class MapTile(DirectObject):
 
 #        taskMgr.add(self.updateTerra,'DoTileUpdates')
  
-        print 'loading map ', mapDefName,'...',
+#        print 'loading map ', mapDefName,'...',
         tileInfo = pickle.load(open(os.path.join(_Datapath,mapDefName+'.mdf'),'rb'))
 #TODO: Clean Up this section after map defs are cleaned
         tileID = (0,0)        
@@ -57,9 +57,10 @@ class MapTile(DirectObject):
         self.setGeom(HFname, _terraScale, position=(0,0,0))
         self.setTexture(texList)
         for obj in Objects:
-            
-            self.staticObjs.append( self.addStaticObject(obj) ) # takes a an individual object for this tile
-       
+            tmp = self.addStaticObject(obj)
+            self.staticObjs.append( tmp ) # takes a an individual object for this tile
+            if obj[0][0] > 200 or obj[0][1] > 200:
+                tmp.detachNode()
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
         # Make an GeoMip Instance in this tile

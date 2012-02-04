@@ -25,11 +25,11 @@ TX_INTERVAL = 1.0/20
 
 # Player control constants
 TURN_RATE = 120    # Degrees per second
-WALK_RATE = 8
+WALK_RATE = 5
 PLAYER_START_POS = (64,64)
 
 # THIS MAP SETTINGS
-_mapName='map2'
+_mapName='map3'
 
 class TileServer(NetServer):
     def __init__(self):

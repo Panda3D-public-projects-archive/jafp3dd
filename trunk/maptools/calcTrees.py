@@ -13,13 +13,13 @@ from PDFImage import PDFImage
 _scatter = 1
 #_TreeDensity = 5/1000.0
 _GridSpace = 2.4 # meters
-_startSeeds = 15000    # if not in grid mode(scatter=false), best if this is an int^2
+_startSeeds = 5000    # if not in grid mode(scatter=false), best if this is an int^2
 _growCycles = 8
 _minAge = .33    #simpleTree.x is 1/2 meter tall scale=1
 _maxAge = 3
 _modelID = 'resources/models/sampleTree%d.bam'
-#_treeMap = './addcli_TM.png'
-_treeMap = './uniform_TM.png'
+_treeMap = '../resources/map3/map3_TM.x0y0.png'
+#_treeMap = './uniform_TM.png'
 _mapName = 'map3'
 
 def calcTileTrees(tileSize=None, minSep=None, Lx=None,Ly=None,numSeeds=_startSeeds, numCycles=_growCycles,minAge=_minAge,maxAge=_maxAge):
@@ -47,7 +47,7 @@ def calcTileTrees(tileSize=None, minSep=None, Lx=None,Ly=None,numSeeds=_startSee
 
 if __name__ == '__main__':
     #        treeLocs = calcTileTrees(self.Ltile,numClusters=100,numTrees=12,clusterRadius=50) # this will be a server call at some point
-    treeLocs = calcTileTrees(minSep=_GridSpace,numSeeds=_startSeeds,Lx = 128)
+    treeLocs = calcTileTrees(minSep=_GridSpace,numSeeds=_startSeeds)
     fip = open('../resources/'+_mapName+'/treeList.dat','wb')
     pickle.dump(treeLocs,fip)
     fip.close()

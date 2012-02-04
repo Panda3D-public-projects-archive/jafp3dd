@@ -30,7 +30,7 @@ from TileClient import TileClient, SERVER_IP
 
 # RENDERING OPTIONS #
 _DoLights = 1
-_DoFog = 0
+_DoFog = 1
 _ShowSky = 1        # put up the sky dome
 _ShowClouds = 0
 _ShowOcean = 0
@@ -54,7 +54,7 @@ _Sealevel = 2
 _Suntex = 'textures/blueSun.png'
 
 
-fogPm = (80,100,45,250,500) # last 3 params for linfalloff - not used atm
+fogPm = (192,256,45,250,500) # last 3 params for linfalloff - not used atm
 
 # AVATAR SETTINGS
 _MINCAMDIST_ = 1
@@ -324,7 +324,7 @@ class World(ShowBase,NetClient):
         first things I worked on...but it works"""
         
         epsilon = .333 # Minimum distance above the terrain to float the camera
-        aim = Point3(0,.333,1)
+        aim = Point3(0,.333,2)
         dt = globalClock.getDt() # to stay time based, not frame based
         self.camDist += 8*(self.controls['camZoom'])*dt
         self.camDist = max(_MINCAMDIST_,min(_MaxCamDist,self.camDist))
