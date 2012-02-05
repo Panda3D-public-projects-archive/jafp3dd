@@ -15,7 +15,7 @@ from direct.showbase.DirectObject import DirectObject
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
 
 _Datapath = "resources"
-_terraScale = (4,4,64) # xy scaling not working right as of 12-10-11. prob the LOD impacts
+_terraScale = (1,1,40) # xy scaling not working right as of 12-10-11. prob the LOD impacts
 
 class MapTile(DirectObject):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""

@@ -5,7 +5,7 @@ Created on Mon Nov 28 13:24:03 2011
 @author: us997259
 """
 
-import time
+import time,random
 
 from direct.showbase.ShowBase import taskMgr
 #from direct.showbase.DirectObject import DirectObject
@@ -13,7 +13,9 @@ from panda3d.core import *
 from panda3d.ai import *
 
 from common.player import Player
+from common.NPC import Gatherer
 from common.loadObject import loadObject
+
 import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
@@ -29,7 +31,7 @@ WALK_RATE = 5
 PLAYER_START_POS = (64,64)
 
 # THIS MAP SETTINGS
-_mapName='map3'
+_mapName='map2'
 
 class TileServer(NetServer):
     def __init__(self):
@@ -53,6 +55,8 @@ class TileServer(NetServer):
         taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
         taskMgr.doMethodLater(TX_INTERVAL,self.sendThrottle,'TXatRate')
+        taskMgr.doMethodLater(3,self.targetMover,'tmp')
+        
         print "[TileServer]::Ready"
         
     def setAI(self):
@@ -64,26 +68,25 @@ class TileServer(NetServer):
         self.AIchar=[]
         self.AIbehaviors=[]
         for n in range(NUM_NPC):
-            self.npc.append( loadObject('resources/models/golfie.x',.6,'dude#'+str(n)) )
-            cnp = self.npc[n].attachNewNode(CollisionNode('model-collision'))
+            modelnp = loadObject('resources/models/golfie.x',.6,'dude#'+str(n))
+            cnp = modelnp.attachNewNode(CollisionNode('model-collision'))
             cnp.node().addSolid(CollisionSphere(0,0,1,.5))
 
-            self.npc[n].setPos(70,70,0)
-            self.npc[n].setTag('ID',str(n))
-
-            self.AIworld.addObstacle(self.npc[n])
-            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n], 500, 0.05, 5))
-            self.AIworld.addAiChar(self.AIchar[n])
-            self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
+            modelnp.setPos(70,70,0)
+            modelnp.setTag('ID',str(n))
+            newAI = Gatherer("NPC"+str(n),modelnp)
+            newAI.setCenterPos(Vec3(0,0,30))
+            newAI.request('ToCenter')
+            self.npc.append( newAI )
+#            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n], 500, 0.05, 5))
+            self.AIworld.addAiChar(newAI.AI)
+#            self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
             
-            self.AIbehaviors[n].wander(10, 0, 50, .50)
-            self.AIbehaviors[n].seek(Vec3(10,20,20),.0)
+#            self.AIworld.addObstacle(self.npc[n])
 #            self.AIbehaviors[n].obstacleAvoidance(1.0)    
 #        self.AIworld.addObstacle(self.obstacle1)
         
 #            self.seeker.loop("run") # starts actor animations
-     
-        #AI World update        
 #        taskMgr.add(self.AIUpdate,"AIUpdate")
 
     #to update the AIWorld    
@@ -91,7 +94,13 @@ class TileServer(NetServer):
         self.AIworld.update()            
         return task.cont
         
-
+    def targetMover(self,task):
+        for npc in self.npc:
+            tx = random.randint(0,128)
+            ty = random.randint(0,128)
+            print tx,ty
+            npc.setCenterPos(Vec3(tx,ty,35))
+        return task.again
 
     def calcTick(self,task):
         tnow = time.time()
@@ -123,21 +132,14 @@ class TileServer(NetServer):
             h,p,r = player.np.getHpr()
             snapshot.append((player.ID,x,y,z,h,p,r))
         for iNpc in self.npc:
-            x,y,z = iNpc.getPos()
+            x,y,z = iNpc.np.getPos()
             z = self.mapTile.terGeom.getElevation(x,y)
-            h,p,r = iNpc.getHpr()
-            snapshot.append((int(iNpc.getTag('ID')),x,y,z,h,p,r))
+            h,p,r = iNpc.np.getHpr()
+            snapshot.append((int(iNpc.np.getTag('ID')),x,y,z,h,p,r))
         self.snapBuffer.append(snapshot)
         # snapBuffer = [snapshot1, snapshot2,...snapshotN] #since last TX
 
         return task.again
-        
-#    def NpcAI(self,task):
-#        for iNpc in self.npc:
-#            tnow = time.time()
-#            if tnow > iNpc.nextUpdate:         # change direction and heading every so often
-#                iNpc.makeChange(tnow)
-#        return task.cont
 
     def sendThrottle(self,task):
         for client in self.activeConnections:
