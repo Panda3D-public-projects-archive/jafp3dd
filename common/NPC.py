@@ -23,30 +23,40 @@ class Gatherer(FSM):
 #            'Swim2Walk' : [ 'Walk' ],
 #            'Drowning' : [ ],
 #            } 
-        self.AI = AIcharacter(name,nodePath, 500, 0.05, 5)
-        self.AIbehaviors = self.AI.getAiBehaviors()    
+        self.np = nodePath
+        self.resPos = None
+        self.centerPos = None
+        self.AI = AICharacter(name,nodePath, 50, 0.05, 5)
+        self.behavior = self.AI.getAiBehaviors()
+#        self.behavior.wander(10, 0, 64, 1.0)
 
-
-            
+    def setResourcePos(self,position):
+        self.resPos = position # should be vec3
+        
+    def setCenterPos(self,position):
+        self.centerPos = position
+        self.behavior.removeAi('seek')
+        self.behavior.seek(self.centerPos,1.0)
+        
     def enterSearch(self):
-        self.AIbehaviors.wander(10, 0, 64, 1.0)
+        self.behavior.wander(10, 0, 64, 1.0)
         
     def exitSearch(self):
-        pass
+        self.behavior.wander(10, 0, 64, 0)
     
-    def enterSeekToResource(self):
-        target=Vec3(10,20,20)
-        self.AIbehaviors.seek(target,1.0)
+    def enterToResource(self):
+        self.AITarget=Vec3(10,20,20)
+        self.behavior.seek(self.resPos,1.0)
         
-    def exitSeekToResource(self):
-        pass
+    def exitToResource(self):
+        self.behavior.seek(self.resPos,0.0)
 
-    def enterSeekToCenter(self):
-        target=Vec3(64,64,20)
-        self.AIbehaviors.seek(target,1.0)
+    def enterToCenter(self):
+        self.AITarget=Vec3(64,64,20)
+        self.behavior.seek(self.centerPos,5.0)
         
-    def exitSeekToCenter(self):
-        pass
+    def exitToCenter(self):
+        self.behavior.seek(self.centerPos,0.0)
         
     def enterGathering(self):
         pass
