@@ -17,7 +17,7 @@ loader = Loader.Loader(DirectObject)
 def loadObject(modelName,modelScale,objName=None):
     color = (VBase4(random.random(),random.random(),random.random(),1))
     model = loader.loadModel(modelName)
-#    model.setH(180)
+    model.setH(180)
 #TODO: Load ACTORS as well as static models...        
     model.setScale(modelScale)
     model.setColor(color)

@@ -123,6 +123,8 @@ class TileClient(NetClient):
                 snapNum = entry.pop(0) # snapshot tick count
                 if self.maxSnap < snapNum: self.maxSnap = snapNum
                 self.snapshot.update({snapNum:entry})
+        elif msgID == 2: 
+            print msgID,data
         else:
             print msgID,'::',data
             

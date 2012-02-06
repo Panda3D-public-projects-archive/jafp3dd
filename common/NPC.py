@@ -9,6 +9,7 @@ from os import urandom
 
 from panda3d.core import *
 #from direct.showbase import Loader
+from direct.showbase.ShowBase import taskMgr
 from direct.fsm.FSM import FSM
 from panda3d.ai import *
  
@@ -26,9 +27,14 @@ class Gatherer(FSM):
         self.np = nodePath
         self.resPos = None
         self.centerPos = None
+        self.cargo = 0
+        self.maxCargo = 2
+        self.loadRate = 1
         self.AI = AICharacter(name,nodePath, 50, 0.05, 5)
         self.behavior = self.AI.getAiBehaviors()
-#        self.behavior.wander(10, 0, 64, 1.0)
+
+        taskMgr.doMethodLater(1,self.stateMonitor,'GathererMonitor')
+
 
     def setResourcePos(self,position):
         self.resPos = position # should be vec3
@@ -42,7 +48,7 @@ class Gatherer(FSM):
         self.behavior.wander(10, 0, 64, 1.0)
         
     def exitSearch(self):
-        self.behavior.wander(10, 0, 64, 0)
+        self.behavior.removeAi('wander')
     
     def enterToResource(self):
         self.behavior.seek(self.resPos,1.0)
@@ -51,22 +57,22 @@ class Gatherer(FSM):
         self.behavior.removeAi('seek')
 
     def enterToCenter(self):
-        self.behavior.seek(self.centerPos,5.0)
+        self.behavior.seek(self.centerPos,1.0)
         
     def exitToCenter(self):
         self.behavior.removeAi('seek')
         
     def enterGathering(self):
-        pass
+        self.behavior.wander(10, 0, 10, 1.0)
         
     def exitGathering(self):
-        pass
+        self.behavior.removeAi('wander')
 
     def enterDeliver(self):
-        pass
+        self.behavior.wander(10, 0, 10, 1.0)
         
     def exitDeliver(self):
-        pass
+        self.behavior.removeAi('wander')
 
     def enterDanger(self):
         print "Aahhh! Implement me!"
@@ -74,6 +80,13 @@ class Gatherer(FSM):
     def exitDanger(self):
         pass
 
+    def stateMonitor(self,task):
+        if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
+            self.request('ToResource')
+        if self.state == 'ToResource' and self.behavior.behaviorStatus('seek') == 'done':
+            self.request('ToCenter')
+        return task.again
+            
 
         
 class serverNPC():
