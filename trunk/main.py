@@ -45,7 +45,7 @@ _WHITE_= VBase4(1,1,1,1)
 # SKY PARMS
 _SkyTex = ('textures/sky0.png',1,1)
 #_SkyTex = ('textures/skyTexPolar.png',1,1)
-_SkyModel = 'textures/curved.png'
+_SkyModel = 'models/wintersky.egg'
 _SKYCOLOR_ = _DARKBLUE_
 
 _OceanTex = ('textures/oceanTex2.png',1,1)
@@ -194,28 +194,29 @@ class World(ShowBase,NetClient):
 #        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))
 #        npDome.setHpr(0,90,0)
       
-        skyModel = GeoMipTerrain("scene")
-        skyModel.setHeightfield(os.path.join(_Datapath,_SkyModel)) # crude to save and read but works for now
-        skyModel.setBruteforce(1)
-        skyModel.setFocalPoint(self.client.avnp)
-        npDome = skyModel.getRoot()
-        skyModel.generate()
+#        skyModel = GeoMipTerrain("scene")
+#        skyModel.setHeightfield(os.path.join(_Datapath,_SkyModel)) # crude to save and read but works for now
+#        skyModel.setBruteforce(1)
+#        skyModel.setFocalPoint(self.client.avnp)
+#        npDome = skyModel.getRoot()
+#        skyModel.generate()
+        npDome = loader.loadModel(os.path.join(_Datapath,_SkyModel))
         npDome.setTwoSided(1)
+        npDome.reparentTo(self.skynp)
         
-        tex1 = loader.loadTexture(os.path.join(_Datapath,_SkyTex[0]))
+#        tex1 = loader.loadTexture(os.path.join(_Datapath,_SkyTex[0]))
 #        tex1.setFormat(Texture.FAlpha)
-        tstage1 = TextureStage('clouds')
+#        tstage1 = TextureStage('clouds')
 #        tstage1.setColor(Vec4(1, 1, 1, 1))
         
-        npDome.setTexture(tstage1,tex1)
+#        npDome.setTexture(tstage1,tex1)
 #        npDome.setTexOffset(tstage1,.5,.5)
-        npDome.setTexScale(tstage1,_SkyTex[1],_SkyTex[2])
-        npDome.setTransparency(TransparencyAttrib.MDual)
+#        npDome.setTexScale(tstage1,_SkyTex[1],_SkyTex[2])
+#        npDome.setTransparency(TransparencyAttrib.MDual)
         
-        sxy = 1000
-        self.skynp.setScale(sxy,sxy,1000)
-        self.skynp.setPos(-128*sxy,-128*sxy,0)
-        npDome.reparentTo(self.skynp)
+#        sxy = 10
+#        self.skynp.setScale(sxy,sxy,1000)
+#        self.skynp.setPos(-128*sxy,-128*sxy,0)
         
     def _setupLights(self):
         self.dlight = DirectionalLight('dlight')

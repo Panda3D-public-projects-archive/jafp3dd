@@ -27,7 +27,7 @@ TX_INTERVAL = 1.0/20
 
 # Player control constants
 TURN_RATE = 120    # Degrees per second
-WALK_RATE = 5
+WALK_RATE = 8
 PLAYER_START_POS = (64,64)
 
 # THIS MAP SETTINGS
@@ -55,7 +55,7 @@ class TileServer(NetServer):
         taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
         taskMgr.doMethodLater(TX_INTERVAL,self.sendThrottle,'TXatRate')
-        taskMgr.doMethodLater(3,self.targetMover,'tmp')
+        taskMgr.doMethodLater(1,self.targetMover,'tmp')
         
         print "[TileServer]::Ready"
         
@@ -75,8 +75,12 @@ class TileServer(NetServer):
             modelnp.setPos(70,70,0)
             modelnp.setTag('ID',str(n))
             newAI = Gatherer("NPC"+str(n),modelnp)
-            newAI.setCenterPos(Vec3(0,0,30))
-            newAI.request('ToCenter')
+            newAI.setCenterPos(Vec3(64,64,30))
+            tx = random.randint(0,128)
+            ty = random.randint(0,128)
+            newAI.setResourcePos(Vec3(tx,ty,35))
+
+            newAI.request('ToResource')
             self.npc.append( newAI )
 #            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n], 500, 0.05, 5))
             self.AIworld.addAiChar(newAI.AI)
@@ -96,10 +100,9 @@ class TileServer(NetServer):
         
     def targetMover(self,task):
         for npc in self.npc:
-            tx = random.randint(0,128)
-            ty = random.randint(0,128)
-            print tx,ty
-            npc.setCenterPos(Vec3(tx,ty,35))
+            if npc.behavior.behaviorStatus('seek') == 'done':
+                if npc.state == 'ToCenter': npc.request('ToResource')
+                elif npc.state == 'ToResource': npc.request('ToCenter')
         return task.again
 
     def calcTick(self,task):
@@ -115,7 +118,7 @@ class TileServer(NetServer):
             player.np.setZ(self.mapTile.terGeom.getElevation(x,y))
 
         self.AIworld.update()
-        
+       
         if self.cTrav:
             self.cTrav.traverse(self.root)
 
