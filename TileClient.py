@@ -96,7 +96,7 @@ class TileClient(NetClient):
                         iv.start()
                 else:
                     if ID not in self.dynObjs: # spawn new object
-                        self.dynObjs.update({ID: loadObject('resources/models/golfie.x',1,'little piggie')})
+                        self.dynObjs.update({ID: loadObject('resources/models/Man.egg',.33,'little piggie')})
                         cnp = self.dynObjs[ID].attachNewNode(CollisionNode('model-collision'))
                         cnp.node().addSolid(CollisionSphere(0,0,1,.5))
 #                        cnp.show()

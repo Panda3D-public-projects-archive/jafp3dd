@@ -35,8 +35,8 @@ class Gatherer(FSM):
         
     def setCenterPos(self,position):
         self.centerPos = position
-        self.behavior.removeAi('seek')
-        self.behavior.seek(self.centerPos,1.0)
+#        self.behavior.removeAi('seek')
+#        self.behavior.seek(self.centerPos,1.0)
         
     def enterSearch(self):
         self.behavior.wander(10, 0, 64, 1.0)
@@ -45,18 +45,16 @@ class Gatherer(FSM):
         self.behavior.wander(10, 0, 64, 0)
     
     def enterToResource(self):
-        self.AITarget=Vec3(10,20,20)
         self.behavior.seek(self.resPos,1.0)
         
     def exitToResource(self):
-        self.behavior.seek(self.resPos,0.0)
+        self.behavior.removeAi('seek')
 
     def enterToCenter(self):
-        self.AITarget=Vec3(64,64,20)
         self.behavior.seek(self.centerPos,5.0)
         
     def exitToCenter(self):
-        self.behavior.seek(self.centerPos,0.0)
+        self.behavior.removeAi('seek')
         
     def enterGathering(self):
         pass

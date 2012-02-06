@@ -61,6 +61,7 @@ class MapTile(DirectObject):
             self.staticObjs.append( tmp ) # takes a an individual object for this tile
             if obj[0][0] > 200 or obj[0][1] > 200:
                 tmp.detachNode()
+            
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
         # Make an GeoMip Instance in this tile
@@ -116,8 +117,8 @@ class MapTile(DirectObject):
     def addStaticObject(self, obj, collide=False):
         # These are intended to be things like trees, rocks, minerals, etc
         # that get updated on a push from the server. They aren't changing quickly
-#        print "debug::addStaticObject >> overriding model name"
-#        obj[2] = 'resources\models\simpleTree2.x'
+        print "debug::addStaticObject >> overriding model name"
+        obj[2] = './resources/models/crate0.x'
         tmpModel = self.loader.loadModel(obj[2]) # name        
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
