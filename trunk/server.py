@@ -55,8 +55,7 @@ class TileServer(NetServer):
         taskMgr.doMethodLater(SERVER_TICK,self.calcTick,'calc_tick')
         taskMgr.doMethodLater(SNAP_INTERVAL,self.takeSnapshot,'SnapshotTsk')
         taskMgr.doMethodLater(TX_INTERVAL,self.sendThrottle,'TXatRate')
-        taskMgr.doMethodLater(1,self.targetMover,'tmp')
-        
+
         print "[TileServer]::Ready"
         
     def setAI(self):
@@ -65,8 +64,6 @@ class TileServer(NetServer):
 #        for obj in self.mapTile.staticObjs[0:1]:
 #            self.AIworld.addObstacle(obj)
 
-        self.AIchar=[]
-        self.AIbehaviors=[]
         for n in range(NUM_NPC):
             modelnp = loadObject('resources/models/golfie.x',.6,'dude#'+str(n))
             cnp = modelnp.attachNewNode(CollisionNode('model-collision'))
@@ -79,32 +76,11 @@ class TileServer(NetServer):
             tx = random.randint(0,128)
             ty = random.randint(0,128)
             newAI.setResourcePos(Vec3(tx,ty,35))
-
             newAI.request('ToResource')
             self.npc.append( newAI )
-#            self.AIchar.append( AICharacter("conie"+str(n),self.npc[n], 500, 0.05, 5))
             self.AIworld.addAiChar(newAI.AI)
-#            self.AIbehaviors.append( self.AIchar[n].getAiBehaviors())
-            
-#            self.AIworld.addObstacle(self.npc[n])
-#            self.AIbehaviors[n].obstacleAvoidance(1.0)    
-#        self.AIworld.addObstacle(self.obstacle1)
-        
 #            self.seeker.loop("run") # starts actor animations
-#        taskMgr.add(self.AIUpdate,"AIUpdate")
-
-    #to update the AIWorld    
-    def AIUpdate(self,task):
-        self.AIworld.update()            
-        return task.cont
         
-    def targetMover(self,task):
-        for npc in self.npc:
-            if npc.behavior.behaviorStatus('seek') == 'done':
-                if npc.state == 'ToCenter': npc.request('ToResource')
-                elif npc.state == 'ToResource': npc.request('ToCenter')
-        return task.again
-
     def calcTick(self,task):
         tnow = time.time()
         self.tickCount += 1
@@ -147,7 +123,7 @@ class TileServer(NetServer):
     def sendThrottle(self,task):
         for client in self.activeConnections:
 #            print "<TX> snapshot# ",self.snapCount," -> ", client.getAddress()
-            self.write(int(0),self.snapBuffer, client) # rencode lets me send objects??
+            self.write(int(0),self.snapBuffer, client) 
         self.snapBuffer = []
         return task.again
 
@@ -170,6 +146,7 @@ class TileServer(NetServer):
         if msgID == 25: 
             pc = self.spawnNewPlayer(data) # add new player
             self.players.update({clientAddress:pc})
+            self.write(int(2),_mapName,datagram.getConnection())
             print clientAddress, pc.ID, " added to server players"
 
         if msgID == 26: # This is a control snapshot from client X
