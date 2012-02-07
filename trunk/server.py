@@ -20,7 +20,7 @@ import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
 
-NUM_NPC = 5
+NUM_NPC = 1
 SERVER_TICK = 0.0166 # seconds
 SNAP_INTERVAL = 1.0/20
 TX_INTERVAL = 1.0/20
@@ -94,7 +94,8 @@ class TileServer(NetServer):
             player.np.setZ(self.mapTile.terGeom.getElevation(x,y))
 
         self.AIworld.update()
-       
+        print self.npc[0].state
+        
         if self.cTrav:
             self.cTrav.traverse(self.root)
 
