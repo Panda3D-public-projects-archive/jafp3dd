@@ -33,7 +33,7 @@ class Gatherer(FSM):
         self.AI = AICharacter(name,nodePath, 50, 0.05, 5)
         self.behavior = self.AI.getAiBehaviors()
 
-        taskMgr.doMethodLater(1,self.stateMonitor,'GathererMonitor')
+        taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
 
 
     def setResourcePos(self,position):
@@ -55,21 +55,23 @@ class Gatherer(FSM):
         
     def exitToResource(self):
         self.behavior.removeAi('seek')
+        
+    def enterGathering(self):
+        self.behavior.wander(3, 0, 3, 1.0)
+        taskMgr.doMethodLater(5,self.gatherTimer,'gatherTask')
+        
+    def exitGathering(self):
+        self.behavior.removeAi('wander')
 
     def enterToCenter(self):
         self.behavior.seek(self.centerPos,1.0)
         
     def exitToCenter(self):
         self.behavior.removeAi('seek')
-        
-    def enterGathering(self):
-        self.behavior.wander(10, 0, 10, 1.0)
-        
-    def exitGathering(self):
-        self.behavior.removeAi('wander')
 
     def enterDeliver(self):
-        self.behavior.wander(10, 0, 10, 1.0)
+        self.behavior.wander(1, 0, 1, 1.0)
+        taskMgr.doMethodLater(5,self.deliverTimer,'deliverTask')
         
     def exitDeliver(self):
         self.behavior.removeAi('wander')
@@ -82,12 +84,18 @@ class Gatherer(FSM):
 
     def stateMonitor(self,task):
         if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
-            self.request('ToResource')
+            self.request('Deliver')
         if self.state == 'ToResource' and self.behavior.behaviorStatus('seek') == 'done':
-            self.request('ToCenter')
+            self.request('Gathering')
         return task.again
-            
+    
+    def gatherTimer(self,task):
+        self.request('ToCenter')
+        return task.done            
 
+    def deliverTimer(self,task):
+        self.request('ToResource')
+        return task.done
         
 class serverNPC():
 # Data needed to sync: x,y,z,h,p,r,speed
