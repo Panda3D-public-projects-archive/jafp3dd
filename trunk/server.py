@@ -13,7 +13,7 @@ from panda3d.core import *
 from panda3d.ai import *
 
 from common.player import Player
-from common.NPC import Gatherer
+from common.Gatherer import Gatherer
 from common.loadObject import loadObject
 
 import network.rencode as rencode
