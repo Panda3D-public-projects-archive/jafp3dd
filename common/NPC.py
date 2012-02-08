@@ -64,6 +64,7 @@ class Gatherer(FSM):
         self.behavior.removeAi('wander')
 
     def enterToCenter(self):
+        print self.centerPos
         self.behavior.seek(self.centerPos,1.0)
         
     def exitToCenter(self):
