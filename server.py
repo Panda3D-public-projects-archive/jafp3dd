@@ -20,7 +20,7 @@ import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
 
-NUM_NPC = 1
+NUM_NPC = 10
 SERVER_TICK = 0.0166 # seconds
 SNAP_INTERVAL = 1.0/20
 TX_INTERVAL = 1.0/20

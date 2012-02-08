@@ -44,11 +44,11 @@ class Gatherer(FSM):
 #        self.behavior.removeAi('seek')
 #        self.behavior.seek(self.centerPos,1.0)
         
-    def enterSearch(self):
-        self.behavior.wander(10, 0, 64, 1.0)
-        
-    def exitSearch(self):
-        self.behavior.removeAi('wander')
+#    def enterSearch(self):
+#        self.behavior.wander(10, 0, 64, 1.0)
+#        
+#    def exitSearch(self):
+#        self.behavior.removeAi('wander')
     
     def enterToResource(self):
         self.behavior.seek(self.resPos,1.0)
@@ -56,11 +56,11 @@ class Gatherer(FSM):
     def exitToResource(self):
         self.behavior.removeAi('seek')
         
-    def enterGathering(self):
-        self.behavior.wander(3, 0, 3, 1.0)
+    def enterGather(self):
+#        self.behavior.wander(3, 0, 3, 1.0)
         taskMgr.doMethodLater(5,self.gatherTimer,'gatherTask')
         
-    def exitGathering(self):
+    def exitGather(self):
         self.behavior.removeAi('wander')
 
     def enterToCenter(self):
@@ -71,23 +71,23 @@ class Gatherer(FSM):
         self.behavior.removeAi('seek')
 
     def enterDeliver(self):
-        self.behavior.wander(1, 0, 1, 1.0)
+#        self.behavior.wander(1, 0, 1, 1.0)
         taskMgr.doMethodLater(5,self.deliverTimer,'deliverTask')
         
     def exitDeliver(self):
         self.behavior.removeAi('wander')
 
-    def enterDanger(self):
-        print "Aahhh! Implement me!"
-        
-    def exitDanger(self):
-        pass
+#    def enterDanger(self):
+#        print "Aahhh! Implement me!"
+#        
+#    def exitDanger(self):
+#        pass
 
     def stateMonitor(self,task):
         if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
             self.request('Deliver')
         if self.state == 'ToResource' and self.behavior.behaviorStatus('seek') == 'done':
-            self.request('Gathering')
+            self.request('Gather')
         return task.again
     
     def gatherTimer(self,task):

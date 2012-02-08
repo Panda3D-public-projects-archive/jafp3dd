@@ -122,6 +122,9 @@ class MapTile(DirectObject):
         tmpModel = self.loader.loadModel(obj[2]) # name        
         obj_Z = self.terGeom.getElevation(obj[0][0],obj[0][1])
         np = self.attachLODobj([tmpModel],(obj[0][0],obj[0][1],obj_Z),obj[1])
+        cnp = tmpModel.attachNewNode(CollisionNode('objInto'))
+        cnp.node().addSolid(CollisionTube(0,0,0,0,0,.5,.7))
+        cnp.show()
         return np
         
     def attachLODobj(self, modelList, pos,state=1):
