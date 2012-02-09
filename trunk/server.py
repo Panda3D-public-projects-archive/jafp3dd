@@ -73,7 +73,8 @@ class TileServer(NetServer):
 
             tx = random.randint(0,128)
             ty = random.randint(0,128)
-            newAI.setResourcePos(Vec3(tx,ty,35))
+            newAI.setResourcePos(self.mapTile.staticObjs[random.choice(range(20))].getPos()) #Vec3(tx,ty,35)
+            
             newAI.request('ToResource')
             self.npc.append( newAI )
             self.AIworld.addAiChar(newAI.AI)
