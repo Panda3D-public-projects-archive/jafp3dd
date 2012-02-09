@@ -25,3 +25,8 @@ TX_INTERVAL = 1.0/20
 TURN_RATE = 120    # Degrees per second
 WALK_RATE = 8
 PLAYER_START_POS = (64,64)
+
+#SERVER_IP = '192.168.1.188'
+SERVER_IP = None
+
+_terraScale = (10,10,100) # xy scaling not working right as of 12-10-11. prob the LOD impacts
