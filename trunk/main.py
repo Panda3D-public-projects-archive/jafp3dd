@@ -24,8 +24,8 @@ loadPrcFileData( '', 'sync-video 0' )
 from CelestialBody import CelestialBody
 from network.client import NetClient
 from network.rencode import *
-from server import SNAP_INTERVAL,SERVER_TICK, TURN_RATE,WALK_RATE, _mapName
-
+from server import _mapName
+from CONSTANTS import *
 from TileClient import TileClient, SERVER_IP
 
 # RENDERING OPTIONS #
@@ -89,12 +89,13 @@ class World(ShowBase,NetClient):
         self.terraNode.flattenStrong()
         self.skynp = render.attachNewNode("SkyDome")   
 
-        self.client = TileClient('Tile001', MY_ID, _mapName)
+        self.client = TileClient(SERVER_IP,'Tile001', MY_ID, _mapName)
         self.client.np.reparentTo(self.terraNode)
         
         cnodePath = self.client.avnp.attachNewNode(CollisionNode('cnode'))
-        cnodePath.node().addSolid(CollisionSphere(0, 0, 1, .25))
-#        cnodePath.show()
+        cnodePath.node().addSolid(CollisionSphere(0, 0, 1.25, .25))
+        cnodePath.node().addSolid(CollisionSphere(0, 0, .2, .25))
+        cnodePath.show()
         self.pusher = CollisionHandlerPusher()
         self.pusher.addCollider(cnodePath, self.client.avnp)
         

@@ -13,9 +13,9 @@ from direct.showbase import Loader
 from direct.showbase.DirectObject import DirectObject
 
 from ScalingGeoMipTerrain import ScalingGeoMipTerrain
+from CONSTANTS import _terraScale
 
 _Datapath = "resources"
-_terraScale = (1,1,40) # xy scaling not working right as of 12-10-11. prob the LOD impacts
 
 class MapTile(DirectObject):
     """ a Game Client mapTile object: a chunk of the world map and all associated NPCs"""
@@ -57,11 +57,10 @@ class MapTile(DirectObject):
         self.setGeom(HFname, _terraScale, position=(0,0,0))
         self.setTexture(texList)
         for obj in Objects:
-            tmp = self.addStaticObject(obj)
-            self.staticObjs.append( tmp ) # takes a an individual object for this tile
-            if obj[0][0] > 200 or obj[0][1] > 200:
-                tmp.detachNode()
-            
+            if obj[0][0] < 200 and obj[0][1] < 200:
+                tmp = self.addStaticObject(obj)
+                self.staticObjs.append( tmp ) # takes a an individual object for this tile
+                
     def setGeom(self,HFname, geomScale=(1,1,1),position=(0,0,0)):
         # GENERATE THE WORLD. GENERATE THE CHEERLEADER
         # Make an GeoMip Instance in this tile

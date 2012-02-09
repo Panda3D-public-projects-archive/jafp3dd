@@ -8,14 +8,17 @@ import random
 from os import urandom
 
 from panda3d.core import *
-#from direct.showbase import Loader
 from direct.showbase.ShowBase import taskMgr
 from direct.fsm.FSM import FSM
 from panda3d.ai import *
+from direct.showbase import Loader
+from direct.showbase.DirectObject import DirectObject
+
+loader = Loader.Loader(DirectObject)
  
 class Gatherer(FSM):
 
-    def __init__(self,name,nodePath):
+    def __init__(self,name,modelName,modelScale=1):
         FSM.__init__(self, 'aGatherer')
 #        self.defaultTransitions = {
 #            'Walk' : [ 'Walk2Swim' ],
@@ -24,13 +27,24 @@ class Gatherer(FSM):
 #            'Swim2Walk' : [ 'Walk' ],
 #            'Drowning' : [ ],
 #            } 
-        self.np = nodePath
+        #TODO: Load ACTORS as well as static models...        
+        self.np = loader.loadModel(modelName)
+        self.np.setName(name)
+        self.np.setScale(modelScale)
+        self.np.setH(180)
+        color = (VBase4(random.random(),random.random(),random.random(),1))
+        self.np.setColor(color)
+       
+
+        cnp = self.np.attachNewNode(CollisionNode('model-collision'))
+        cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+
         self.resPos = None
         self.centerPos = None
         self.cargo = 0
-        self.maxCargo = 2
+        self.maxCargo = 5
         self.loadRate = 1
-        self.AI = AICharacter(name,nodePath, 50, 0.05, 5)
+        self.AI = AICharacter(name,self.np, 50, 0.05, 5)
         self.behavior = self.AI.getAiBehaviors()
 
         taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')

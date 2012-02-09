@@ -18,13 +18,12 @@ from direct.gui.OnscreenText import OnscreenText
 from client import NetClient
 from common.loadObject import loadObject
 from network import rencode as rencode
-from server import SNAP_INTERVAL
 from maptile import MapTile
+#from server import SNAP_INTERVAL
+from CONSTANTS import *
 
 _Datapath = "resources"
 _AVMODEL_ = os.path.join('models','MrStix.x')
-#SERVER_IP = '192.168.1.188'
-SERVER_IP = None
 LERP_INTERVAL = 1
 _ghost = 0
 _serversync = 0
@@ -40,14 +39,14 @@ class TileClient(NetClient):
     _brute = 1 # use brute force
     _tree_lod_far = 128
     
-    def __init__(self, name, myNode, mapDefName, focus=None):
+    def __init__(self, serverIP, name, myNode, mapDefName, focus=None):
         NetClient.__init__(self)
         self.root = PandaNode(name)
         self.np = NodePath(self.root)
 #        self.osd = OnscreenText(text = '', pos = (0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 
          # local loop if address = None
-        ok = self.connect(SERVER_IP)
+        ok = self.connect(serverIP)
          # objects like other PCs and dynObjs that move/change realtime
         self.dynObjs = dict()    # A dictionary of nodepaths representing the moving objects
         self.snapshot = dict()

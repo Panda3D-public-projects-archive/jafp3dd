@@ -19,19 +19,20 @@ from common.loadObject import loadObject
 import network.rencode as rencode
 from network.client import NetServer
 from maptile import MapTile
+from CONSTANTS import *
 
 NUM_NPC = 10
-SERVER_TICK = 0.0166 # seconds
-SNAP_INTERVAL = 1.0/20
-TX_INTERVAL = 1.0/20
-
-# Player control constants
-TURN_RATE = 120    # Degrees per second
-WALK_RATE = 8
-PLAYER_START_POS = (64,64)
+#SERVER_TICK = 0.0166 # seconds
+#SNAP_INTERVAL = 1.0/20
+#TX_INTERVAL = 1.0/20
+#
+## Player control constants
+#TURN_RATE = 120    # Degrees per second
+#WALK_RATE = 8
+#PLAYER_START_POS = (64,64)
 
 # THIS MAP SETTINGS
-_mapName='map2'
+_mapName='map3'
 
 class TileServer(NetServer):
     def __init__(self):
@@ -65,14 +66,11 @@ class TileServer(NetServer):
 #            self.AIworld.addObstacle(obj)
 
         for n in range(NUM_NPC):
-            modelnp = loadObject('resources/models/golfie.x',.6,'dude#'+str(n))
-            cnp = modelnp.attachNewNode(CollisionNode('model-collision'))
-            cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-
-            modelnp.setPos(70,70,0)
-            modelnp.setTag('ID',str(n))
-            newAI = Gatherer("NPC"+str(n),modelnp)
+            newAI = Gatherer("NPC"+str(n),'resources/models/golfie.x',.6)
             newAI.setCenterPos(Vec3(64,64,30))
+            newAI.np.setPos(70,70,0)
+            newAI.np.setTag('ID',str(n))
+
             tx = random.randint(0,128)
             ty = random.randint(0,128)
             newAI.setResourcePos(Vec3(tx,ty,35))
