@@ -17,7 +17,28 @@ _TURNRATE_ = 90    # Degrees per second
 _WALKRATE_ = 30
 _MINCAMDIST_ = .333
 
-   
+_RESOURCEPATH_ = 'resources'
+
+class Scene():
+    def __init__(self,sceneName):
+        if not sceneName:
+            print "No Scene name given on init!!!"
+            return -1
+        self.root = PandaNode(sceneName)
+        self.np = NodePath(self.root)
+#        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
+        self.model = self.loadScene(sceneName)
+        
+    def loadScene(self,sceneName):
+        tmp = loader.loadModel(os.path.join(_RESOURCEPATH_,sceneName))
+        if tmp:
+            return tmp
+        else:
+            return None
+        # load scene tree from blender
+        # find lights from blender and create them with the right properties
+        
+        
 class World(ShowBase):
     Kturn = 0
     Kwalk = 0
@@ -36,6 +57,9 @@ class World(ShowBase):
         ShowBase.__init__(self)
         self.setFrameRateMeter(1)
         #app.disableMouse()
+        self.scene = Scene('testscene.x')
+        self.scene.model.reparentTo(render)
+        
         self.setupModels()
         self.setupLights()
         self.setupKeys()
