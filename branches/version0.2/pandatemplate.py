@@ -1,9 +1,9 @@
 
 # SETUP SOME PATH's
-from sys import path
-path.append('c:\Panda3D-1.7.2')
-path.append('c:\Panda3D-1.7.2\\bin');
-_DATAPATH_ = "./resources"
+#from sys import path
+#path.append('c:\Panda3D-1.7.2')
+#path.append('c:\Panda3D-1.7.2\\bin');
+#_DATAPATH_ = "./resources"
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
@@ -12,6 +12,8 @@ from math import sin,cos,pi
 from numpy import sign
 
 import sys, os
+
+import common
 
 _TURNRATE_ = 90    # Degrees per second
 _WALKRATE_ = 30
@@ -99,43 +101,36 @@ class ControlledCamera():
   
         
 class World(ShowBase):
-    # avatar control states...
-    Kturn = 0
-    Kwalk = 0
-    Kstrafe = 0
-    
-    # camera control states
-    Kzoom = 0
-    Kpitch = 0
-    Ktheta = 0
     
     #pure control states
     mbState = [0,0,0,0,0,0] # 3 mouse buttons + wheel,deltaX, deltaY; buttons: 1 down, 0 on up
     mousePos = [0,0]
     mousePos_old = mousePos
-#    controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
-#        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
         
     def __init__(self):
         ShowBase.__init__(self)
         self.setFrameRateMeter(1)
         #app.disableMouse()
-        self.scene = Scene('testscene.x')
-        self.scene.model.reparentTo(render)
-        self.CC = ControlledCamera(self.mbState)
-        
-#        self.setupModels()
-        self.setupLights()
         self.setupKeys()
+        taskMgr.add(self.mouseHandler,'Mouse Manager')
+        self.loadScene('testscene.x')
+        self.CC = ControlledCamera(self.mbState)
+        self.player = common.Player('cube.x','Player_1')
+        
 #        taskMgr.add(self.updateAvnp,'Move Avatar Node') #TODO: Move to Avatar class
 #        taskMgr.add(self.updateCamera,'Adjust Camera')
-        taskMgr.add(self.mouseHandler,'Mouse Manager')
         
-#    def setupModels(self):
-#        self.avnp = render.attachNewNode('AVNP')
-#        camera.reparentTo(self.avnp)
-#        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 
+    #TODO: ADD OSD of FPS and following:
+#        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+#        hdg = self.np.getH()       
+#        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
+
+    def loadScene(self,sceneName):
+        self.scene = Scene(sceneName)
+        self.scene.model.reparentTo(render)      
+#        self.setupModels()
+        self.setupLights()
         
     def setupLights(self):
         self.render.setShaderAuto()
@@ -223,20 +218,7 @@ class World(ShowBase):
             self.mbState[b-1] = s
 #        print self.mbState
         # ADD A L+R BUTTON WALK 
-                   
-#    def camPitch(self,dp): self.Kpitch = dp       
-#    def camHead(self,dp): self.Ktheta = dp
-#    def camZoom(self,dp): self.Kzoom = dp
-#        
-#    def strafe(self,dp): self.Kstrafe = dp
-#    def turn(self,dp): self.Kturn = dp
-#    def walk(self,dp): self.Kwalk = dp    
-#    def autoWalk(self):
-#        if self.Kwalk == 0:
-#            self.Kwalk = 1
-#        else:
-#            self.Kwalk = 0  
-#       
+                          
     def mouseHandler(self,task):
        
         if base.mouseWatcherNode.hasMouse():
@@ -246,66 +228,21 @@ class World(ShowBase):
             self.mbState[4] = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
             self.mbState[5] = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
             
-#        dt = globalClock.getDt()
-#        if self.mbState[0] and not self.mbState[2]:
-#            self.camVector[1] += -_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0])
-#            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
-#        if self.mbState[2] and not self.mbState[0]:  # mouse Steer av
-#            self.avnp.setH(self.avnp,-2*_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0]))
-#            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
-#        
-#    #    print avHandler.mbState[3]
-#        mbWheel = self.mbState[3]
-#        if mbWheel:
-#            self.camVector[0] += 15*(sign(mbWheel))*dt
-#            self.mbState[3] -= 3*sign(mbWheel)*dt
-#            if abs(self.mbState[3]) < .15: self.mbState[3] = 0 # anti-jitter on cam
-#    
         return task.cont
 
-    def updateAvnp(self,task):
-        dt = globalClock.getDt()
-        self.avnp.setPos(self.avnp,_WALKRATE_*self.Kstrafe*dt,_WALKRATE_*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.avnp.setH(self.avnp,_TURNRATE_*self.Kturn*dt) #key input steer
-        x,y,z = self.avnp.getPos()
-#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.avnp,(x,y,z))
-
-        hdg = self.avnp.getH()
-#        self.avnp.setZ(self.ijTile(x,y).getElevation(x,y))
-        
-        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
-        return task.cont   
+#    def updateAvnp(self,task):
+#        dt = globalClock.getDt()
+#        self.avnp.setPos(self.avnp,_WALKRATE_*self.Kstrafe*dt,_WALKRATE_*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#        self.avnp.setH(self.avnp,_TURNRATE_*self.Kturn*dt) #key input steer
+#        x,y,z = self.avnp.getPos()
+##        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.avnp,(x,y,z))
+#
+#        hdg = self.avnp.getH()
+##        self.avnp.setZ(self.ijTile(x,y).getElevation(x,y))
+#        
+#        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
+#        return task.cont   
     
-    
-#    def updateCamera(self,task):
-#        epsilon = 1
-#        dt = globalClock.getDt() # to stay time based, not frame based
-#        self.camVector[0] += 15*(self.Kzoom)*dt
-#        self.camVector[1] += .5*_TURNRATE_*self.Ktheta*dt
-#        self.camVector[2] += .5*_TURNRATE_*self.Kpitch*dt
-#        
-#        phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
-#        theta = self.camVector[1]*pi/180 # orbit angle unbound this way
-#        radius = max(_MINCAMDIST_,min(1000,self.camVector[0]))
-#        camera.setX(radius*cos(phi)*sin(theta))
-#        camera.setY(-radius*cos(phi)*cos(theta))
-#        camera.setZ(radius*sin(phi))
-#        
-#        # Keep Camera above terrain
-#        # TO DO: Object occlusion with camera intersection
-##        cx,cy,cz = camera.getPos(self.terrain.getRoot())
-##        terZ = self.terrain.getElevation(cx,cy) # what is terrain elevation at new camera pos
-##        print "localframe: ",app.camera.getPos()
-##        print "worldframe: ",app.camera.getPos(terrainRoot)
-##        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
-##        if cz <= terZ+epsilon:
-##            camera.setZ(self.terrain.getRoot(),terZ+epsilon)
-#        camera.lookAt(self.avnp,Point3(0,.333,2)) # look at the avatar nodepath
-##        camera.lookAt(self.sun.model)
-#        
-#    #    print camVector                   
-#        return task.cont
-        
 
 W = World()
 #W.useDrive()
