@@ -81,7 +81,7 @@ class ControlledCamera():
         if self.follow:
             relativeNP = self.target
         else:
-            relativeNP = None
+            relativeNP = camera
         camera.setX(relativeNP, radius*cos(phi)*sin(theta))
         camera.setY(relativeNP, -radius*cos(phi)*cos(theta))
         camera.setZ(relativeNP, radius*sin(phi))
