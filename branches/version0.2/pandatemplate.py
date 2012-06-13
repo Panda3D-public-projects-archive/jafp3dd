@@ -122,7 +122,7 @@ class World(ShowBase):
         #app.disableMouse()
         self.scene = Scene('testscene.x')
         self.scene.model.reparentTo(render)
-        CC = ControlledCamera(self.mbState)
+        self.CC = ControlledCamera(self.mbState)
         
 #        self.setupModels()
         self.setupLights()
@@ -131,10 +131,10 @@ class World(ShowBase):
 #        taskMgr.add(self.updateCamera,'Adjust Camera')
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
-    def setupModels(self):
-        self.avnp = render.attachNewNode('AVNP')
-        camera.reparentTo(self.avnp)
-        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
+#    def setupModels(self):
+#        self.avnp = render.attachNewNode('AVNP')
+#        camera.reparentTo(self.avnp)
+#        self.textObject = OnscreenText(text = str(self.avnp.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))       
 
         
     def setupLights(self):
@@ -157,53 +157,66 @@ class World(ShowBase):
         
 #        self.slnp.lookAt(self.model)
               
-      
-    def setupKeys(self):          
-        self.accept("a",self.turn,[1])
-        self.accept("a-up",self.turn,[0])
-        self.accept("d",self.turn,[-1])
-        self.accept("d-up",self.turn,[0])
+    def setupKeys(self):     
+        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
+        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
+
+        _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
+           
+        self.accept(_KeyMap['left'],self._setControls,["turn",1])
+        self.accept(_KeyMap['left']+"-up",self._setControls,["turn",0])
+        self.accept(_KeyMap['right'],self._setControls,["turn",-1])
+        self.accept(_KeyMap['right']+"-up",self._setControls,["turn",0])
     
         
-        self.accept("q",self.strafe,[-1])
-        self.accept("q-up",self.strafe,[0])
-        self.accept("e",self.strafe,[1])
-        self.accept("e-up",self.strafe,[0])
+        self.accept(_KeyMap['strafe_L'],self._setControls,["strafe",-1])
+        self.accept(_KeyMap['strafe_L']+"-up",self._setControls,["strafe",0])
+        self.accept(_KeyMap['strafe_R'],self._setControls,["strafe",1])
+        self.accept(_KeyMap['strafe_R']+"-up",self._setControls,["strafe",0])
         
-        self.accept("w",self.walk,[1])
-        self.accept("s",self.walk,[-1])
-        self.accept("s-up",self.walk,[0])
-        self.accept("w-up",self.walk,[0])
-        self.accept("r",self.autoWalk) 
+        self.accept("w",self._setControls,["walk",1])
+        self.accept("s",self._setControls,["walk",-1])
+        self.accept("s-up",self._setControls,["walk",0])
+        self.accept("w-up",self._setControls,["walk",0])
+        self.accept("r",self._setControls,["autoWalk",1]) 
         
-        self.accept("page_up",self.camPitch,[-1])
-        self.accept("page_down",self.camPitch,[1])
-        self.accept("page_up-up",self.camPitch,[0])
-        self.accept("page_down-up",self.camPitch,[0])
-        self.accept("arrow_left",self.camHead,[-1])
-        self.accept("arrow_right",self.camHead,[1])
-        self.accept("arrow_left-up",self.camHead,[0])
-        self.accept("arrow_right-up",self.camHead,[0])
+        self.accept("page_up",self._setControls,["camPitch",-1])
+        self.accept("page_down",self._setControls,["camPitch",1])
+        self.accept("page_up-up",self._setControls,["camPitch",0])
+        self.accept("page_down-up",self._setControls,["camPitch",0])
+        self.accept("arrow_left",self._setControls,["camHead",-1])
+        self.accept("arrow_right",self._setControls,["camHead",1])
+        self.accept("arrow_left-up",self._setControls,["camHead",0])
+        self.accept("arrow_right-up",self._setControls,["camHead",0])
     
-        self.accept("arrow_down",self.camZoom,[1])        
-        self.accept("arrow_up",self.camZoom,[-1])
-        self.accept("arrow_down-up",self.camZoom,[0])
-        self.accept("arrow_up-up",self.camZoom,[0])
+        self.accept("arrow_down",self._setControls,["camZoom",1])        
+        self.accept("arrow_up",self._setControls,["camZoom",-1])
+        self.accept("arrow_down-up",self._setControls,["camZoom",0])
+        self.accept("arrow_up-up",self._setControls,["camZoom",0])
     
-        self.accept("mouse1",self.mbutton,[1,1])
-        self.accept("mouse1-up",self.mbutton,[1,0])
-        self.accept("mouse2",self.mbutton,[2,1])
-        self.accept("mouse2-up",self.mbutton,[2,0])
-        self.accept("mouse3",self.mbutton,[3,1])
-        self.accept("mouse3-up",self.mbutton,[3,0])
-        self.accept("wheel_up",self.mbutton,[4,-1])
-        self.accept("wheel_up-up",self.mbutton,[4,0])
-        self.accept("wheel_down",self.mbutton,[4,1])
-        self.accept("wheel_down-up",self.mbutton,[4,0])
-        
+        self.accept("mouse1",self._mbutton,[1,1])
+        self.accept("mouse1-up",self._mbutton,[1,0])
+        self.accept("mouse2",self._mbutton,[2,1])
+        self.accept("mouse2-up",self._mbutton,[2,0])
+        self.accept("mouse3",self._mbutton,[3,1])
+        self.accept("mouse3-up",self._mbutton,[3,0])
+        self.accept("wheel_up",self._mbutton,[4,-1])
+        self.accept("wheel_up-up",self._mbutton,[4,0])
+        self.accept("wheel_down",self._mbutton,[4,1])
+        self.accept("wheel_down-up",self._mbutton,[4,0])
+
+        self.accept(_KeyMap['wire'],self.toggleWireframe)      
         self.accept("escape",sys.exit)
 
-    def mbutton(self,b,s): 
+    def _setControls(self,key,value):
+            self.controls[key] = value
+            if key == 'autoWalk':
+                if self.controls["walk"] == 0:
+                    self.controls["walk"] = 1
+                else:
+                    self.controls["walk"] = 0  
+
+    def _mbutton(self,b,s): 
         if b == 4: # add up mouse wheel clicks
             self.mbState[b-1] += s
         else:
@@ -211,19 +224,19 @@ class World(ShowBase):
 #        print self.mbState
         # ADD A L+R BUTTON WALK 
                    
-    def camPitch(self,dp): self.Kpitch = dp       
-    def camHead(self,dp): self.Ktheta = dp
-    def camZoom(self,dp): self.Kzoom = dp
-        
-    def strafe(self,dp): self.Kstrafe = dp
-    def turn(self,dp): self.Kturn = dp
-    def walk(self,dp): self.Kwalk = dp    
-    def autoWalk(self):
-        if self.Kwalk == 0:
-            self.Kwalk = 1
-        else:
-            self.Kwalk = 0  
-       
+#    def camPitch(self,dp): self.Kpitch = dp       
+#    def camHead(self,dp): self.Ktheta = dp
+#    def camZoom(self,dp): self.Kzoom = dp
+#        
+#    def strafe(self,dp): self.Kstrafe = dp
+#    def turn(self,dp): self.Kturn = dp
+#    def walk(self,dp): self.Kwalk = dp    
+#    def autoWalk(self):
+#        if self.Kwalk == 0:
+#            self.Kwalk = 1
+#        else:
+#            self.Kwalk = 0  
+#       
     def mouseHandler(self,task):
        
         if base.mouseWatcherNode.hasMouse():
