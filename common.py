@@ -14,34 +14,6 @@ from panda3d.ai import *
 
 from CONSTANTS import *
 
-class Player():
-    """ Objects that represent the game clients. Inputs from game client snapshots
-    sent from the client app are used to update server PC object position, heading, state
-    etcetera. The server calculated state is then included in the snapshot for that frame
-    and sent out to all clients, including the source client"""
-    
-    def __init__(self,modelName,name=None):
-        if not modelName:
-            print('No model name passed to player.py!')
-            return None
-        self.root = PandaNode('player_node')
-        self.np = loader.loadModel(modelName)
-        if self.np:
-            self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
-            self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-            taskMgr.add(self.update,'updatePlayer') #TODO: Move to Avatar class
-
-    def update(self,task):
-        dt = globalClock.getDt()
-        self.np.setPos(self.np,_WALKRATE_*self.Kstrafe*dt,_WALKRATE_*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.np.setH(self.np,_TURNRATE_*self.Kturn*dt) #key input steer
-        x,y,z = self.np.getPos()
-#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.np,(x,y,z))
-
-#        self.np.setZ(self.ijTile(x,y).getElevation(x,y))
-        return task.cont   
-
-
 
 class AIengine():
     def __init__(self):
