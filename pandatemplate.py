@@ -46,7 +46,8 @@ class ControlledCamera():
     """ Expects Panda3d base globals to be present already """
     def __init__(self,controlState,target=Point3(0,0,0)):
         self.camVector = [10,0,10]    # [distance to target, heading to target, pitch to target ]
-        self.target = target
+        self.target = target    # Target oject or location for camera to look at
+        self.follow = True    # should the camera move with the target or stay fixed?
         self.mouseState = controlState
         taskMgr.add(self.update,'Adjust Camera')
         
@@ -77,9 +78,13 @@ class ControlledCamera():
         phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
         theta = self.camVector[1]*pi/180 # orbit angle unbound this way
         radius = max(_MINCAMDIST_,min(1000,self.camVector[0]))
-        camera.setX(radius*cos(phi)*sin(theta))
-        camera.setY(-radius*cos(phi)*cos(theta))
-        camera.setZ(radius*sin(phi))
+        if self.follow:
+            relativeNP = self.target
+        else:
+            relativeNP = None
+        camera.setX(relativeNP, radius*cos(phi)*sin(theta))
+        camera.setY(relativeNP, -radius*cos(phi)*cos(theta))
+        camera.setZ(relativeNP, radius*sin(phi))
         
         # Keep Camera above terrain
         # TO DO: Object occlusion with camera intersection
@@ -91,7 +96,7 @@ class ControlledCamera():
 #        if cz <= terZ+epsilon:
 #            camera.setZ(self.terrain.getRoot(),terZ+epsilon)
 #        camera.lookAt(self.target,Point3(0,.333,2)) # look at the avatar nodepath
-        camera.lookAt(Point3(0,.333,2)) # look at the avatar nodepath
+        camera.lookAt(self.target) # look at the avatar nodepath
         
     #    print camVector                   
         return task.cont
@@ -138,9 +143,11 @@ class World(ShowBase):
         self.setupKeys()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         self.loadScene('testscene.x')
-        self.CC = ControlledCamera(self.mbState)
+
         self.player = Player(os.path.join(RESOURCE_PATH,'cube.x'),self.controls,'Player_1')
         self.player.np.reparentTo(render)
+
+        self.CC = ControlledCamera(self.mbState,target=self.player.np)
         
 #        taskMgr.add(self.updateAvnp,'Move Avatar Node') #TODO: Move to Avatar class
 #        taskMgr.add(self.updateCamera,'Adjust Camera')
