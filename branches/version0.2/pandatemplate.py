@@ -20,6 +20,8 @@ _MINCAMDIST_ = .333
 _RESOURCEPATH_ = 'resources'
 
 class Scene():
+    """ Used to load static geometry"""
+
     def __init__(self,sceneName):
         if not sceneName:
             print "No Scene name given on init!!!"
@@ -27,44 +29,106 @@ class Scene():
         self.root = PandaNode(sceneName)
         self.np = NodePath(self.root)
 #        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
-        self.model = self.loadScene(sceneName)
+        self.model = self.loadScene(sceneName) #TODO: move to self.np
         
     def loadScene(self,sceneName):
         tmp = loader.loadModel(os.path.join(_RESOURCEPATH_,sceneName))
         if tmp:
+            # do things with tmp like split up, add lights, whatever
             return tmp
         else:
             return None
         # load scene tree from blender
         # find lights from blender and create them with the right properties
         
+
+class ControlledCamera():
+    """ Expects Panda3d base globals to be present already """
+    def __init__(self,controlState,target=Point3(0,0,0)):
+        self.camVector = [10,0,10]    # [distance to target, heading to target, pitch to target ]
+        self.target = target
+        self.mouseState = controlState
+        taskMgr.add(self.update,'Adjust Camera')
+        
+        
+    def update(self,task):
+#    def updateCamera(self,task):
+        epsilon = 1
+        dt = globalClock.getDt() # to stay time based, not frame based
+        if self.mouseState[0] and not self.mouseState[2]:
+            self.camVector[1] += -_TURNRATE_*self.mouseState[4]
+            self.camVector[2] += -_TURNRATE_*self.mouseState[5]
+        if not self.mouseState[0] and self.mouseState[2]:  # mouse Steer av
+#TODO: ENABLE MOUSE STEER            self.avnp.setH(self.avnp,-2*_TURNRATE_*self.mouseState[4])
+            self.camVector[2] += -_TURNRATE_*self.mouseState[5]
+        
+    #    print avHandler.mouseState[3]
+        mbWheel = self.mouseState[3]
+        if mbWheel:
+            self.camVector[0] += 15*(sign(mbWheel))*dt
+            self.mouseState[3] -= 3*sign(mbWheel)*dt
+            if abs(self.mouseState[3]) < .15: self.mouseState[3] = 0 # anti-jitter on cam
+        
+#        self.camVector[0] += 15*(self.Kzoom)*dt
+#        self.camVector[1] += .5*_TURNRATE_*self.Ktheta*dt
+#        self.camVector[2] += .5*_TURNRATE_*self.Kpitch*dt
+#TODO: ENABLE CAMPERA CONTROLS FROM KEYS
+     
+        phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
+        theta = self.camVector[1]*pi/180 # orbit angle unbound this way
+        radius = max(_MINCAMDIST_,min(1000,self.camVector[0]))
+        camera.setX(radius*cos(phi)*sin(theta))
+        camera.setY(-radius*cos(phi)*cos(theta))
+        camera.setZ(radius*sin(phi))
+        
+        # Keep Camera above terrain
+        # TO DO: Object occlusion with camera intersection
+#        cx,cy,cz = camera.getPos(self.terrain.getRoot())
+#        terZ = self.terrain.getElevation(cx,cy) # what is terrain elevation at new camera pos
+#        print "localframe: ",app.camera.getPos()
+#        print "worldframe: ",app.camera.getPos(terrainRoot)
+#        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
+#        if cz <= terZ+epsilon:
+#            camera.setZ(self.terrain.getRoot(),terZ+epsilon)
+#        camera.lookAt(self.target,Point3(0,.333,2)) # look at the avatar nodepath
+        camera.lookAt(Point3(0,.333,2)) # look at the avatar nodepath
+        
+    #    print camVector                   
+        return task.cont
+        
+  
         
 class World(ShowBase):
+    # avatar control states...
     Kturn = 0
     Kwalk = 0
     Kstrafe = 0
+    
+    # camera control states
     Kzoom = 0
     Kpitch = 0
     Ktheta = 0
-    mbState = [0,0,0,0] # 3 mouse buttons + wheel, 1 down, 0 on up
-
-    ## SOME CAM STUFF
-    camVector = [10,0,10]    # [distance, heading, pitch ]
+    
+    #pure control states
+    mbState = [0,0,0,0,0,0] # 3 mouse buttons + wheel,deltaX, deltaY; buttons: 1 down, 0 on up
     mousePos = [0,0]
     mousePos_old = mousePos
-
+#    controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
+#        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
+        
     def __init__(self):
         ShowBase.__init__(self)
         self.setFrameRateMeter(1)
         #app.disableMouse()
         self.scene = Scene('testscene.x')
         self.scene.model.reparentTo(render)
+        CC = ControlledCamera(self.mbState)
         
-        self.setupModels()
+#        self.setupModels()
         self.setupLights()
         self.setupKeys()
-        taskMgr.add(self.updateAvnp,'Move Avatar Node')
-        taskMgr.add(self.updateCamera,'Adjust Camera')
+#        taskMgr.add(self.updateAvnp,'Move Avatar Node') #TODO: Move to Avatar class
+#        taskMgr.add(self.updateCamera,'Adjust Camera')
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
     def setupModels(self):
@@ -166,21 +230,24 @@ class World(ShowBase):
             self.mousePos_old = self.mousePos
             self.mousePos = [base.mouseWatcherNode.getMouseX(), \
             base.mouseWatcherNode.getMouseY()]
-        dt = globalClock.getDt()
-        if self.mbState[0] and not self.mbState[2]:
-            self.camVector[1] += -_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0])
-            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
-        if self.mbState[2] and not self.mbState[0]:  # mouse Steer av
-            self.avnp.setH(self.avnp,-2*_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0]))
-            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
-        
-    #    print avHandler.mbState[3]
-        mbWheel = self.mbState[3]
-        if mbWheel:
-            self.camVector[0] += 15*(sign(mbWheel))*dt
-            self.mbState[3] -= 3*sign(mbWheel)*dt
-            if abs(self.mbState[3]) < .15: self.mbState[3] = 0 # anti-jitter on cam
-    
+            self.mbState[4] = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
+            self.mbState[5] = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
+            
+#        dt = globalClock.getDt()
+#        if self.mbState[0] and not self.mbState[2]:
+#            self.camVector[1] += -_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0])
+#            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
+#        if self.mbState[2] and not self.mbState[0]:  # mouse Steer av
+#            self.avnp.setH(self.avnp,-2*_TURNRATE_*(self.mousePos[0] - self.mousePos_old[0]))
+#            self.camVector[2] += -_TURNRATE_*(self.mousePos[1] - self.mousePos_old[1])
+#        
+#    #    print avHandler.mbState[3]
+#        mbWheel = self.mbState[3]
+#        if mbWheel:
+#            self.camVector[0] += 15*(sign(mbWheel))*dt
+#            self.mbState[3] -= 3*sign(mbWheel)*dt
+#            if abs(self.mbState[3]) < .15: self.mbState[3] = 0 # anti-jitter on cam
+#    
         return task.cont
 
     def updateAvnp(self,task):
@@ -197,34 +264,34 @@ class World(ShowBase):
         return task.cont   
     
     
-    def updateCamera(self,task):
-        epsilon = 1
-        dt = globalClock.getDt() # to stay time based, not frame based
-        self.camVector[0] += 15*(self.Kzoom)*dt
-        self.camVector[1] += .5*_TURNRATE_*self.Ktheta*dt
-        self.camVector[2] += .5*_TURNRATE_*self.Kpitch*dt
-        
-        phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
-        theta = self.camVector[1]*pi/180 # orbit angle unbound this way
-        radius = max(_MINCAMDIST_,min(1000,self.camVector[0]))
-        camera.setX(radius*cos(phi)*sin(theta))
-        camera.setY(-radius*cos(phi)*cos(theta))
-        camera.setZ(radius*sin(phi))
-        
-        # Keep Camera above terrain
-        # TO DO: Object occlusion with camera intersection
-#        cx,cy,cz = camera.getPos(self.terrain.getRoot())
-#        terZ = self.terrain.getElevation(cx,cy) # what is terrain elevation at new camera pos
-#        print "localframe: ",app.camera.getPos()
-#        print "worldframe: ",app.camera.getPos(terrainRoot)
-#        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
-#        if cz <= terZ+epsilon:
-#            camera.setZ(self.terrain.getRoot(),terZ+epsilon)
-        camera.lookAt(self.avnp,Point3(0,.333,2)) # look at the avatar nodepath
-#        camera.lookAt(self.sun.model)
-        
-    #    print camVector                   
-        return task.cont
+#    def updateCamera(self,task):
+#        epsilon = 1
+#        dt = globalClock.getDt() # to stay time based, not frame based
+#        self.camVector[0] += 15*(self.Kzoom)*dt
+#        self.camVector[1] += .5*_TURNRATE_*self.Ktheta*dt
+#        self.camVector[2] += .5*_TURNRATE_*self.Kpitch*dt
+#        
+#        phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
+#        theta = self.camVector[1]*pi/180 # orbit angle unbound this way
+#        radius = max(_MINCAMDIST_,min(1000,self.camVector[0]))
+#        camera.setX(radius*cos(phi)*sin(theta))
+#        camera.setY(-radius*cos(phi)*cos(theta))
+#        camera.setZ(radius*sin(phi))
+#        
+#        # Keep Camera above terrain
+#        # TO DO: Object occlusion with camera intersection
+##        cx,cy,cz = camera.getPos(self.terrain.getRoot())
+##        terZ = self.terrain.getElevation(cx,cy) # what is terrain elevation at new camera pos
+##        print "localframe: ",app.camera.getPos()
+##        print "worldframe: ",app.camera.getPos(terrainRoot)
+##        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
+##        if cz <= terZ+epsilon:
+##            camera.setZ(self.terrain.getRoot(),terZ+epsilon)
+#        camera.lookAt(self.avnp,Point3(0,.333,2)) # look at the avatar nodepath
+##        camera.lookAt(self.sun.model)
+#        
+#    #    print camVector                   
+#        return task.cont
         
 
 W = World()
