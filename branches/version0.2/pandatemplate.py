@@ -13,13 +13,12 @@ from numpy import sign
 
 import sys, os
 
-import common
 
 _TURNRATE_ = 90    # Degrees per second
 _WALKRATE_ = 30
 _MINCAMDIST_ = .333
 
-_RESOURCEPATH_ = 'resources'
+RESOURCE_PATH = 'resources'
 
 class Scene():
     """ Used to load static geometry"""
@@ -29,12 +28,11 @@ class Scene():
             print "No Scene name given on init!!!"
             return -1
         self.root = PandaNode(sceneName)
-        self.np = NodePath(self.root)
+        self.np = self.loadScene(sceneName)
 #        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
-        self.model = self.loadScene(sceneName) #TODO: move to self.np
         
     def loadScene(self,sceneName):
-        tmp = loader.loadModel(os.path.join(_RESOURCEPATH_,sceneName))
+        tmp = loader.loadModel(os.path.join(RESOURCE_PATH,sceneName))
         if tmp:
             # do things with tmp like split up, add lights, whatever
             return tmp
@@ -98,6 +96,32 @@ class ControlledCamera():
     #    print camVector                   
         return task.cont
         
+
+class Player():
+    """ fancy wrapper for player nodepath"""
+    
+    def __init__(self,modelName,controlState, name=None):
+        if not modelName:
+            print('No model name passed to player.py!')
+            return None
+        self.root = PandaNode('player_node')
+        self.np = loader.loadModel(modelName)
+        if self.np:
+            self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
+            self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+        taskMgr.add(self.update,'updatePlayer') #TODO: Move to Avatar class
+        self.controlState = controlState
+        
+    def update(self,task):
+        dt = globalClock.getDt()
+        self.np.setPos(self.np,_WALKRATE_*self.controlState['strafe']*dt,_WALKRATE_*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.np.setH(self.np,_TURNRATE_*self.controlState['turn']*dt) #key input steer
+        x,y,z = self.np.getPos()
+#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.np,(x,y,z))
+
+#        self.np.setZ(self.ijTile(x,y).getElevation(x,y))
+        return task.cont   
+
   
         
 class World(ShowBase):
@@ -115,7 +139,8 @@ class World(ShowBase):
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         self.loadScene('testscene.x')
         self.CC = ControlledCamera(self.mbState)
-        self.player = common.Player('cube.x','Player_1')
+        self.player = Player(os.path.join(RESOURCE_PATH,'cube.x'),self.controls,'Player_1')
+        self.player.np.reparentTo(render)
         
 #        taskMgr.add(self.updateAvnp,'Move Avatar Node') #TODO: Move to Avatar class
 #        taskMgr.add(self.updateCamera,'Adjust Camera')
@@ -128,7 +153,7 @@ class World(ShowBase):
 
     def loadScene(self,sceneName):
         self.scene = Scene(sceneName)
-        self.scene.model.reparentTo(render)      
+        self.scene.np.reparentTo(render)      
 #        self.setupModels()
         self.setupLights()
         
