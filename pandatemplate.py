@@ -14,9 +14,9 @@ from numpy import sign
 import sys, os
 
 
-_TURNRATE_ = 90    # Degrees per second
-_WALKRATE_ = 30
-_MINCAMDIST_ = .333
+TURN_RATE = 90    # Degrees per second
+WALK_RATE = 30
+MIN_CAM_DIST = .333
 
 RESOURCE_PATH = 'resources'
 
@@ -44,11 +44,11 @@ class Scene():
 
 class ControlledCamera():
     """ Expects Panda3d base globals to be present already """
-    def __init__(self,controlState,target=Point3(0,0,0)):
+    def __init__(self,controlState,target=Point3(0,0,0),follow=True):
         self.camVector = [10,0,10]    # [distance to target, heading to target, pitch to target ]
         self.target = target    # Target oject or location for camera to look at
-        self.follow = True    # should the camera move with the target or stay fixed?
-        self.mouseState = controlState
+        self.follow = follow    # should the camera move with the target or stay fixed?
+        self.controlState = controlState
         taskMgr.add(self.update,'Adjust Camera')
         
         
@@ -56,38 +56,50 @@ class ControlledCamera():
 #    def updateCamera(self,task):
         epsilon = 1
         dt = globalClock.getDt() # to stay time based, not frame based
-        if self.mouseState[0] and not self.mouseState[2]:
-            self.camVector[1] += -_TURNRATE_*self.mouseState[4]
-            self.camVector[2] += -_TURNRATE_*self.mouseState[5]
-        if not self.mouseState[0] and self.mouseState[2]:  # mouse Steer av
-#TODO: ENABLE MOUSE STEER            self.avnp.setH(self.avnp,-2*_TURNRATE_*self.mouseState[4])
-            self.camVector[2] += -_TURNRATE_*self.mouseState[5]
+        if self.controlState["mouseLook"]:
+            self.camVector[1] += -TURN_RATE*self.controlState["mousePos"][0]
+            self.camVector[2] += -TURN_RATE*self.controlState["mousePos"][1]
+#TODO: DELETE THIS???!            self.camVector[2] += -TURN_RATE*self.controlState[5]
         
-    #    print avHandler.mouseState[3]
-        mbWheel = self.mouseState[3]
+#TODO: ENABLE CAMPERA CONTROLS FROM KEYS        
+#        self.camVector[0] += 15*(self.Kzoom)*dt
+#        self.camVector[1] += .5*TURN_RATE*self.Ktheta*dt
+#        self.camVector[2] += .5*TURN_RATE*self.Kpitch*dt
+     
+    #    print avHandler.controlState[3]
+        mbWheel = self.controlState["mouseWheel"]
         if mbWheel:
             self.camVector[0] += 15*(sign(mbWheel))*dt
-            self.mouseState[3] -= 3*sign(mbWheel)*dt
-            if abs(self.mouseState[3]) < .15: self.mouseState[3] = 0 # anti-jitter on cam
-        
-#        self.camVector[0] += 15*(self.Kzoom)*dt
-#        self.camVector[1] += .5*_TURNRATE_*self.Ktheta*dt
-#        self.camVector[2] += .5*_TURNRATE_*self.Kpitch*dt
-#TODO: ENABLE CAMPERA CONTROLS FROM KEYS
-     
+            self.controlState["mouseWheel"] -= 3*sign(mbWheel)*dt
+            if abs(self.controlState["mouseWheel"]) < .15: self.controlState["mouseWheel"] = 0 # anti-jitter on cam
+
         phi = max(-pi/2,min(pi/2,self.camVector[2]*pi/180))
         theta = self.camVector[1]*pi/180 # orbit angle unbound this way
-        radius = max(_MINCAMDIST_,min(1000,self.camVector[0]))
+        radius = self.camVector[0]
+        if radius >= 1000:
+            radius = 1000
+            self.controlState["mouseWheel"] = 0 # clear out any buffered changes            
+        elif radius <= MIN_CAM_DIST:
+            radius = MIN_CAM_DIST
+            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+
         if self.follow:
-            relativeNP = self.target
+#            relativeNP = self.target
+            camera.reparentTo(self.target)
         else:
-            relativeNP = camera
-        camera.setX(relativeNP, radius*cos(phi)*sin(theta))
-        camera.setY(relativeNP, -radius*cos(phi)*cos(theta))
-        camera.setZ(relativeNP, radius*sin(phi))
-        
-        # Keep Camera above terrain
-        # TO DO: Object occlusion with camera intersection
+#            relativeNP = camera
+            camera.reparentTo(base.render)
+        camera.setX(radius*cos(phi)*sin(theta))
+        camera.setY(-radius*cos(phi)*cos(theta))
+        camera.setZ(radius*sin(phi))
+#        camera.setH(relativeNP.getH())
+
+#        if not self.controlState[0] and self.controlState[2]:  # mouse Steer av
+#TODO: ENABLE MOUSE STEER            self.avnp.setH(self.avnp,-2*TURN_RATE*self.controlState[4])
+
+
+# Keep Camera above terrain
+#TODO: Object occlusion with camera intersection
 #        cx,cy,cz = camera.getPos(self.terrain.getRoot())
 #        terZ = self.terrain.getElevation(cx,cy) # what is terrain elevation at new camera pos
 #        print "localframe: ",app.camera.getPos()
@@ -114,17 +126,23 @@ class Player():
         if self.np:
             self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
             self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-        taskMgr.add(self.update,'updatePlayer') #TODO: Move to Avatar class
+        taskMgr.add(self.update,'updatePlayer')
         self.controlState = controlState
         
     def update(self,task):
+#        print self.controlState
         dt = globalClock.getDt()
-        self.np.setPos(self.np,_WALKRATE_*self.controlState['strafe']*dt,_WALKRATE_*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self.np.setH(self.np,_TURNRATE_*self.controlState['turn']*dt) #key input steer
-        x,y,z = self.np.getPos()
-#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.np,(x,y,z))
+        self.np.setPos(self.np,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer
+        if self.controlState["mouseSteer"]:
+            self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) # mouse steering
 
+#        x,y,z = self.np.getPos()
+#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.np,(x,y,z))
 #        self.np.setZ(self.ijTile(x,y).getElevation(x,y))
+
+#        print self.controlState
+#        print('\n')       
         return task.cont   
 
   
@@ -132,9 +150,11 @@ class Player():
 class World(ShowBase):
     
     #pure control states
-    mbState = [0,0,0,0,0,0] # 3 mouse buttons + wheel,deltaX, deltaY; buttons: 1 down, 0 on up
+    mbState = [0,0,0,0] # 3 mouse buttons + wheel, buttons: 1 down, 0 on up
     mousePos = [0,0]
     mousePos_old = mousePos
+    controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
+        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0],"mouseWheel":0,"mouseLook":False}
         
     def __init__(self):
         ShowBase.__init__(self)
@@ -146,8 +166,9 @@ class World(ShowBase):
 
         self.player = Player(os.path.join(RESOURCE_PATH,'cube.x'),self.controls,'Player_1')
         self.player.np.reparentTo(render)
-
-        self.CC = ControlledCamera(self.mbState,target=self.player.np)
+        self.player.np.setZ(1)
+        
+        self.CC = ControlledCamera(self.controls,target=self.player.np,follow=True)
         
 #        taskMgr.add(self.updateAvnp,'Move Avatar Node') #TODO: Move to Avatar class
 #        taskMgr.add(self.updateCamera,'Adjust Camera')
@@ -167,17 +188,17 @@ class World(ShowBase):
     def setupLights(self):
         self.render.setShaderAuto()
         self.alight = AmbientLight('alight')
-        self.alight.setColor(VBase4(.1,.1,.1,1))
+        self.alight.setColor(VBase4(1,1,1,1))
         self.alnp = self.render.attachNewNode(self.alight)
         render.setLight(self.alnp)
 
         self.dlight = DirectionalLight('dlight')
         self.dlight.setColor(VBase4(.8,.8,.8,1))
         self.dlnp = self.render.attachNewNode(self.dlight)
-#        render.setLight(self.dlnp)       
+        render.setLight(self.dlnp)       
 
         self.slight = Spotlight('slight')
-        self.slight.setColor(VBase4(1,0,0,1))
+        self.slight.setColor(VBase4(1,1,1,1))
         self.slnp = self.render.attachNewNode(self.slight)
         self.slnp.setPos(0,0,10)
         render.setLight(self.slnp)
@@ -185,8 +206,6 @@ class World(ShowBase):
 #        self.slnp.lookAt(self.model)
               
     def setupKeys(self):     
-        self.controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
-        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0]}
 
         _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
            
@@ -221,12 +240,13 @@ class World(ShowBase):
         self.accept("arrow_down-up",self._setControls,["camZoom",0])
         self.accept("arrow_up-up",self._setControls,["camZoom",0])
     
-        self.accept("mouse1",self._mbutton,[1,1])
-        self.accept("mouse1-up",self._mbutton,[1,0])
-        self.accept("mouse2",self._mbutton,[2,1])
-        self.accept("mouse2-up",self._mbutton,[2,0])
-        self.accept("mouse3",self._mbutton,[3,1])
-        self.accept("mouse3-up",self._mbutton,[3,0])
+#        self.accept("mouse2",self._mbutton,[3,1])
+#        self.accept("mouse2-up",self._mbutton,[3,0])
+        self.accept("mouse1",self._setControls,["mouseLook",True])
+        self.accept("mouse1-up",self._setControls,["mouseLook",False])
+        self.accept("mouse3",self._setControls,["mouseSteer",True])
+        self.accept("mouse3-up",self._setControls,["mouseSteer",False])
+        
         self.accept("wheel_up",self._mbutton,[4,-1])
         self.accept("wheel_up-up",self._mbutton,[4,0])
         self.accept("wheel_down",self._mbutton,[4,1])
@@ -245,9 +265,9 @@ class World(ShowBase):
 
     def _mbutton(self,b,s): 
         if b == 4: # add up mouse wheel clicks
-            self.mbState[b-1] += s
+            self.controls['mouseWheel'] += s
         else:
-            self.mbState[b-1] = s
+            self.controls['mouseWheel'] = s
 #        print self.mbState
         # ADD A L+R BUTTON WALK 
                           
@@ -257,26 +277,12 @@ class World(ShowBase):
             self.mousePos_old = self.mousePos
             self.mousePos = [base.mouseWatcherNode.getMouseX(), \
             base.mouseWatcherNode.getMouseY()]
-            self.mbState[4] = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
-            self.mbState[5] = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
-            
+            dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
+            dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
+            self.controls['mousePos'] = [dX,dY]
         return task.cont
 
-#    def updateAvnp(self,task):
-#        dt = globalClock.getDt()
-#        self.avnp.setPos(self.avnp,_WALKRATE_*self.Kstrafe*dt,_WALKRATE_*self.Kwalk*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#        self.avnp.setH(self.avnp,_TURNRATE_*self.Kturn*dt) #key input steer
-#        x,y,z = self.avnp.getPos()
-##        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.avnp,(x,y,z))
-#
-#        hdg = self.avnp.getH()
-##        self.avnp.setZ(self.ijTile(x,y).getElevation(x,y))
-#        
-#        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
-#        return task.cont   
-    
+   
 
 W = World()
-#W.useDrive()
-#W.camera.setPos(100,100,10)
 W.run()
