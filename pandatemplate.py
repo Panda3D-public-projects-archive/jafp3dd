@@ -57,25 +57,21 @@ class ControlledCamera():
     # more robust free camera mode
     
     MOUSE_STEER_SENSITIVITY = -70*TURN_RATE
-    ZOOM_STEP = .1
+    ZOOM_STEP = 0.1
+    radiusGain = 0.5
     
-    def __init__(self,controlState, follow=True):
+    def __init__(self,controlState=None):
 #    def __init__(self,controlState,target=Point3(0,0,0),follow=True):        
         base.disableMouse() # ONLY disables the mouse drive of the camera
         self._camVector = [10,0,10]    # [goal* distance to target, heading to target, pitch to target ]
-        self.follow = follow            # should the camera move with the target or stay fixed?
-        self._snapBack = True           # mouseLook=False = return camera to behind target (if we have a target and in follow mode)
         self.controlState = controlState
-        self._target = NodePath(PandaNode("CameraTarget"))          # Target oject or location for camera to look at
+        # Target oject or location for camera to look at
+        self._target = NodePath(PandaNode("CameraTarget"))         
         self._target.reparentTo(base.render)
+
         camera.reparentTo(self._target)
         taskMgr.add(self.update,'Adjust Camera')
 
-#    def setTarget(self,target=None):
-#        if not target:
-#            camera.reparentTo(base.render)
-#        else:
-#            camera.reparentTo(target)
         
     def update(self,task):
         dt = globalClock.getDt() # to stay time based, not frame based
@@ -83,16 +79,17 @@ class ControlledCamera():
         # MOVE TARGET EMPTY
         self._target.setPos(self._target,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
         self._target.setH(self._target,TURN_RATE*self.controlState['turn']*dt) #key input steer
-#TODO:    implement mouse steer as child object inheriting cam target's heading
-# NOT mouse steer is what we actually need!
+
         if self.controlState["mouseSteer"]:
-            self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mousePos'][0]*dt) # mouse steering
+            self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mouseDeltaXY'][0]*dt) # mouse steering
+        else:
+            pass
         
         # MOVE CAMERA ACCORDINGLY
         if self.controlState["mouseLook"]:
-            self._camVector[1] += -TURN_RATE*self.controlState["mousePos"][0]
+            self._camVector[1] += -TURN_RATE*self.controlState["mouseDeltaXY"][0]
         if self.controlState["mouseLook"] or self.controlState["mouseSteer"]:
-            self._camVector[2] += -TURN_RATE*self.controlState["mousePos"][1]
+            self._camVector[2] += -TURN_RATE*self.controlState["mouseDeltaXY"][1]
 
 
 #TODO: ENABLE CAMERA CONTROLS FROM KEYS
@@ -100,18 +97,16 @@ class ControlledCamera():
 #        self._camVector[1] += .5*TURN_RATE*self.Ktheta*dt
 #        self._camVector[2] += .5*TURN_RATE*self.Kpitch*dt
 
-#        mbWheel = self.controlState["mouseWheel"]
-#        if mbWheel:
-#            self._camVector[0] += 15*(sign(mbWheel))*dt
-#            self.controlState["mouseWheel"] -= 3*sign(mbWheel)*dt
-#            if abs(self.controlState["mouseWheel"]) < .15: self.controlState["mouseWheel"] = 0 # anti-jitter on cam
         self._camVector[0] += self.controlState["mouseWheel"] * self.ZOOM_STEP
-#        distErr = currentDistance - self._camVector[0]
-#        change self.current radius by gain*distError
+        radius = self._camVector[0]
+        radiusErr = camera.getPos().length() - radius
+#        print self.controlState["mouseWheel"], radiusErr
 
+        if radiusErr > 0.0:
+            radius -= self.radiusGain*radiusErr
+        
         phi = max(-pi/2,min(pi/2,self._camVector[2]*pi/180))
         theta = self._camVector[1]*pi/180 # orbit angle unbound this way
-        radius = self._camVector[0]
         if radius >= 1000:
             radius = 1000
             self.controlState["mouseWheel"] = 0 # clear out any buffered changes
@@ -130,7 +125,6 @@ class ControlledCamera():
 #        else:
 #            camera.setHpr(theta, phi, 0)
 
-        camera.printPos()
 
 #===============================================================================
 # Keep Camera above terrain
@@ -189,7 +183,7 @@ class World(ShowBase):
     mousePos = [0,0]
     mousePos_old = mousePos
     controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
-        'camHead':0,'camPitch':0, "mouseTurn":0, "mousePos":[0,0],"mouseWheel":0,"mouseLook":False,"mouseSteer":False}
+        'camHead':0,'camPitch':0, "mouseTurn":0, "mouseDeltaXY":[0,0],"mouseWheel":0,"mouseLook":False,"mouseSteer":False}
 
     def __init__(self):
         ShowBase.__init__(self)
@@ -198,9 +192,9 @@ class World(ShowBase):
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         self.loadScene('testscene.x')
 
-        self.CC = ControlledCamera(self.controls, follow=True)
+        self.CC = ControlledCamera(self.controls)
 
-        self.player = Player(os.path.join(RESOURCE_PATH,'cube.x'),self.controls,'Player_1')
+        self.player = Player(os.path.join(RESOURCE_PATH,'cube.x'),None,'Player_1')
         self.player.np.reparentTo(self.CC._target)
         self.player.np.setZ(.2)
 
@@ -309,7 +303,7 @@ class World(ShowBase):
             base.mouseWatcherNode.getMouseY()]
             dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
             dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
-            self.controls['mousePos'] = [dX,dY]
+            self.controls['mouseDeltaXY'] = [dX,dY]
         return task.cont
 
     def updateOSD(self,task):
