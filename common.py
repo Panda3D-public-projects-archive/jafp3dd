@@ -14,7 +14,36 @@ from panda3d.ai import *
 
 from CONSTANTS import *
 
+class GmObject():
+    """ fancy wrapper for nodepath"""
 
+    def __init__(self,modelName = None, controller=None, name=''):
+        self.root = PandaNode(name + 'obj_node')
+        if modelName:
+            self.np = loader.loadModel(modelName)
+            if self.np:
+                self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
+                self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+        if not self.np:
+            self.np = NodePath(self.root)
+        taskMgr.add(self.update,'update'+name)
+        self.controller = controller
+
+    def update(self,task):
+#        print self.controller
+        dt = globalClock.getDt()
+        if self.controller:
+            self.np.setPos(self.np,WALK_RATE*self.controller['strafe']*dt,WALK_RATE*self.controller['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            self.np.setH(self.np,TURN_RATE*self.controller['turn']*dt) #key input steer
+
+#        x,y,z = self.np.getPos()
+#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.np,(x,y,z))
+#        self.np.setZ(self.ijTile(x,y).getElevation(x,y))
+
+#        print self.controller
+#        print('\n')
+        return task.cont
+        
 class AIengine():
     def __init__(self):
         self.root = NodePath(PandaNode('AIengine'))

@@ -83,16 +83,16 @@ class ControlledCamera():
         # MOVE TARGET EMPTY
         self._target.setPos(self._target,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
         self._target.setH(self._target,TURN_RATE*self.controlState['turn']*dt) #key input steer
+#TODO:    implement mouse steer as child object inheriting cam target's heading
+# NOT mouse steer is what we actually need!
+        if self.controlState["mouseSteer"]:
+            self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mousePos'][0]*dt) # mouse steering
         
         # MOVE CAMERA ACCORDINGLY
         if self.controlState["mouseLook"]:
             self._camVector[1] += -TURN_RATE*self.controlState["mousePos"][0]
         if self.controlState["mouseLook"] or self.controlState["mouseSteer"]:
             self._camVector[2] += -TURN_RATE*self.controlState["mousePos"][1]
-#TODO:    implement mouse steer as child object inheriting cam target's heading
-# NOT mouse steer is what we actually need!
-#        if self.controlState["mouseSteer"]:
-#            self.np.setH(self.np,self.MOUSE_STEER_SENSITIVITY*self.controlState['mousePos'][0]*dt) # mouse steering
 
 
 #TODO: ENABLE CAMERA CONTROLS FROM KEYS
@@ -153,7 +153,7 @@ class ControlledCamera():
 class Player():
     """ fancy wrapper for player nodepath"""
 
-    def __init__(self,modelName,controlState, name=None):
+    def __init__(self,modelName,controlState=None, name=None):
         if not modelName:
             print('No model name passed to player.py!')
             return None
@@ -168,8 +168,9 @@ class Player():
     def update(self,task):
 #        print self.controlState
         dt = globalClock.getDt()
-#        self.np.setPos(self.np,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-#        self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer
+        if self.controlState:
+            self.np.setPos(self.np,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer
 
 #        x,y,z = self.np.getPos()
 #        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.np,(x,y,z))
