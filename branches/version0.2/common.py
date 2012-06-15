@@ -15,7 +15,8 @@ from panda3d.ai import *
 from CONSTANTS import *
 
 class GmObject():
-    """ fancy wrapper for nodepath"""
+    """ fancy wrapper for nodepath that adds:
+        Controls, """
 
     def __init__(self,modelName = None, controller=None, name=''):
         self.root = PandaNode(name + 'obj_node')
