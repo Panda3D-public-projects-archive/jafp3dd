@@ -57,7 +57,7 @@ class ControlledCamera():
     # more robust free camera mode
     
     MOUSE_STEER_SENSITIVITY = -70*TURN_RATE
-    ZOOM_STEP = 0.1
+    ZOOM_STEP = 1
     radiusGain = 0.5
     
     def __init__(self,controlState=None):
@@ -98,6 +98,7 @@ class ControlledCamera():
 #        self._camVector[2] += .5*TURN_RATE*self.Kpitch*dt
 
         self._camVector[0] += self.controlState["mouseWheel"] * self.ZOOM_STEP
+        self.controlState["mouseWheel"] = 0
         radius = self._camVector[0]
         radiusErr = camera.getPos().length() - radius
 #        print self.controlState["mouseWheel"], radiusErr
@@ -109,10 +110,10 @@ class ControlledCamera():
         theta = self._camVector[1]*pi/180 # orbit angle unbound this way
         if radius >= 1000:
             radius = 1000
-            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+#            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
         elif radius <= MIN_CAM_DIST:
             radius = MIN_CAM_DIST
-            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+#            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
     
 
 #        if self._target:
@@ -194,7 +195,7 @@ class World(ShowBase):
 
         self.CC = ControlledCamera(self.controls)
 
-        self.player = Player(os.path.join(RESOURCE_PATH,'cube.x'),None,'Player_1')
+        self.player = Player(os.path.join(RESOURCE_PATH,'axes.x'),None,'Player_1')
         self.player.np.reparentTo(self.CC._target)
         self.player.np.setZ(.2)
 
@@ -270,9 +271,9 @@ class World(ShowBase):
         self.accept("mouse3-up",self._setControls,["mouseSteer",False])
 
         self.accept("wheel_up",self._setControls,["mouseWheel",-1])
-        self.accept("wheel_up-up",self._setControls,["mouseWheel",0])
         self.accept("wheel_down",self._setControls,["mouseWheel",1])
-        self.accept("wheel_down-up",self._setControls,["mouseWheel",0])
+#        self.accept("wheel_up-up",self._setControls,["mouseWheel",0])
+#        self.accept("wheel_down-up",self._setControls,["mouseWheel",0])
 
         self.accept(_KeyMap['wire'],self.toggleWireframe)
         self.accept("escape",sys.exit)
@@ -286,15 +287,9 @@ class World(ShowBase):
                 else:
                     self.controls["walk"] = 0
             if key == 'mouseWheel': 
-                self.controls['mouseWheel'] += value # add up mouse wheel clicks
-                print self.controls['mouseWheel']
+                cur = self.controls['mouseWheel'] 
+                self.controls['mouseWheel'] = cur + value # add up mouse wheel clicks
                 
-#    def _mwheel(self,b,s):
-#        if b == 4: # add up mouse wheel clicks
-#            self.controls['mouseWheel'] += s
-#        print self.mbState
-        # ADD A L+R BUTTON WALK
-
     def mouseHandler(self,task):
 
         if base.mouseWatcherNode.hasMouse():
