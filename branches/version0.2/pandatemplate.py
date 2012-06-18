@@ -11,7 +11,6 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 from math import sin,cos,pi
-from numpy import sign
 
 import common
 
@@ -42,11 +41,10 @@ class Scene():
         # load scene tree from blender
         # find lights from blender and create them with the right properties
 
-
-class ControlledCamera():
+class ControlledCamera(common.ControlledObject):
     """ Expects Panda3d base globals to be present already 
     ControlledCamera always has a "target" (think of it as an 'empty' in blender)
-    That target can be free (parented to base.render), or it can be attached to another
+    parented to base.render
     nodepath (avatar, tree, something) 
     When selecting a game object, it will become parented to the empty...
     We always move the empty: if we want to move Player X, player X game object must be 
@@ -61,25 +59,44 @@ class ControlledCamera():
     ZOOM_STEP = 1
     radiusGain = 0.5
     
-    def __init__(self,controlState=None):
-#    def __init__(self,controlState,target=Point3(0,0,0),follow=True):        
+    def __init__(self,controller=None,**kwargs):
+        common.ControlledObject.__init__(self,controller,**kwargs)
         base.disableMouse() # ONLY disables the mouse drive of the camera
         self._camVector = [10,0,10]    # [goal* distance to target, heading to target, pitch to target ]
-        self.controlState = controlState
         # Target oject or location for camera to look at
-        self._target = NodePath(PandaNode("CameraTarget"))         
-        self._target.reparentTo(base.render)
-
+        self._target = self.np    # remnant of 1st implementation
+        self.np.reparentTo(base.render)
         camera.reparentTo(self._target)
-        taskMgr.add(self.update,'Adjust Camera')
 
+        self.traverser = CollisionTraverser('CameraPickingTraverse') 
+        self.pq = CollisionHandlerQueue()
+        
+        self.pickerNode = CollisionNode('mouseRay')
+        self.pickerNP = camera.attachNewNode(self.pickerNode)
+        self.pickerNode.setFromCollideMask(GeomNode.getDefaultCollideMask())
+        self.pickerRay = CollisionRay()
+        self.pickerNode.addSolid(self.pickerRay)
+
+        self.traverser.addCollider(self.pickerNP, self.pq)
+#        self.traverser.addCollider(self.pickerNP, self.pickingHandler)
+            
+    def pickingFunc(self,colEntry):
+        mpos = base.mouseWatcherNode.getMouse()
+        self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
+ 
+        self.traverser.traverse(render)
+        if self.pq.getNumEntries() > 0:
+            self.pq.sortEntries()        # This is so we get the closest object.
+            pickedObj = self.pq.getEntry(0).getIntoNodePath()
+            print pickedObj
+#            pickedObj = pickedObj.findNetTag('myObjectTag')
+#            if not pickedObj.isEmpty():
+#                handlePickedObject(pickedObj)
+         
         
     def update(self,task):
+        common.ControlledObject.update(self,task)
         dt = globalClock.getDt() # to stay time based, not frame based
-
-        # MOVE TARGET EMPTY
-        self._target.setPos(self._target,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-        self._target.setH(self._target,TURN_RATE*self.controlState['turn']*dt) #key input steer
 
         if self.controlState["mouseSteer"]:
             self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mouseDeltaXY'][0]*dt) # mouse steering
@@ -117,16 +134,11 @@ class ControlledCamera():
 #            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
     
 
-#        if self._target:
-        # IN ORBIT TARGET MODE
         # THERE IS ALWAYS A TARGET EMPTY
         camera.setX(radius*cos(phi)*sin(theta))
         camera.setY(-radius*cos(phi)*cos(theta))
         camera.setZ(radius*sin(phi))
         camera.lookAt(self._target) # look at the avatar nodepath
-#        else:
-#            camera.setHpr(theta, phi, 0)
-
 
 #===============================================================================
 # Keep Camera above terrain
@@ -145,38 +157,116 @@ class ControlledCamera():
     #    print _camVector
         return task.cont
 
+#class ControlledCamera():
+#    """ Expects Panda3d base globals to be present already 
+#    ControlledCamera always has a "target" (think of it as an 'empty' in blender)
+#    parented to base.render
+#    nodepath (avatar, tree, something) 
+#    When selecting a game object, it will become parented to the empty...
+#    We always move the empty: if we want to move Player X, player X game object must be 
+#    parented to cameraTarget"""
+#    
+#    #TODO: GLOBALLY:
+#    # Add screen picking
+#    # make zoom a proper PI controller: Set radius with wheel. let PID approach it    
+#    # more robust free camera mode
+#    
+#    MOUSE_STEER_SENSITIVITY = -70*TURN_RATE
+#    ZOOM_STEP = 1
+#    radiusGain = 0.5
+#    
+#    def __init__(self,controlState=None):
+##    def __init__(self,controlState,target=Point3(0,0,0),follow=True):        
+#        base.disableMouse() # ONLY disables the mouse drive of the camera
+#        self._camVector = [10,0,10]    # [goal* distance to target, heading to target, pitch to target ]
+#        self.controlState = controlState
+#        # Target oject or location for camera to look at
+#        self._target = NodePath(PandaNode("CameraTarget"))         
+#        self._target.reparentTo(base.render)
+#
+#        camera.reparentTo(self._target)
+#        taskMgr.add(self.update,'Adjust Camera')
+#
+#        
+#    def update(self,task):
+#        dt = globalClock.getDt() # to stay time based, not frame based
+#
+#        # MOVE TARGET EMPTY
+#        self._target.setPos(self._target,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+#        self._target.setH(self._target,TURN_RATE*self.controlState['turn']*dt) #key input steer
+#
+#        if self.controlState["mouseSteer"]:
+#            self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mouseDeltaXY'][0]*dt) # mouse steering
+#        else:
+#            pass
+#        
+#        # MOVE CAMERA ACCORDINGLY
+#        if self.controlState["mouseLook"]:
+#            self._camVector[1] += -TURN_RATE*self.controlState["mouseDeltaXY"][0]
+#        if self.controlState["mouseLook"] or self.controlState["mouseSteer"]:
+#            self._camVector[2] += -TURN_RATE*self.controlState["mouseDeltaXY"][1]
+#
+#
+##TODO: ENABLE CAMERA CONTROLS FROM KEYS
+##        self._camVector[0] += 15*(self.Kzoom)*dt
+##        self._camVector[1] += .5*TURN_RATE*self.Ktheta*dt
+##        self._camVector[2] += .5*TURN_RATE*self.Kpitch*dt
+#
+#        self._camVector[0] += self.controlState["mouseWheel"] * self.ZOOM_STEP
+#        self.controlState["mouseWheel"] = 0
+#        radius = self._camVector[0]
+#        radiusErr = camera.getPos().length() - radius
+##        print self.controlState["mouseWheel"], radiusErr
+#
+#        if radiusErr > 0.0:
+#            radius -= self.radiusGain*radiusErr
+#        
+#        phi = max(-pi/2,min(pi/2,self._camVector[2]*pi/180))
+#        theta = self._camVector[1]*pi/180 # orbit angle unbound this way
+#        if radius >= 1000:
+#            radius = 1000
+##            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+#        elif radius <= MIN_CAM_DIST:
+#            radius = MIN_CAM_DIST
+##            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+#    
+#
+##        if self._target:
+#        # IN ORBIT TARGET MODE
+#        # THERE IS ALWAYS A TARGET EMPTY
+#        camera.setX(radius*cos(phi)*sin(theta))
+#        camera.setY(-radius*cos(phi)*cos(theta))
+#        camera.setZ(radius*sin(phi))
+#        camera.lookAt(self._target) # look at the avatar nodepath
+##        else:
+##            camera.setHpr(theta, phi, 0)
+#
+#
+##===============================================================================
+## Keep Camera above terrain
+##===============================================================================
+##TODO: Object occlusion with camera intersection
+##        epsilon = 1
+##        cx,cy,cz = camera.getPos(self.terrain.getRoot())
+##        terZ = self.terrain.getElevation(cx,cy) # what is terrain elevation at new camera pos
+##        print "localframe: ",app.camera.getPos()
+##        print "worldframe: ",app.camera.getPos(terrainRoot)
+##        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
+##        if cz <= terZ+epsilon:
+##            camera.setZ(self.terrain.getRoot(),terZ+epsilon)
+##        camera.lookAt(self.target,Point3(0,.333,2)) # look at the avatar nodepath
+#
+#    #    print _camVector
+#        return task.cont
 
-class Player():
-    """ fancy wrapper for player nodepath"""
-
-    def __init__(self,modelName,controlState=None, name=None):
-        if not modelName:
-            print('No model name passed to player.py!')
-            return None
-        self.root = PandaNode('player_node')
-        self.np = loader.loadModel(modelName)
-        if self.np:
-            self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
-            self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-        taskMgr.add(self.update,'updatePlayer')
-        self.controlState = controlState
-
-    def update(self,task):
-#        print self.controlState
-        dt = globalClock.getDt()
-        if self.controlState:
-            self.np.setPos(self.np,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
-            self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer
-
-#        x,y,z = self.np.getPos()
-#        (xp,yp,zp) = self.ijTile(x,y).root.getRelativePoint(self.np,(x,y,z))
-#        self.np.setZ(self.ijTile(x,y).getElevation(x,y))
-
-#        print self.controlState
-#        print('\n')
-        return task.cont
-
-
+class ControlState(dict):
+    """ A container recording the current state of control(s) for an object
+    controls are: strafe, walk, fly, turn, pitch, roll
+    valid values are signed floats
+    key strokes are typically recorded as + or - 1   
+    """
+    def __init__(self):
+        self['strafe'] = 0
 
 class World(ShowBase):
 
@@ -184,11 +274,13 @@ class World(ShowBase):
     mbState = [0,0,0,0] # 3 mouse buttons + wheel, buttons: 1 down, 0 on up
     mousePos = [0,0]
     mousePos_old = mousePos
-    controls = {"turn":0, "walk":0, "autoWalk":0,"strafe":0,'camZoom':0,\
-        'camHead':0,'camPitch':0, "mouseTurn":0, "mouseDeltaXY":[0,0],"mouseWheel":0,"mouseLook":False,"mouseSteer":False}
+    controls = {"turn":0, "walk":0, "strafe":0,"fly":0,\
+        'camZoom':0,'camHead':0,'camPitch':0,\
+        "mouseDeltaXY":[0,0],"mouseWheel":0,"mouseLook":False,"mouseSteer":False}
 
     def __init__(self):
         ShowBase.__init__(self)
+        base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
         self.setFrameRateMeter(1)
         self.setupKeys()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
@@ -201,7 +293,7 @@ class World(ShowBase):
         self.player.np.reparentTo(self.CC._target)
         self.player.np.setZ(.2)
 
-        self.textObject = OnscreenText(text = str(self.player.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
+        self.textObject = OnscreenText(text = str(self.CC.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
         taskMgr.add(self.updateOSD,'OSDupdater')
 
     def loadScene(self,sceneName):
