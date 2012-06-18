@@ -5,14 +5,15 @@
 #path.append('c:\Panda3D-1.7.2\\bin');
 #_DATAPATH_ = "./resources"
 
+import sys, os
+
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 from math import sin,cos,pi
 from numpy import sign
 
-import sys, os
-
+import common
 
 TURN_RATE = 90    # Degrees per second
 WALK_RATE = 30
@@ -195,7 +196,8 @@ class World(ShowBase):
 
         self.CC = ControlledCamera(self.controls)
 
-        self.player = Player(os.path.join(RESOURCE_PATH,'axes.x'),None,'Player_1')
+        self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.x'),controller=None)
+         # Attach the player node to the camera empty node       
         self.player.np.reparentTo(self.CC._target)
         self.player.np.setZ(.2)
 
