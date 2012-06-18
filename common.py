@@ -28,17 +28,17 @@ class GameObject():
 class ControlledObject(GameObject):
     """ GameObject with that add Controls"""
         
-    def __init__(self,controller=None,*args,**kwargs):
-        GameObject.__init__(self,*args,**kwargs)
-        self.controller = controller
+    def __init__(self,controller=None, **kwargs):
+        GameObject.__init__(self,**kwargs)
+        self.controlState = controller
         taskMgr.add(self.update,'update'+self.name.upper())
     
     def update(self,task):
-#        print self.controller
+#        print self.controlState
         dt = globalClock.getDt()
-        if self.controller:
-            self.np.setPos(self.np,WALK_RATE*self.controller['strafe']*dt,WALK_RATE*self.controller['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+        if self.controlState:
+            self.np.setPos(self.np,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #TODO: GENERALIZE CONTROL TO HPR BINDINGS
-            self.np.setH(self.np,TURN_RATE*self.controller['turn']*dt) #key input steer            
+            self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer            
         return task.cont
    
