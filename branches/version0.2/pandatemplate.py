@@ -20,14 +20,14 @@ MIN_CAM_DIST = .333
 
 RESOURCE_PATH = 'resources'
 
-class Scene():
+class Scene(common.GameObject):
     """ Used to load static geometry"""
 
     def __init__(self,sceneName):
         if not sceneName:
             print "No Scene name given on init!!!"
             return -1
-        self.root = PandaNode(sceneName)
+        common.GameObject.__init__(self)
         self.np = self.loadScene(sceneName)
 #        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
 
@@ -80,19 +80,19 @@ class ControlledCamera(common.ControlledObject):
         self.traverser.addCollider(self.pickerNP, self.pq)
 #        self.traverser.addCollider(self.pickerNP, self.pickingHandler)
             
-    def pickingFunc(self,colEntry):
-        mpos = base.mouseWatcherNode.getMouse()
-        self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
- 
-        self.traverser.traverse(render)
-        if self.pq.getNumEntries() > 0:
-            self.pq.sortEntries()        # This is so we get the closest object.
-            pickedObj = self.pq.getEntry(0).getIntoNodePath()
-            print pickedObj
-#            pickedObj = pickedObj.findNetTag('myObjectTag')
-#            if not pickedObj.isEmpty():
-#                handlePickedObject(pickedObj)
-         
+    def pickingFunc(self):
+        print "pick func called"
+        if base.mouseWatcherNode.hasMouse():
+            mpos = base.mouseWatcherNode.getMouse()
+            self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
+     
+            self.traverser.traverse(render)
+            if self.pq.getNumEntries() > 0:
+                self.pq.sortEntries()        # This is so we get the closest object.
+                pickedObj = self.pq.getEntry(0).getIntoNodePath()
+                pickedObj = pickedObj.findNetTag('selectable')
+                if not pickedObj.isEmpty():
+                    print pickedObj.getName()         
         
     def update(self,task):
         common.ControlledObject.update(self,task)
@@ -282,11 +282,11 @@ class World(ShowBase):
         ShowBase.__init__(self)
         base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
         self.setFrameRateMeter(1)
+        self.loadScene(os.path.join(RESOURCE_PATH,'testscene.x'))
+        self.CC = ControlledCamera(self.controls)
+
         self.setupKeys()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
-        self.loadScene('testscene.x')
-
-        self.CC = ControlledCamera(self.controls)
 
         self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.x'),controller=None)
          # Attach the player node to the camera empty node       
@@ -297,7 +297,7 @@ class World(ShowBase):
         taskMgr.add(self.updateOSD,'OSDupdater')
 
     def loadScene(self,sceneName):
-        self.scene = Scene(sceneName)
+        self.scene = common.GameObject('ground',sceneName)
         self.scene.np.reparentTo(render)
 #        self.setupModels()
         self.setupLights()
@@ -320,11 +320,9 @@ class World(ShowBase):
         self.slnp.setPos(0,0,10)
         render.setLight(self.slnp)
 
-#        self.slnp.lookAt(self.model)
-
     def setupKeys(self):
 
-        _KeyMap ={'left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
+        _KeyMap ={'action':'mouse1','left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
 
         self.accept(_KeyMap['left'],self._setControls,["turn",1])
         self.accept(_KeyMap['left']+"-up",self._setControls,["turn",0])
@@ -360,6 +358,7 @@ class World(ShowBase):
 #        self.accept("mouse2",self._mwheel,[3,1])
 #        self.accept("mouse2-up",self._mwheel,[3,0])
         self.accept("mouse1",self._setControls,["mouseLook",True])
+        self.accept(_KeyMap['action'],self.CC.pickingFunc)
         self.accept("mouse1-up",self._setControls,["mouseLook",False])
         self.accept("mouse3",self._setControls,["mouseSteer",True])
         self.accept("mouse3-up",self._setControls,["mouseSteer",False])

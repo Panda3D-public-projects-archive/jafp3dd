@@ -20,10 +20,11 @@ class GameObject():
         self.np = NodePath(self.root)
         if modelName:
             self.np = loader.loadModel(modelName)
+            self.np.setName(name)
 #TODO:     is NodePath.attachCollisionSphere the same? better? RESEARCH            
         self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
         self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-
+        self.np.setTag('selectable','1')
 
 class ControlledObject(GameObject):
     """ GameObject with that add Controls"""
