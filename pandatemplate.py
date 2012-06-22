@@ -403,5 +403,7 @@ class World(ShowBase):
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont
 
-W = World()
-W.run()
+if __name__=='__main__':
+    PStatClient.connect()
+    W = World()
+    W.run()
