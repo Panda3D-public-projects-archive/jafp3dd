@@ -96,6 +96,7 @@ class ControlledCamera(common.ControlledObject):
                 if not pickedObj.isEmpty():
                     print pickedObj.getName()
 
+
     def update(self,task):
         common.ControlledObject.update(self,task)
         dt = globalClock.getDt() # to stay time based, not frame based
