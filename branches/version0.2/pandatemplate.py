@@ -14,6 +14,8 @@ from math import sin,cos,pi
 
 import common
 
+PStatClient.connect()
+
 TURN_RATE = 90    # Degrees per second
 WALK_RATE = 30
 MIN_CAM_DIST = .333
