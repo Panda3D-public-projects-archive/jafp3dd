@@ -21,25 +21,30 @@ class GameObject():
         if modelName:
             self.np = loader.loadModel(modelName)
             self.np.setName(name)
-#TODO:     is NodePath.attachCollisionSphere the same? better? RESEARCH            
+#TODO:     is NodePath.attachCollisionSphere the same? better? RESEARCH
+#TODO: search for collision geometry in the model and add to object
         self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
         self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         self.np.setTag('selectable','1')
 
+class AnimatedObject(GameObject):
+    def __init__(self):
+        pass
+    # plass holder for actors?
+
 class ControlledObject(GameObject):
     """ GameObject with that add Controls"""
-        
+
     def __init__(self,controller=None, **kwargs):
         GameObject.__init__(self,**kwargs)
         self.controlState = controller
         taskMgr.add(self.update,'update'+self.name.upper())
-    
+
     def update(self,task):
 #        print self.controlState
         dt = globalClock.getDt()
         if self.controlState:
             self.np.setPos(self.np,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #TODO: GENERALIZE CONTROL TO HPR BINDINGS
-            self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer            
+            self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer
         return task.cont
-   

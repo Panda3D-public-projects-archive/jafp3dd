@@ -10,6 +10,8 @@ import sys, os
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
+from direct.actor.Actor import Actor
+
 from math import sin,cos,pi
 
 import common
@@ -67,6 +69,7 @@ class ControlledCamera(common.ControlledObject):
         self._camVector = [10,0,10]    # [goal* distance to target, heading to target, pitch to target ]
         # Target oject or location for camera to look at
         self._target = self.np    # remnant of 1st implementation
+        self.pickedObj = None
         self.np.reparentTo(base.render)
         camera.reparentTo(self._target)
 
@@ -94,7 +97,7 @@ class ControlledCamera(common.ControlledObject):
                 pickedObj = self.pq.getEntry(0).getIntoNodePath()
                 pickedObj = pickedObj.findNetTag('selectable')
                 if not pickedObj.isEmpty():
-                    print pickedObj.getName()
+                    self.pickedObj = pickedObj.getName()
 
     def update(self,task):
         common.ControlledObject.update(self,task)
@@ -298,6 +301,11 @@ class World(ShowBase):
         self.textObject = OnscreenText(text = str(self.CC.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
         taskMgr.add(self.updateOSD,'OSDupdater')
 
+#        self.panda = Actor('models/panda-model',{'walk':'models/panda-walk4'})
+        self.panda = Actor('resources/aniCube')
+        self.panda.reparentTo(self.CC._target)
+        self.panda.loop('aniCube')
+
     def loadScene(self,sceneName):
         self.scene = common.GameObject('ground',sceneName)
         self.scene.np.reparentTo(render)
@@ -357,11 +365,10 @@ class World(ShowBase):
         self.accept("arrow_down-up",self._setControls,["camZoom",0])
         self.accept("arrow_up-up",self._setControls,["camZoom",0])
 
-#        self.accept("mouse2",self._mwheel,[3,1])
-#        self.accept("mouse2-up",self._mwheel,[3,0])
-        self.accept("mouse1",self._setControls,["mouseLook",True])
         self.accept(_KeyMap['action'],self.CC.pickingFunc)
         self.accept("mouse1-up",self._setControls,["mouseLook",False])
+        self.accept("mouse2",self._setControls,["mouseLook",True])
+        self.accept("mouse2-up",self._setControls,["mouseLook",False])
         self.accept("mouse3",self._setControls,["mouseSteer",True])
         self.accept("mouse3-up",self._setControls,["mouseSteer",False])
 
@@ -398,9 +405,9 @@ class World(ShowBase):
 
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
-        [x,y,z] = self.player.np.getPos()
-        [hdg,p,r] = self.player.np.getHpr()
-        self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
+        [x,y,z] = self.player.np.getParent().getPos()
+        [hdg,p,r] = self.player.np.getParent().getHpr()
+        self.textObject.setText(str( (int(x), int(y), int(z), int(hdg), self.CC.pickedObj) ))
         return task.cont
 
 W = World()
