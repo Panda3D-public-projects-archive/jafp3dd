@@ -302,9 +302,34 @@ class World(ShowBase):
         taskMgr.add(self.updateOSD,'OSDupdater')
 
 #        self.panda = Actor('models/panda-model',{'walk':'models/panda-walk4'})
-        self.panda = Actor('resources/aniCube')
-        self.panda.reparentTo(self.CC._target)
-        self.panda.loop('aniCube')
+#        self.panda = Actor('resources/aniCube')
+#        self.panda.reparentTo(self.CC._target)
+#        self.panda.loop('aniCube')
+        self.cube = common.Gatherer('cubeAI','resources/aniCube')
+        self.cube.np.reparentTo(render)
+        self.cube.resPos = Vec3(10,10,0)
+        self.cube.request('ToResource')
+
+    def setAI(self):
+        #Creating AI World
+        self.AIworld = AIWorld(self.root)
+#        for obj in self.mapTile.staticObjs[0:1]:
+#            self.AIworld.addObstacle(obj)
+
+        for n in range(NUM_NPC):
+            newAI = Gatherer("NPC"+str(n),'resources/models/golfie.x',.6)
+            newAI.setCenterPos(Vec3(64,64,30))
+            newAI.np.setPos(70,70,0)
+            newAI.np.setTag('ID',str(n))
+
+            tx = random.randint(0,128)
+            ty = random.randint(0,128)
+            newAI.setResourcePos(self.mapTile.staticObjs[random.choice(range(20))].getPos()) #Vec3(tx,ty,35)
+
+            newAI.request('ToResource')
+            self.npc.append( newAI )
+            self.AIworld.addAiChar(newAI.AI)
+#            self.seeker.loop("run") # starts actor animations
 
     def loadScene(self,sceneName):
         self.scene = common.GameObject('ground',sceneName)
