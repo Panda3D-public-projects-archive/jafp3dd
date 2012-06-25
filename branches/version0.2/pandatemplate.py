@@ -96,7 +96,6 @@ class ControlledCamera(common.ControlledObject):
                 if not pickedObj.isEmpty():
                     print pickedObj.getName()
 
-
     def update(self,task):
         common.ControlledObject.update(self,task)
         dt = globalClock.getDt() # to stay time based, not frame based
@@ -404,7 +403,5 @@ class World(ShowBase):
         self.textObject.setText(str((int(x),int(y),int(z),int(hdg))))
         return task.cont
 
-if __name__=='__main__':
-    PStatClient.connect()
-    W = World()
-    W.run()
+W = World()
+W.run()
