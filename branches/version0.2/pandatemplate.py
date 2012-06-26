@@ -291,6 +291,7 @@ class World(ShowBase):
         self.CC = ControlledCamera(self.controls)
 
         self.setupKeys()
+        self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
 
         self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.x'),controller=None)
@@ -305,19 +306,19 @@ class World(ShowBase):
 #        self.panda = Actor('resources/aniCube')
 #        self.panda.reparentTo(self.CC._target)
 #        self.panda.loop('aniCube')
-        self.cube = common.Gatherer('cubeAI','resources/aniCube')
-        self.cube.np.reparentTo(render)
-        self.cube.resPos = Vec3(10,10,0)
-        self.cube.request('ToResource')
 
     def setAI(self):
         #Creating AI World
-        self.AIworld = AIWorld(self.root)
-#        for obj in self.mapTile.staticObjs[0:1]:
-#            self.AIworld.addObstacle(obj)
+        self.AIworld = AIWorld(render)
+        taskMgr.add(self.updateAI,'updateAI')
 
         for n in range(NUM_NPC):
-            newAI = Gatherer("NPC"+str(n),'resources/models/golfie.x',.6)
+#        self.cube = common.Gatherer('cubeAI','resources/aniCube')
+#        self.cube.np.reparentTo(render)
+#        self.cube.resPos = Vec3(10,10,0)
+#        self.cube.request('ToResource')
+
+            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube')
             newAI.setCenterPos(Vec3(64,64,30))
             newAI.np.setPos(70,70,0)
             newAI.np.setTag('ID',str(n))
@@ -433,6 +434,11 @@ class World(ShowBase):
         [x,y,z] = self.player.np.getParent().getPos()
         [hdg,p,r] = self.player.np.getParent().getHpr()
         self.textObject.setText(str( (int(x), int(y), int(z), int(hdg), self.CC.pickedObj) ))
+        return task.cont
+
+    def updateAI(self,task):
+
+        self.AIworld.update()
         return task.cont
 
 W = World()
