@@ -43,23 +43,34 @@ class GameObject():
             self.np.colorScale(2,0,0)
         else:
             self.np.colorScale(1,1,1)
-        
-class ControlledObject(GameObject):
-    """ GameObject with that add Controls"""
 
-    def __init__(self,controller=None, **kwargs):
-        GameObject.__init__(self,**kwargs)
+
+class NodePathController():
+    """ Controls for a nodepath (usually a game object associated with)
+    """
+
+    def __init__(self,controller=None,ctrlNP=None):
         self.controlState = controller
-        taskMgr.add(self.update,'update'+self.name.upper())
+        self.controlledNP = ctrlNP
+        taskMgr.add(self.update,'updateController')
 
     def update(self,task):
 #        print self.controlState
         dt = globalClock.getDt()
         if self.controlState:
-            self.np.setPos(self.np,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
+            self.controlledNP.setPos(self.controlledNP,WALK_RATE*self.controlState['strafe']*dt,WALK_RATE*self.controlState['walk']*dt,0) # these are local then relative so it becomes the (R,F,Up) vector
 #TODO: GENERALIZE CONTROL TO HPR BINDINGS
-            self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer
+            self.controlledNP.setH(self.controlledNP,TURN_RATE*self.controlState['turn']*dt) #key input steer
+            
         return task.cont
+         
+class ControlledObject(GameObject,NodePathController):
+    """ GameObject with that add Controls"""
+
+    def __init__(self,controller=None, **kwargs):
+        GameObject.__init__(self,**kwargs)
+        NodePathController.__init__(self,controller,self.np)
+
 
 class ControlledCamera(ControlledObject):
     """ Expects Panda3d base globals to be present already
@@ -68,10 +79,10 @@ class ControlledCamera(ControlledObject):
     nodepath (avatar, tree, something)
     When selecting a game object, it will become parented to the empty...
     We always move the empty: if we want to move Player X, player X game object must be
-    parented to cameraTarget"""
+    parented to cameraTarget
+    """
 
     #TODO: GLOBALLY:
-    # Add screen picking
     # make zoom a proper PI controller: Set radius with wheel. let PID approach it
     # more robust free camera mode
 

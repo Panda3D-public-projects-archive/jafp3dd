@@ -81,7 +81,7 @@ class World(ShowBase):
         self.textObject = OnscreenText(text = str(self.CC.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
         taskMgr.add(self.updateOSD,'OSDupdater')
 
-        self.pickedNP = None
+        self.pickedNP = render
         self.traverser = CollisionTraverser('CameraPickingTraverse')
         self.pq = CollisionHandlerQueue()
 
@@ -230,13 +230,16 @@ class World(ShowBase):
                 picked = self.pq.getEntry(0).getIntoNodePath()
                 picked = picked.findNetTag('selectable')
                 if not picked.isEmpty():
-                    self.pickedNP = picked.getName()
+                    if self.pickedNP:
+                        self.pickedNP.setColorScale(1,1,1,1) # remove highlight from previously picked
+                    self.pickedNP = picked
+                    self.pickedNP.setColorScale(.1,1,.1,1)
                     
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
         [x,y,z] = self.player.np.getParent().getPos()
         [hdg,p,r] = self.player.np.getParent().getHpr()
-        self.textObject.setText(str( (int(x), int(y), int(z), int(hdg), self.pickedNP) ))
+        self.textObject.setText(str( (int(x), int(y), int(z), int(hdg), self.pickedNP.getName()) ))
         return task.cont
 
 W = World()
