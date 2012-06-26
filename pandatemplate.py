@@ -5,13 +5,13 @@
 #path.append('c:\Panda3D-1.7.2\\bin');
 #_DATAPATH_ = "./resources"
 
-import sys, os
+import sys, os, random
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
 from direct.actor.Actor import Actor
-
+from panda3d.ai import *
 from math import sin,cos,pi
 
 import common
@@ -21,6 +21,7 @@ PStatClient.connect()
 TURN_RATE = 90    # Degrees per second
 WALK_RATE = 30
 MIN_CAM_DIST = .333
+NUM_NPC = 1
 
 RESOURCE_PATH = 'resources'
 
@@ -312,11 +313,8 @@ class World(ShowBase):
         self.AIworld = AIWorld(render)
         taskMgr.add(self.updateAI,'updateAI')
 
+        self.npc = []
         for n in range(NUM_NPC):
-#        self.cube = common.Gatherer('cubeAI','resources/aniCube')
-#        self.cube.np.reparentTo(render)
-#        self.cube.resPos = Vec3(10,10,0)
-#        self.cube.request('ToResource')
 
             newAI = common.Gatherer("NPC"+str(n),'resources/aniCube')
             newAI.setCenterPos(Vec3(64,64,30))
@@ -325,13 +323,17 @@ class World(ShowBase):
 
             tx = random.randint(0,128)
             ty = random.randint(0,128)
-            newAI.setResourcePos(self.mapTile.staticObjs[random.choice(range(20))].getPos()) #Vec3(tx,ty,35)
+            newAI.setResourcePos( Vec3(tx,ty,0) )
 
             newAI.request('ToResource')
             self.npc.append( newAI )
             self.AIworld.addAiChar(newAI.AI)
 #            self.seeker.loop("run") # starts actor animations
 
+    def updateAI(self,task):
+        self.AIworld.update()
+        return task.cont
+        
     def loadScene(self,sceneName):
         self.scene = common.GameObject('ground',sceneName)
         self.scene.np.reparentTo(render)
@@ -434,11 +436,6 @@ class World(ShowBase):
         [x,y,z] = self.player.np.getParent().getPos()
         [hdg,p,r] = self.player.np.getParent().getHpr()
         self.textObject.setText(str( (int(x), int(y), int(z), int(hdg), self.CC.pickedObj) ))
-        return task.cont
-
-    def updateAI(self,task):
-
-        self.AIworld.update()
         return task.cont
 
 W = World()
