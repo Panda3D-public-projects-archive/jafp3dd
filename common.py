@@ -6,12 +6,18 @@ Created on Fri Feb 03 14:24:37 2012
 """
 
 import random
+from math import sin,cos,pi
 
 from direct.showbase.ShowBase import taskMgr
 #from direct.showbase.DirectObject import DirectObject
 from panda3d.core import * #PandaNode, NodePath, CollisionNode, CollisionSphere
 from direct.fsm.FSM import FSM
 from panda3d.ai import *
+#from direct.actor.Actor import Actor
+
+TURN_RATE = 90    # Degrees per second
+WALK_RATE = 30
+MIN_CAM_DIST = .333
 
 from CONSTANTS import *
 
@@ -24,13 +30,20 @@ class GameObject():
         self.np = NodePath(self.root)
         if modelName:
             self.np = loader.loadModel(modelName)
+#            self.np = Actor(modelName)
             self.np.setName(name)
 #TODO:     is NodePath.attachCollisionSphere the same? better? RESEARCH
 #TODO: search for collision geometry in the model and add to object
-        self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
-        self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+#        self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
+#        self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         self.np.setTag('selectable','1')
 
+    def setSelected(sel = False):
+        if sel:        
+            self.np.colorScale(2,0,0)
+        else:
+            self.np.colorScale(1,1,1)
+        
 class ControlledObject(GameObject):
     """ GameObject with that add Controls"""
 
@@ -48,11 +61,104 @@ class ControlledObject(GameObject):
             self.np.setH(self.np,TURN_RATE*self.controlState['turn']*dt) #key input steer
         return task.cont
 
+class ControlledCamera(ControlledObject):
+    """ Expects Panda3d base globals to be present already
+    ControlledCamera always has a "target" (think of it as an 'empty' in blender)
+    parented to base.render
+    nodepath (avatar, tree, something)
+    When selecting a game object, it will become parented to the empty...
+    We always move the empty: if we want to move Player X, player X game object must be
+    parented to cameraTarget"""
 
-class Gatherer(FSM):
+    #TODO: GLOBALLY:
+    # Add screen picking
+    # make zoom a proper PI controller: Set radius with wheel. let PID approach it
+    # more robust free camera mode
 
-    def __init__(self,name,modelName,modelScale=1):
+    MOUSE_STEER_SENSITIVITY = -70*TURN_RATE
+    ZOOM_STEP = 1
+    radiusGain = 0.5
+
+    def __init__(self,controller=None,**kwargs):
+        ControlledObject.__init__(self,controller,**kwargs)
+        base.disableMouse() # ONLY disables the mouse drive of the camera
+        self._camVector = [10,0,10]    # [goal* distance to target, heading to target, pitch to target ]
+        # Target oject or location for camera to look at
+        self._target = self.np    # remnant of 1st implementation
+        self.np.reparentTo(base.render)
+        camera.reparentTo(self._target)
+
+                    
+    def update(self,task):
+        ControlledObject.update(self,task)
+        dt = globalClock.getDt() # to stay time based, not frame based
+
+        if self.controlState["mouseSteer"]:
+            self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mouseDeltaXY'][0]*dt) # mouse steering
+        else:
+            pass
+
+        # MOVE CAMERA ACCORDINGLY
+        if self.controlState["mouseLook"]:
+            self._camVector[1] += -TURN_RATE*self.controlState["mouseDeltaXY"][0]
+        if self.controlState["mouseLook"] or self.controlState["mouseSteer"]:
+            self._camVector[2] += -TURN_RATE*self.controlState["mouseDeltaXY"][1]
+
+
+#TODO: ENABLE CAMERA CONTROLS FROM KEYS
+#        self._camVector[0] += 15*(self.Kzoom)*dt
+#        self._camVector[1] += .5*TURN_RATE*self.Ktheta*dt
+#        self._camVector[2] += .5*TURN_RATE*self.Kpitch*dt
+
+        self._camVector[0] += self.controlState["mouseWheel"] * self.ZOOM_STEP
+        self.controlState["mouseWheel"] = 0
+        radius = self._camVector[0]
+        radiusErr = camera.getPos().length() - radius
+#        print self.controlState["mouseWheel"], radiusErr
+
+        if radiusErr > 0.0:
+            radius -= self.radiusGain*radiusErr
+
+        phi = max(-pi/2,min(pi/2,self._camVector[2]*pi/180))
+        theta = self._camVector[1]*pi/180 # orbit angle unbound this way
+        if radius >= 1000:
+            radius = 1000
+#            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+        elif radius <= MIN_CAM_DIST:
+            radius = MIN_CAM_DIST
+#            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+
+
+        # THERE IS ALWAYS A TARGET EMPTY
+        camera.setX(radius*cos(phi)*sin(theta))
+        camera.setY(-radius*cos(phi)*cos(theta))
+        camera.setZ(radius*sin(phi))
+        camera.lookAt(self._target) # look at the avatar nodepath
+
+#===============================================================================
+# Keep Camera above terrain
+#===============================================================================
+#TODO: Object occlusion with camera intersection
+#        epsilon = 1
+#        cx,cy,cz = camera.getPos(self.terrain.getRoot())
+#        terZ = self.terrain.getElevation(cx,cy) # what is terrain elevation at new camera pos
+#        print "localframe: ",app.camera.getPos()
+#        print "worldframe: ",app.camera.getPos(terrainRoot)
+#        print "terra  WF: ", cx,cy,terrain.getElevation(cx,cy)
+#        if cz <= terZ+epsilon:
+#            camera.setZ(self.terrain.getRoot(),terZ+epsilon)
+#        camera.lookAt(self.target,Point3(0,.333,2)) # look at the avatar nodepath
+
+    #    print _camVector
+        return task.cont
+
+
+class Gatherer(GameObject,FSM):
+
+    def __init__(self,name=None,modelName=None,modelScale=1,**kwargs):
+        GameObject.__init__(self,name,modelName,**kwargs)
         FSM.__init__(self, 'aGatherer')
+
 #        self.defaultTransitions = {
 #            'Walk' : [ 'Walk2Swim' ],
 #            'Walk2Swim' : [ 'Swim' ],
@@ -60,17 +166,11 @@ class Gatherer(FSM):
 #            'Swim2Walk' : [ 'Walk' ],
 #            'Drowning' : [ ],
 #            }
-        #TODO: Load ACTORS as well as static models...
-        self.np = loader.loadModel(modelName)
-        self.np.setName(name)
+
+#TODO: Load ACTORS as well as static models...
         self.np.setScale(modelScale)
-        self.np.setH(180)
         color = (VBase4(random.random(),random.random(),random.random(),1))
         self.np.setColor(color)
-
-
-        cnp = self.np.attachNewNode(CollisionNode('model-collision'))
-        cnp.node().addSolid(CollisionSphere(0,0,1,.5))
 
         self.resPos = None
         self.centerPos = None
@@ -111,7 +211,6 @@ class Gatherer(FSM):
         self.behavior.removeAi('wander')
 
     def enterToCenter(self):
-        print self.centerPos
         self.behavior.seek(self.centerPos,1.0)
 
     def exitToCenter(self):
@@ -131,7 +230,6 @@ class Gatherer(FSM):
 #        pass
 
     def stateMonitor(self,task):
-        print self.state
         if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
             self.request('Deliver')
         if self.state == 'ToResource' and self.behavior.behaviorStatus('seek') == 'done':
@@ -145,3 +243,4 @@ class Gatherer(FSM):
     def deliverTimer(self,task):
         self.request('ToResource')
         return task.done
+
