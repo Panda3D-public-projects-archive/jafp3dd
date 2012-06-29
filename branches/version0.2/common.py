@@ -166,6 +166,35 @@ class ControlledCamera(ControlledObject):
         return task.cont
 
 
+
+class NpcAI(GameObject,FSM):
+
+    def __init__(self,name=None,modelName=None,modelScale=1,**kwargs):
+        GameObject.__init__(self,name,modelName,**kwargs)
+        FSM.__init__(self, 'aGatherer')
+
+#        self.defaultTransitions = {
+#            'Walk' : [ 'Walk2Swim' ],
+#            'Walk2Swim' : [ 'Swim' ],
+#            'Swim' : [ 'Swim2Walk', 'Drowning' ],
+#            'Swim2Walk' : [ 'Walk' ],
+#            'Drowning' : [ ],
+#            }
+
+#TODO: Load ACTORS as well as static models...
+        self.np.setScale(modelScale)
+        self.AI = AICharacter(name,self.np, 50, 0.05, 5)
+        self.behavior = self.AI.getAiBehaviors()
+
+        taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
+        
+    def stateMonitor(self,task):
+#        if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
+#            self.request('Deliver')
+        pass
+        return task.again
+
+    
 class Gatherer(GameObject,FSM):
 
     def __init__(self,name=None,modelName=None,modelScale=1,**kwargs):
