@@ -230,7 +230,7 @@ class World(ShowBase):
                 self.pq.sortEntries()        # This is so we get the closest object.
                 picked = self.pq.getEntry(0).getIntoNodePath()
                 picked = picked.findNetTag('selectable')
-                if not picked.isEmpty():
+                if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
                     messenger.send('clickedOn',[picked.getName()])
 #                    if self.pickedNP:
 #                        self.pickedNP.setColorScale(1,1,1,1) # remove highlight from previously picked
