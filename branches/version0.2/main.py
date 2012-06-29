@@ -122,6 +122,7 @@ class World(ShowBase):
         
     def loadScene(self,sceneName):
         self.scene = common.GameObject('ground',sceneName)
+        self.scene.np.setTag('selectable','0')
         self.scene.np.reparentTo(render)
 #        self.setupModels()
         self.setupLights()
@@ -230,10 +231,11 @@ class World(ShowBase):
                 picked = self.pq.getEntry(0).getIntoNodePath()
                 picked = picked.findNetTag('selectable')
                 if not picked.isEmpty():
-                    if self.pickedNP:
-                        self.pickedNP.setColorScale(1,1,1,1) # remove highlight from previously picked
+                    messenger.send('clickedOn',[picked.getName()])
+#                    if self.pickedNP:
+#                        self.pickedNP.setColorScale(1,1,1,1) # remove highlight from previously picked
                     self.pickedNP = picked
-                    self.pickedNP.setColorScale(.1,1,.1,1)
+#                    self.pickedNP.setColorScale(.1,1,.1,1)
                     
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this

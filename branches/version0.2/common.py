@@ -9,7 +9,7 @@ import random
 from math import sin,cos,pi
 
 from direct.showbase.ShowBase import taskMgr
-#from direct.showbase.DirectObject import DirectObject
+from direct.showbase.DirectObject import DirectObject
 from panda3d.core import * #PandaNode, NodePath, CollisionNode, CollisionSphere
 from direct.fsm.FSM import FSM
 from panda3d.ai import *
@@ -21,11 +21,12 @@ MIN_CAM_DIST = .333
 
 from CONSTANTS import *
 
-class GameObject():
+class GameObject(DirectObject): # Inherit from DO for event handling
     """ fancy wrapper for nodepath """
 
     def __init__(self,name='', modelName = None):
         self.name = name
+        self.accept('clickedOn',self.selected)
         self.root = PandaNode(name + '_Gameobj_node')
         self.np = NodePath(self.root)
         if modelName:
@@ -37,12 +38,13 @@ class GameObject():
 #        self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
 #        self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         self.np.setTag('selectable','1')
-
-    def setSelected(sel = False):
-        if sel:        
-            self.np.colorScale(2,0,0)
+    
+    def selected(self, pickedName):
+        if pickedName == self.np.getName():
+            print self.np.getName(), " says `ouch!!!`"
+            self.np.setColorScale(.1,1,.1,1)
         else:
-            self.np.colorScale(1,1,1)
+            self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
 
 
 class NodePathController():
