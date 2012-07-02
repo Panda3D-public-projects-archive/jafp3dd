@@ -97,7 +97,7 @@ class World(ShowBase):
         self.npc = []
         for n in range(NUM_NPC):
 
-            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube',.15)
+            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube')
             newAI.np.reparentTo(render)
             newAI.np.setPos(0,0,0)
             newAI.np.setTag('ID',str(n))
