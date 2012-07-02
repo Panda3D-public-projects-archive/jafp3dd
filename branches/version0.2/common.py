@@ -41,7 +41,7 @@ class GameObject(DirectObject): # Inherit from DO for event handling
     
     def selected(self, pickedName):
         if pickedName == self.np.getName():
-            print self.np.getName(), " says `touched`"
+            print self.np.getName(), " touched"
             self.np.setColorScale(2,2,2,1)
         else:
             self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
