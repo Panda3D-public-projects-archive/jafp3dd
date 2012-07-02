@@ -1,0 +1,64 @@
+<CoordinateSystem> { Z-up } 
+<Material> Material.001 {
+  <Scalar> diffr { 1.0 }
+  <Scalar> diffg { 1.0 }
+  <Scalar> diffb { 1.0 }
+  <Scalar> specr { 0.500 }
+  <Scalar> specg { 0.500 }
+  <Scalar> specb { 0.500 }
+  <Scalar> shininess { 12.5 }
+  <Scalar> emitr { 0.000 }
+  <Scalar> emitg { 0.000 }
+  <Scalar> emitb { 0.000 }
+}
+
+<Texture> Plane_diffuse {
+  "./tex/Plane_diffuse.png"
+  <Scalar> envtype { MODULATE }
+}
+
+  <Group> Plane {
+    <Transform> {
+      <Matrix4> {
+        1.000 0.000 0.000 0.000 
+        0.000 1.000 0.000 0.000 
+        0.000 0.000 1.000 0.000 
+        0.000 0.000 0.000 1.000 
+      }
+    }
+    
+    <VertexPool> Plane {
+      <Vertex> 0 {
+        0.500 -0.000 0.500
+        <UV>  {
+          0.000 0.000
+        }
+      }
+      <Vertex> 1 {
+        -0.500 -0.000 0.500
+        <UV>  {
+          1.000 0.000
+        }
+      }
+      <Vertex> 2 {
+        -0.500 0.000 -0.500
+        <UV>  {
+          1.000 1.000
+        }
+      }
+      <Vertex> 3 {
+        0.500 0.000 -0.500
+        <UV>  {
+          0.000 1.000
+        }
+      }
+    }
+    
+    
+    <Polygon> {
+      <TRef> { Plane_diffuse }
+      <MRef> { Material.001 }
+      <Normal> {0.000 -1.000 -0.000}
+      <VertexRef> { 0 1 2 3 <Ref> { Plane }}
+    }
+  }

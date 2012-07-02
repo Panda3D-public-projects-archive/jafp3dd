@@ -26,7 +26,7 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 
     def __init__(self,name='', modelName = None):
         self.name = name
-        self.accept('clickedOn',self.selected)
+        self.accept('highlight',self.selected)
         self.root = PandaNode(name + '_Gameobj_node')
         self.np = NodePath(self.root)
         if modelName:
@@ -41,8 +41,8 @@ class GameObject(DirectObject): # Inherit from DO for event handling
     
     def selected(self, pickedName):
         if pickedName == self.np.getName():
-            print self.np.getName(), " says `ouch!!!`"
-            self.np.setColorScale(.1,1,.1,1)
+            print self.np.getName(), " says `touched`"
+            self.np.setColorScale(2,2,2,1)
         else:
             self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
 
