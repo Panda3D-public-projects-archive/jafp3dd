@@ -55,7 +55,6 @@ class Scene(common.GameObject):
 class World(ShowBase):
 
     #pure control states
-    mbState = [0,0,0,0] # 3 mouse buttons + wheel, buttons: 1 down, 0 on up
     mousePos = [0,0]
     mousePos_old = mousePos
     controls = {"turn":0, "walk":0, "strafe":0,"fly":0,\
@@ -67,6 +66,9 @@ class World(ShowBase):
         base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
         self.setFrameRateMeter(1)
         self.loadScene(os.path.join(RESOURCE_PATH,'groundc.x'))
+        self.hiddenNP = render.attachNewNode('HIDDEN')
+        self.hiddenNP.hide()
+        
         self.CC = common.ControlledCamera(self.controls)
 
         self.setupKeys()
@@ -92,7 +94,9 @@ class World(ShowBase):
         self.pickerNode.addSolid(self.pickerRay)
 
         self.traverser.addCollider(self.pickerNP, self.pq)
-
+        self.targetCard = loader.loadModel('resources/targeted.egg')
+        self.targetCard.set_billboard_point_eye()
+        
     def setAI(self):
         #Creating AI World
         self.AIworld = AIWorld(render)
@@ -180,7 +184,7 @@ class World(ShowBase):
         self.accept("arrow_down-up",self._setControls,["camZoom",0])
         self.accept("arrow_up-up",self._setControls,["camZoom",0])
 
-        self.accept(_KeyMap['action'],self.pickingFunc)
+#        self.accept(_KeyMap['action'],self.pickingFunc)
         self.accept("mouse1-up",self._setControls,["mouseLook",False])
         self.accept("mouse2",self._setControls,["mouseLook",True])
         self.accept("mouse2-up",self._setControls,["mouseLook",False])
@@ -216,27 +220,42 @@ class World(ShowBase):
             dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
             dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
             self.controls['mouseDeltaXY'] = [dX,dY]
-        return task.cont
 
-
-    def pickingFunc(self):
-#        print "pick func called"
-        if base.mouseWatcherNode.hasMouse():
+#TODO: Clean merger with above; same variables, etc
             mpos = base.mouseWatcherNode.getMouse()
             self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
 
             self.traverser.traverse(render)
+            picked = None
             if self.pq.getNumEntries() > 0:
                 self.pq.sortEntries()        # This is so we get the closest object.
                 picked = self.pq.getEntry(0).getIntoNodePath()
                 picked = picked.findNetTag('selectable')
                 if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
-                    messenger.send('clickedOn',[picked.getName()])
-#                    if self.pickedNP:
-#                        self.pickedNP.setColorScale(1,1,1,1) # remove highlight from previously picked
-                    self.pickedNP = picked
-#                    self.pickedNP.setColorScale(.1,1,.1,1)
-                    
+                    messenger.send('highlight',[picked.getName()])
+            if picked:
+                self.targetCard.reparentTo(picked)
+            else:
+                self.targetCard.reparentTo(self.hiddenNP)
+                
+        return task.cont
+
+
+#    def pickingFunc(self):
+##        print "pick func called"
+#        if base.mouseWatcherNode.hasMouse():
+#            mpos = base.mouseWatcherNode.getMouse()
+#            self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
+#
+#            self.traverser.traverse(render)
+#            if self.pq.getNumEntries() > 0:
+#                self.pq.sortEntries()        # This is so we get the closest object.
+#                picked = self.pq.getEntry(0).getIntoNodePath()
+#                picked = picked.findNetTag('selectable')
+#                if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
+#                    messenger.send('clickedOn',[picked.getName()])
+#                    self.pickedNP = picked
+#                    
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
         [x,y,z] = self.player.np.getParent().getPos()
