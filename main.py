@@ -42,16 +42,6 @@ class Scene(common.GameObject):
         # load scene tree from blender
         # find lights from blender and create them with the right properties
 
-
-#class ControlState(dict):
-#    """ A container recording the current state of control(s) for an object
-#    controls are: strafe, walk, fly, turn, pitch, roll
-#    valid values are signed floats
-#    key strokes are typically recorded as + or - 1
-#    """
-#    def __init__(self):
-#        self['strafe'] = 0
-
 class World(ShowBase):
 
     #pure control states
@@ -66,9 +56,6 @@ class World(ShowBase):
         base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
         self.setFrameRateMeter(1)
         self.loadScene(os.path.join(RESOURCE_PATH,'groundc.x'))
-        self.hiddenNP = render.attachNewNode('HIDDEN')
-        self.hiddenNP.hide()
-        
         self.CC = common.ControlledCamera(self.controls)
 
         self.setupKeys()
@@ -83,7 +70,8 @@ class World(ShowBase):
         self.textObject = OnscreenText(text = str(self.CC.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
         taskMgr.add(self.updateOSD,'OSDupdater')
 
-        self.pickedNP = render
+        self.stickyTarget = None
+        self.hover = None
         self.traverser = CollisionTraverser('CameraPickingTraverse')
         self.pq = CollisionHandlerQueue()
 
@@ -92,10 +80,14 @@ class World(ShowBase):
         self.pickerNode.setFromCollideMask(GeomNode.getDefaultCollideMask())
         self.pickerRay = CollisionRay()
         self.pickerNode.addSolid(self.pickerRay)
-
         self.traverser.addCollider(self.pickerNP, self.pq)
+        
         self.targetCard = loader.loadModel('resources/targeted.egg')
         self.targetCard.set_billboard_point_eye()
+        self.targetCard.setDepthTest(False)
+        self.targetCard.setDepthWrite(False)
+        self.targetCard.reparentTo(self.hidden)
+        self.targetCard.set_light_off()
         
     def setAI(self):
         #Creating AI World
@@ -105,7 +97,7 @@ class World(ShowBase):
         self.npc = []
         for n in range(NUM_NPC):
 
-            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube',0.1)
+            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube',.15)
             newAI.np.reparentTo(render)
             newAI.np.setPos(0,0,0)
             newAI.np.setTag('ID',str(n))
@@ -184,7 +176,7 @@ class World(ShowBase):
         self.accept("arrow_down-up",self._setControls,["camZoom",0])
         self.accept("arrow_up-up",self._setControls,["camZoom",0])
 
-#        self.accept(_KeyMap['action'],self.pickingFunc)
+        self.accept(_KeyMap['action'],self.pickingFunc)
         self.accept("mouse1-up",self._setControls,["mouseLook",False])
         self.accept("mouse2",self._setControls,["mouseLook",True])
         self.accept("mouse2-up",self._setControls,["mouseLook",False])
@@ -226,21 +218,27 @@ class World(ShowBase):
             self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
 
             self.traverser.traverse(render)
-            picked = None
             if self.pq.getNumEntries() > 0:
                 self.pq.sortEntries()        # This is so we get the closest object.
                 picked = self.pq.getEntry(0).getIntoNodePath()
                 picked = picked.findNetTag('selectable')
+                self.hover = None
                 if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
                     messenger.send('highlight',[picked.getName()])
-            if picked:
-                self.targetCard.reparentTo(picked)
-            else:
-                self.targetCard.reparentTo(self.hiddenNP)
-                
+                    self.hover = picked                   
+                    self.targetCard.reparentTo(render)
+                    b = picked.getBounds()
+                    self.targetCard.setPos(b.getCenter())
+                    self.targetCard.setScale(b.getRadius())
+                else:
+                    self.targetCard.reparentTo(self.hidden)
+            
         return task.cont
 
-
+    def pickingFunc(self):
+        self.stickyTarget = self.hover
+        print "Stick Target is now ", self.stickyTarget
+        
 #    def pickingFunc(self):
 ##        print "pick func called"
 #        if base.mouseWatcherNode.hasMouse():
@@ -254,13 +252,13 @@ class World(ShowBase):
 #                picked = picked.findNetTag('selectable')
 #                if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
 #                    messenger.send('clickedOn',[picked.getName()])
-#                    self.pickedNP = picked
+#                    self.stickyTarget = picked
 #                    
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
         [x,y,z] = self.player.np.getParent().getPos()
         [hdg,p,r] = self.player.np.getParent().getHpr()
-        self.textObject.setText(str( (int(x), int(y), int(z), int(hdg), self.pickedNP.getName()) ))
+        self.textObject.setText(str( (int(x), int(y), int(z), int(hdg)) ))
         return task.cont
 
 W = World()
