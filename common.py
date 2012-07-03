@@ -26,7 +26,9 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 
     def __init__(self,name='', modelName = None):
         self.name = name
-        self.accept('highlight',self.selected)
+        self.accept('highlight',self.onHover)
+        self.accept('clickedOn',self.onClicked)
+
         self.root = PandaNode(name + '_Gameobj_node')
         self.np = NodePath(self.root)
         if modelName:
@@ -38,15 +40,44 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #        self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
 #        self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         self.np.setTag('selectable','1')
+        self.isSelected = False
+        
+        self.targetCard = loader.loadModel('resources/targeted.egg')
+        self.targetCard.set_billboard_point_eye()
+        self.targetCard.setDepthTest(False)
+        self.targetCard.setDepthWrite(False)
+        self.targetCard.reparentTo(base.hidden)
+        self.targetCard.set_light_off()
     
-    def selected(self, pickedName):
-        if pickedName == self.np.getName():
-            print self.np.getName(), " touched"
-            self.np.setColorScale(2,2,2,1)
+    def onHover(self, pickedName):
+        if not self.isSelected:
+            if pickedName == self.np.getName():
+                print self.np.getName(), " touched"
+                self.np.setColorScale(2,2,2,1)
+                self._showTarget(True)
+            else:
+                self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
+                self._showTarget(False)
+
+    def onClicked(self,objectName):
+        if objectName == self.np.getName():
+            print "Sticky Target is now ", self.np.getName()
+            self.isSelected = True
+            self._showTarget(True)
+        else:                    
+            self.isSelected = False # allows same call to toggle off targeting
+            self._showTarget(False)
+        
+    def _showTarget(self,enabled=False):
+        if enabled:
+            self.targetCard.reparentTo(render)
+            b = self.np.getBounds()
+            self.targetCard.setPos(b.getCenter())
+            self.targetCard.setScale(1.1*b.getRadius())
         else:
-            self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
-
-
+            self.targetCard.reparentTo(base.hidden)
+        
+        
 class NodePathController():
     """ Controls for a nodepath (usually a game object associated with)
     """

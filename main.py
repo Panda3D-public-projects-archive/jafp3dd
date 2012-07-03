@@ -21,26 +21,26 @@ NUM_NPC = 10
 
 RESOURCE_PATH = 'resources'
 
-class Scene(common.GameObject):
-    """ Used to load static geometry"""
-
-    def __init__(self,sceneName):
-        if not sceneName:
-            print "No Scene name given on init!!!"
-            return -1
-        common.GameObject.__init__(self)
-        self.np = self.loadScene(sceneName)
-#        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
-
-    def loadScene(self,sceneName):
-        tmp = loader.loadModel(os.path.join(RESOURCE_PATH,sceneName))
-        if tmp:
-            # do things with tmp like split up, add lights, whatever
-            return tmp
-        else:
-            return None
-        # load scene tree from blender
-        # find lights from blender and create them with the right properties
+#class Scene(common.GameObject):
+#    """ Used to load static geometry"""
+#
+#    def __init__(self,sceneName):
+#        if not sceneName:
+#            print "No Scene name given on init!!!"
+#            return -1
+#        common.GameObject.__init__(self)
+#        self.np = self.loadScene(sceneName)
+##        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
+#
+#    def loadScene(self,sceneName):
+#        tmp = loader.loadModel(os.path.join(RESOURCE_PATH,sceneName))
+#        if tmp:
+#            # do things with tmp like split up, add lights, whatever
+#            return tmp
+#        else:
+#            return None
+#        # load scene tree from blender
+#        # find lights from blender and create them with the right properties
 
 class World(ShowBase):
 
@@ -82,12 +82,12 @@ class World(ShowBase):
         self.pickerNode.addSolid(self.pickerRay)
         self.traverser.addCollider(self.pickerNP, self.pq)
         
-        self.targetCard = loader.loadModel('resources/targeted.egg')
-        self.targetCard.set_billboard_point_eye()
-        self.targetCard.setDepthTest(False)
-        self.targetCard.setDepthWrite(False)
-        self.targetCard.reparentTo(self.hidden)
-        self.targetCard.set_light_off()
+#        self.targetCard = loader.loadModel('resources/targeted.egg')
+#        self.targetCard.set_billboard_point_eye()
+#        self.targetCard.setDepthTest(False)
+#        self.targetCard.setDepthWrite(False)
+#        self.targetCard.reparentTo(self.hidden)
+#        self.targetCard.set_light_off()
         
     def setAI(self):
         #Creating AI World
@@ -218,6 +218,7 @@ class World(ShowBase):
             self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
 
             self.traverser.traverse(render)
+            messenger.send('highlight',[None])
             if self.pq.getNumEntries() > 0:
                 self.pq.sortEntries()        # This is so we get the closest object.
                 picked = self.pq.getEntry(0).getIntoNodePath()
@@ -226,18 +227,14 @@ class World(ShowBase):
                 if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
                     messenger.send('highlight',[picked.getName()])
                     self.hover = picked                   
-                    self.targetCard.reparentTo(render)
-                    b = picked.getBounds()
-                    self.targetCard.setPos(b.getCenter())
-                    self.targetCard.setScale(b.getRadius())
-                else:
-                    self.targetCard.reparentTo(self.hidden)
-            
+
         return task.cont
 
     def pickingFunc(self):
-        self.stickyTarget = self.hover
-        print "Stick Target is now ", self.stickyTarget
+#        messenger.send('deselect',[self.stickyTarget]) # toggle the old sticky target off     
+        self.stickyTarget = self.hover                  # assign a new sticky target
+        if self.stickyTarget:
+            messenger.send('clickedOn',[self.stickyTarget.getName()]) # tell new sticky target it is clicked on (and do actions accordingly)
         
 #    def pickingFunc(self):
 ##        print "pick func called"
