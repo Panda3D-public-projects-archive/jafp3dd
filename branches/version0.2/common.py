@@ -71,10 +71,11 @@ class GameObject(DirectObject): # Inherit from DO for event handling
     def _showTarget(self,enabled=False):
         if enabled:
 #            self.targetCard.reparentTo(render)
-            self.targetCard.reparentTo(self.np)
+            self.targetCard.reparentTo(self.np) # need to follow object np, so parent to it
 #            b = self.np.getBounds()
-#            self.targetCard.setPos(b.getCenter())
-            self.targetCard.setScale(1.1*b.getRadius())
+#            localCenter = b.getCenter() - self.targetCard.getPos()
+#            self.targetCard.setPos(localCenter)
+#            self.targetCard.setScale(1.1*b.getRadius())
         else:
             self.targetCard.reparentTo(base.hidden)
         
