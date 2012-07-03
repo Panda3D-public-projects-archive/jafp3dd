@@ -236,21 +236,6 @@ class World(ShowBase):
         if self.stickyTarget:
             messenger.send('clickedOn',[self.stickyTarget.getName()]) # tell new sticky target it is clicked on (and do actions accordingly)
         
-#    def pickingFunc(self):
-##        print "pick func called"
-#        if base.mouseWatcherNode.hasMouse():
-#            mpos = base.mouseWatcherNode.getMouse()
-#            self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
-#
-#            self.traverser.traverse(render)
-#            if self.pq.getNumEntries() > 0:
-#                self.pq.sortEntries()        # This is so we get the closest object.
-#                picked = self.pq.getEntry(0).getIntoNodePath()
-#                picked = picked.findNetTag('selectable')
-#                if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
-#                    messenger.send('clickedOn',[picked.getName()])
-#                    self.stickyTarget = picked
-#                    
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
         [x,y,z] = self.player.np.getParent().getPos()
