@@ -99,6 +99,7 @@ class World(ShowBase):
 
             newAI = common.Gatherer("NPC"+str(n),'resources/aniCube')
             newAI.np.reparentTo(render)
+            
             newAI.np.setPos(0,0,0)
             newAI.np.setTag('ID',str(n))
 
@@ -117,9 +118,10 @@ class World(ShowBase):
         return task.cont
         
     def loadScene(self,sceneName):
-        self.scene = common.GameObject('ground',sceneName)
-        self.scene.np.setTag('selectable','0')
-        self.scene.np.reparentTo(render)
+#        self.scene = common.GameObject('ground',sceneName)
+#        self.scene.np.setTag('selectable','0')
+        self.scene = loader.loadModel(sceneName)
+        self.scene.reparentTo(render)
 #        self.setupModels()
         self.setupLights()
 

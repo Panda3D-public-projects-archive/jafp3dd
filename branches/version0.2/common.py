@@ -13,7 +13,7 @@ from direct.showbase.DirectObject import DirectObject
 from panda3d.core import * #PandaNode, NodePath, CollisionNode, CollisionSphere
 from direct.fsm.FSM import FSM
 from panda3d.ai import *
-#from direct.actor.Actor import Actor
+from direct.actor.Actor import Actor
 
 TURN_RATE = 90    # Degrees per second
 WALK_RATE = 30
@@ -22,7 +22,9 @@ MIN_CAM_DIST = .333
 from CONSTANTS import *
 
 class GameObject(DirectObject): # Inherit from DO for event handling
-    """ fancy wrapper for nodepath """
+    """ fancy wrapper for nodepath. adds properties like selectable and adding
+        target reticle graphics and or stat's
+    """
 
     def __init__(self,name='', modelName = None):
         self.name = name
@@ -32,9 +34,10 @@ class GameObject(DirectObject): # Inherit from DO for event handling
         self.root = PandaNode(name + '_Gameobj_node')
         self.np = NodePath(self.root)
         if modelName:
-            self.np = loader.loadModel(modelName)
-#            self.np = Actor(modelName)
+#            self.np = loader.loadModel(modelName)
+            self.np = Actor(modelName)
             self.np.setName(name)
+
 #TODO:     is NodePath.attachCollisionSphere the same? better? RESEARCH
 #TODO: search for collision geometry in the model and add to object
 #        self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
@@ -280,11 +283,13 @@ class Gatherer(GameObject,FSM):
 
     def enterGather(self):
 #        self.behavior.wander(3, 0, 3, 1.0)
+        self.np.loop('spin')
         taskMgr.doMethodLater(5,self.gatherTimer,'gatherTask')
 
     def exitGather(self):
         self.behavior.removeAi('wander')
-
+        self.np.play('spin', fromFrame= self.np.getCurrentFrame('spin'))
+        
     def enterToCenter(self):
         self.behavior.seek(self.centerPos,1.0)
 
