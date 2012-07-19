@@ -15,7 +15,10 @@ from panda3d.ai import *
 
 import common
 
-PStatClient.connect()
+#PStatClient.connect()
+#from pandac.PandaModules import loadPrcFileData
+#loadPrcFileData("", "want-directtools #t")
+#loadPrcFileData("", "want-tk #t")
 
 NUM_NPC = 10
 
@@ -97,7 +100,7 @@ class World(ShowBase):
         self.npc = []
         for n in range(NUM_NPC):
 
-            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube')
+            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube2.egg')
             newAI.np.reparentTo(render)
             
             newAI.np.setPos(0,0,0)

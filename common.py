@@ -22,13 +22,14 @@ MIN_CAM_DIST = .333
 from CONSTANTS import *
 
 class GameObject(DirectObject): # Inherit from DO for event handling
-    """ fancy wrapper for nodepath. adds properties like selectable and adding
+    """ fancy wrapper for Actor Class. 
+        adds properties like selectable and adding
         target reticle graphics and or stat's
     """
 
     def __init__(self,name='', modelName = None):
         self.name = name
-        self.accept('highlight',self.onHover)
+        self.accept('highlight',self.onFocus)
         self.accept('clickedOn',self.onClicked)
 
         self.root = PandaNode(name + '_Gameobj_node')
@@ -46,13 +47,17 @@ class GameObject(DirectObject): # Inherit from DO for event handling
         self.isSelected = False
         
         self.targetCard = loader.loadModel('resources/targeted.egg')
+        bv = self.np.node().getBounds()
+        if not bv.isEmpty():
+            self.targetCard.setPos(bv.getCenter())
+            self.targetCard.setScale(2*bv.getRadius())
         self.targetCard.set_billboard_point_eye()
         self.targetCard.setDepthTest(False)
         self.targetCard.setDepthWrite(False)
         self.targetCard.reparentTo(base.hidden)
         self.targetCard.set_light_off()
     
-    def onHover(self, pickedName):
+    def onFocus(self, pickedName):
         if not self.isSelected:
             if pickedName == self.np.getName():
                 print self.np.getName(), " touched"
@@ -261,6 +266,10 @@ class Gatherer(GameObject,FSM):
         taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
 
 
+    def onClicked(self,objectName):
+        GameObject.onClicked(self,objectName)
+        self.np.play('spin')
+      
     def setResourcePos(self,position):
         self.resPos = position # should be vec3
 
@@ -283,12 +292,12 @@ class Gatherer(GameObject,FSM):
 
     def enterGather(self):
 #        self.behavior.wander(3, 0, 3, 1.0)
-        self.np.loop('spin')
+#        self.np.loop('spin')
         taskMgr.doMethodLater(5,self.gatherTimer,'gatherTask')
 
     def exitGather(self):
         self.behavior.removeAi('wander')
-        self.np.play('spin', fromFrame= self.np.getCurrentFrame('spin'))
+#        self.np.play('spin', fromFrame= self.np.getCurrentFrame('spin'))
         
     def enterToCenter(self):
         self.behavior.seek(self.centerPos,1.0)
