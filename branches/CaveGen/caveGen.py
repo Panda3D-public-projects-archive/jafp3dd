@@ -9,6 +9,10 @@ Edited by Craig Macomber
 Created on Thu Nov 24 19:35:08 2011
 based on the above authors and editors
 @author: Shawn Updegraff
+
+Modified on Jul 19 2012
+based on above, simplified to create cave/tunnel paths
+
 '''
 
 import sys
@@ -90,7 +94,7 @@ class Branch(NodePath):
             adjCircle = pos + (perp1 * cos(currAngle) + perp2 * sin(currAngle)) * radius * (.5+bNodeRadNoise*random.random())
             normal = perp1 * cos(currAngle) + perp2 * sin(currAngle)       
 
-            normalWriter.addData3f(normal)
+            normalWriter.addData3f(-normal) # -normal to make inside for cave
             vertWriter.addData3f(adjCircle)
             texReWriter.addData2f(float(UVcoord[0]*i) / numVertices,UVcoord[1])            # UV SCALE HERE!
             #colorWriter.addData4f(0.5, 0.5, 0.5, 1)
@@ -254,14 +258,15 @@ class GeneralTree(NodePath):
         self.numSegs = numSegs
         self.trunk = Branch("Trunk",L0,R0,2*numSegs)
         self.trunk.reparentTo(self)
-        self.trunk.setTexture(bark)
+        if bark:
+            self.trunk.setTexture(bark)
     
     def generate(self,*args,**kwargs):
 #        lfact = kwargs['lfact']
         bff = kwargs['baseflair']
         self.trunk.generate(Params,baseFlair=bff)
         self.trunk.addNewBuds()
-        children = [self.trunk] # each node in the trunk will span a branch 
+        children = [self.trunk] # each node in the trunk will spawn a branch 
         nextChildren = []
         leafNodes = []
         
@@ -311,24 +316,6 @@ class GeneralTree(NodePath):
             children = nextChildren # assign Children for the next iteration
             nextChildren = []
 
-        if _DoLeaves:
-            print "adding foliage...hack adding to nodes, not buds!"
-            for thisBranch in children:
-    #            for node in thisBranch.nodeList[_skipChildren:]:
-                self.drawLeaf(thisBranch,thisBranch.nodeList[-1].pos,_LeafScale)
-
-
-    #this draws leafs when we reach an end       
-    def drawLeaf(self,parent,pos, scale=0.125):
-        leafNode = NodePath("leaf")
-        leafNode.setTwoSided(1)
-        leafMod.instanceTo(leafNode)
-        leafNode.reparentTo(parent)
-        leafNode.setPos(pos)
-        leafNode.setScale(scale)
-        leafNode.setHpr(0,0,0)
-
-
     
 BranchNode = namedtuple('BranchNode','pos radius fromVector quat texUV deltaL d2t') 
 # fromVector is TO next node (delta of pos vectors)
@@ -340,7 +327,7 @@ if __name__ == "__main__":
     _UP_ = Vec3(0,0,1) # General axis of the model as a whole
 
     # TRUNK AND BRANCH PARAMETERS
-    numGens = 2    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
+    numGens = 1    # number of branch generations to calculate (0=trunk only), usually don't want much more than 4-6..if that!
     print numGens
     
     L0 = 6      # initial length
@@ -349,81 +336,58 @@ if __name__ == "__main__":
     taper0 = 1    # Initial taper; 1= same diam end to end
     
     _skipChildren = 0 # how many nodes in from the base to exclude from children list; +1 to always exclude base
-    lfact = 0.8   # length ratio between branch generations
+    lfact = 1   # length ratio between branch generations
     # often skipChildren works best as a function of total lenggth, not just node count        
     rfact = 1     # radius ratio between generations
-    rTaper = .65 # taper factor; % reduction in radius between tip and base ends of branch
-    budP0 = 45    # a new bud's nominal pitch angle
-    
-    budPnoise = 10 # variation in bud's pitch angle
+    rTaper = 1 # taper factor; % reduction in radius between tip and base ends of branch
+
+    budP0 = 90    # a new bud's nominal pitch angle
+    budPnoise = 0 # variation in bud's pitch angle
     bNodeRadNoise = 0.1 # EXPERIMENTAL: ADDING Vertex RADIAL NOISE for shape interest
     posNoise = 0.0    # random noise in The XY plane around the growth axis of a branch
     Lnoise = 3    # percent(0-1) length variation of new branches
 
     _uvScale = (2,1.0/3) #repeats per unit length (around perimeter, along the tree axis) 
-    _BarkTex_ = "../barkTexture.jpg"
-#    _BarkTex_ ='./resources/models/barkTexture-1z.jpg'
-    
-
-    # LEAF PARAMETERS
-#    _LeafTex = 'Green Leaf.png'
-    _LeafModel = 'myLeafModel10.x'
-#    _LeafModel = 'shrubbery'
-#    _LeafTex = 'material-10-cl.png'
-    
-#    leafTex = base.loader.loadTexture('./resources/models/'+ _LeafTex)
-    leafMod = base.loader.loadModel('../resources/models/'+ _LeafModel)
-#    leafMod.setScale(.01)
-    leafMod.setZ(-.5)
-#    leafMod.setScale(2,2,1)
-    leafMod.flattenStrong()
-    _LeafScale = 3
-    _DoLeaves = 1 # not ready for prime time; need to add drawLeaf to Tree Class
- 
-    bark = base.loader.loadTexture(_BarkTex_)    
 
     Params = {'L':L0,'nSegs':numSegs,'Anoise':posNoise*R0,'upVector':_UP_}
     Params.update({'rTaper':rTaper,'R0':R0})
     Params.update(cXfactors = [(.05*R0,1,0),(.05*R0,2,0)],cYfactors = [(.05*R0,1,pi/2),(.05*R0,2,pi/2)])
 
-    np = 6
-    plts = range(np**2) # 6x6 array
-    ds = 5.0
-    for it in range(10):
-        tree = GeneralTree(L0,R0,numSegs,bark,"my tree")
-        cnp = tree.attachNewNode(CollisionNode('TreeCollisionSolid'))        
-        cnp.node().addSolid(CollisionTube(0,0,R0,0,0,R0+3, R0))
+    tree = GeneralTree(L0,R0,numSegs,None,"my tree")
+    cnp = tree.attachNewNode(CollisionNode('TreeCollisionSolid'))        
+    cnp.node().addSolid(CollisionTube(0,0,R0,0,0,R0+3, R0))
 #        cnp.show()
-        
-        tree.generate(Params,baseflair=1.45)
-        tree.reparentTo(base.render)
+    
+    tree.generate(Params,baseflair=1.45)
+    tree.reparentTo(base.render)
 
-        # DONE GENERATING. WRITE OUT UNSCALED MODEL
-        print "writing out file"
-        tree.setScale(1) 
-        tree.setH(180)
-        tree.setZ(-0.1)
-        tree.flattenStrong()
-        tree.writeBamFile('../resources/models/sampleTree'+str(it)+'.bam')
+    # DONE GENERATING. WRITE OUT UNSCALED MODEL
+#    print "writing out file"
+#    tree.setScale(1) 
+    tree.setHpr(0,90,0)
+    tree.setColor(.5,.25,0)
+#    tree.setZ(-0.1)
+#    tree.flattenStrong()
+#    tree.writeBamFile('../resources/models/sampleTree'+str(it)+'.bam')
 
-        p = random.choice(plts)
-        tx = ds*(p/np)
-        ty = ds*(p%np)
-        tree.setPos(tx,ty,0)
+#    p = random.choice(plts)
+#    tx = ds*(p/np)
+#    ty = ds*(p%np)
+#    tree.setPos(tx,ty,0)
 
 ##############################
 
-    ruler = base.loader.loadModel('../resources/models/plane')
-    ruler.setPos(-(R0+.25),0,1) # z = .5 *2scale
-    ruler.setScale(.05,1,2) #2 unit tall board
-    ruler.setTwoSided(1)
-    ruler.reparentTo(base.render)
+#    ruler = base.loader.loadModel('../resources/models/plane')
+#    ruler.setPos(-(R0+.25),0,1) # z = .5 *2scale
+#    ruler.setScale(.05,1,2) #2 unit tall board
+#    ruler.setTwoSided(1)
+#    ruler.reparentTo(base.render)
     
     def rotateTree(task):
         phi = 10*task.time
         tree.setH(phi)
         return task.cont
-    base.taskMgr.add(rotateTree,"merrygoround")
+#    base.taskMgr.add(rotateTree,"merrygoround")
 
     base.cam.setPos(0,-4*L0, L0/2)    
     base.render.setShaderAuto()
@@ -432,7 +396,7 @@ if __name__ == "__main__":
     base.accept('escape',sys.exit)
     base.accept('z',base.toggleWireframe)
 #    pycallgraph.make_dot_graph('treeXpcg.png')
-    base.setBackgroundColor((.0,.5,.9))
+    base.setBackgroundColor((.0,.25,.9))
     base.render.analyze()
     base.run()
 
@@ -441,10 +405,7 @@ if __name__ == "__main__":
 #    - choose "bud" locations other than branch nodes and random circumfrentially.
 #    - numSegs to parameter into branch; numSegs = f(generation), fewer on younger
 #        prob set a buds per length var
-#    - COULD do a render to texture for the last limbs and leaves; define multiple plane 
         # cross sections, create them, then append them to the last real node before RTT
 #     make parameters: probably still need a good Lfunc. 
-#     Distribute branches uniform around radius. 
-#     "Crown" the trunk; possibly branches. - single point; no rad func and connect all previous nodes to point
 #     define circumference function (pull out of drawBody())
 # 
