@@ -58,14 +58,14 @@ class World(ShowBase):
         ShowBase.__init__(self)
         base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
         self.setFrameRateMeter(1)
-        self.loadScene(os.path.join(RESOURCE_PATH,'groundc.x'))
+        self.loadScene(os.path.join(RESOURCE_PATH,'groundc.egg'))
         self.CC = common.ControlledCamera(self.controls)
 
         self.setupKeys()
         self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
 
-        self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.x'),controller=None)
+        self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.egg'),controller=None)
          # Attach the player node to the camera empty node
         self.player.np.reparentTo(self.CC._target)
         self.player.np.setZ(.2)
@@ -85,6 +85,9 @@ class World(ShowBase):
         self.pickerNode.addSolid(self.pickerRay)
         self.traverser.addCollider(self.pickerNP, self.pq)
         
+        test = loader.loadModel('cube-tags.egg')
+        walls = test.find('**/=isaWall')
+        walls.node().setIntoCollideMask(BitMask32.bit(0))
 #        self.targetCard = loader.loadModel('resources/targeted.egg')
 #        self.targetCard.set_billboard_point_eye()
 #        self.targetCard.setDepthTest(False)
@@ -124,6 +127,9 @@ class World(ShowBase):
 #        self.scene = common.GameObject('ground',sceneName)
 #        self.scene.np.setTag('selectable','0')
         self.scene = loader.loadModel(sceneName)
+        walls = self.scene.find('**/=isaWall')
+        walls.node().setIntoCollideMask(BitMask32.bit(0))
+
         self.scene.reparentTo(render)
 #        self.setupModels()
         self.setupLights()
