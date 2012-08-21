@@ -20,7 +20,7 @@ import common
 #loadPrcFileData("", "want-directtools #t")
 #loadPrcFileData("", "want-tk #t")
 
-NUM_NPC = 10
+NUM_NPC = 2
 
 RESOURCE_PATH = 'resources'
 
@@ -57,6 +57,15 @@ class World(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
+        base.cTrav.showCollisions(self.render)
+
+        self.traverser = CollisionTraverser('CameraPickingTraverse') # set up picker's own traverser for responsiveness
+        self.traverser.showCollisions(self.render)
+
+        self.handlerQ = CollisionHandlerQueue()
+        self.pusherQ = CollisionHandlerPusher()
+
+
         self.setFrameRateMeter(1)
         self.loadScene(os.path.join(RESOURCE_PATH,'groundc.egg'))
         self.CC = common.ControlledCamera(self.controls)
@@ -68,26 +77,26 @@ class World(ShowBase):
         self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.egg'),controller=None)
          # Attach the player node to the camera empty node
         self.player.np.reparentTo(self.CC._target)
-        self.player.np.setZ(.2)
+#        self.player.np.setZ(.2)
+        self.pusherQ.addCollider(self.player.cnp,self.player.np)
 
         self.textObject = OnscreenText(text = str(self.CC.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
         taskMgr.add(self.updateOSD,'OSDupdater')
 
         self.stickyTarget = None
         self.hover = None
-        self.traverser = CollisionTraverser('CameraPickingTraverse')
-        self.pq = CollisionHandlerQueue()
-
+        
         self.pickerNode = CollisionNode('mouseRay')
         self.pickerNP = camera.attachNewNode(self.pickerNode)
         self.pickerNode.setFromCollideMask(GeomNode.getDefaultCollideMask())
         self.pickerRay = CollisionRay()
         self.pickerNode.addSolid(self.pickerRay)
-        self.traverser.addCollider(self.pickerNP, self.pq)
+        self.traverser.addCollider(self.pickerNP, self.handlerQ)
         
-        test = loader.loadModel('cube-tags.egg')
-        walls = test.find('**/=isaWall')
-        walls.node().setIntoCollideMask(BitMask32.bit(0))
+#        test = loader.loadModel('cube-tags.egg')
+#        walls = test.find('**/=isaWall')
+#        walls.node().setIntoCollideMask(BitMask32.bit(0))
+
 #        self.targetCard = loader.loadModel('resources/targeted.egg')
 #        self.targetCard.set_billboard_point_eye()
 #        self.targetCard.setDepthTest(False)
@@ -129,7 +138,8 @@ class World(ShowBase):
         self.scene = loader.loadModel(sceneName)
         walls = self.scene.find('**/=isaWall')
         walls.node().setIntoCollideMask(BitMask32.bit(0))
-
+        walls.show()
+        
         self.scene.reparentTo(render)
 #        self.setupModels()
         self.setupLights()
@@ -230,9 +240,9 @@ class World(ShowBase):
 
             self.traverser.traverse(render)
             messenger.send('highlight',[None])
-            if self.pq.getNumEntries() > 0:
-                self.pq.sortEntries()        # This is so we get the closest object.
-                picked = self.pq.getEntry(0).getIntoNodePath()
+            if self.handlerQ.getNumEntries() > 0:
+                self.handlerQ.sortEntries()        # This is so we get the closest object.
+                picked = self.handlerQ.getEntry(0).getIntoNodePath()
                 picked = picked.findNetTag('selectable')
                 self.hover = None
                 if not picked.isEmpty() and picked.getNetTag('selectable') == '1':

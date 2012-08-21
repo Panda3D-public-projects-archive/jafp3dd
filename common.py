@@ -41,8 +41,13 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 
 #TODO:     is NodePath.attachCollisionSphere the same? better? RESEARCH
 #TODO: search for collision geometry in the model and add to object
-#        self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
-#        self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+        self.cnp = self.np.find('**/colbox')
+        if self.cnp.isEmpty():
+            self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
+            self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+        print(self.cnp)
+        self.cnp.show()
+        
         self.np.setTag('selectable','1')
         self.isSelected = False
         
