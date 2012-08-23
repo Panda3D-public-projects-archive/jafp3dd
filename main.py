@@ -60,49 +60,50 @@ class World(ShowBase):
         base.cTrav.showCollisions(self.render)
 
         self.traverser = CollisionTraverser('CameraPickingTraverse') # set up picker's own traverser for responsiveness
-        self.traverser.showCollisions(self.render)
+#        self.traverser.showCollisions(self.render)
 
         self.handlerQ = CollisionHandlerQueue()
-        self.pusherQ = CollisionHandlerPusher()
+        self.handlerPush = CollisionHandlerPusher()
 
 
         self.setFrameRateMeter(1)
-        self.loadScene(os.path.join(RESOURCE_PATH,'groundc.egg'))
         self.CC = common.ControlledCamera(self.controls)
 
         self.setupKeys()
         self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
-
+        
+        print('loading scenery...')
+        self.loadScene(os.path.join(RESOURCE_PATH,'groundc.egg'))
+        print('loading player...')
         self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.egg'),controller=None)
          # Attach the player node to the camera empty node
         self.player.np.reparentTo(self.CC._target)
 #        self.player.np.setZ(.2)
-        self.pusherQ.addCollider(self.player.cnp,self.player.np)
+        self.player.cnp = self.player.np.attachNewNode(CollisionNode('Player1--coll-node'))
+        self.player.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+        print("Adding ",self.player.cnp)
+        self.player.cnp.show()
 
+        self.handlerPush.addCollider(self.player.cnp,self.player.np)
+        base.cTrav.addCollider(self.player.cnp,self.handlerPush)
+        print(self.player.np.ls())
+        
+        
         self.textObject = OnscreenText(text = str(self.CC.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
         taskMgr.add(self.updateOSD,'OSDupdater')
 
         self.stickyTarget = None
         self.hover = None
         
+        # setup camera view picker
         self.pickerNode = CollisionNode('mouseRay')
         self.pickerNP = camera.attachNewNode(self.pickerNode)
         self.pickerNode.setFromCollideMask(GeomNode.getDefaultCollideMask())
+        self.pickerNode.setIntoCollideMask(0) # nothing runs INTO the ray.
         self.pickerRay = CollisionRay()
         self.pickerNode.addSolid(self.pickerRay)
         self.traverser.addCollider(self.pickerNP, self.handlerQ)
-        
-#        test = loader.loadModel('cube-tags.egg')
-#        walls = test.find('**/=isaWall')
-#        walls.node().setIntoCollideMask(BitMask32.bit(0))
-
-#        self.targetCard = loader.loadModel('resources/targeted.egg')
-#        self.targetCard.set_billboard_point_eye()
-#        self.targetCard.setDepthTest(False)
-#        self.targetCard.setDepthWrite(False)
-#        self.targetCard.reparentTo(self.hidden)
-#        self.targetCard.set_light_off()
         
     def setAI(self):
         #Creating AI World
@@ -137,7 +138,7 @@ class World(ShowBase):
 #        self.scene.np.setTag('selectable','0')
         self.scene = loader.loadModel(sceneName)
         walls = self.scene.find('**/=isaWall')
-        walls.node().setIntoCollideMask(BitMask32.bit(0))
+#        walls.node().setIntoCollideMask(BitMask32.bit(0))
         walls.show()
         
         self.scene.reparentTo(render)
