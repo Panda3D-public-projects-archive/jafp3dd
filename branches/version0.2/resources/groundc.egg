@@ -1,0 +1,166 @@
+<CoordinateSystem> { Z-Up }
+
+<Comment> {
+  "egg-trans -tbnall -o /home/shawn/Documents/jafo0.2/resources/groundc.egg /home/shawn/Documents/jafo0.2/resources/groundc.egg"
+}
+<Material> Material.000 {
+  <Scalar> diffr { 0.64 }
+  <Scalar> diffg { 0.64 }
+  <Scalar> diffb { 0.64 }
+  <Scalar> emitr { 0 }
+  <Scalar> emitg { 0 }
+  <Scalar> emitb { 0 }
+  <Scalar> specr { 0.5 }
+  <Scalar> specg { 0.5 }
+  <Scalar> specb { 0.5 }
+  <Scalar> shininess { 12.5 }
+}
+<Group> ground {
+  <Transform> {
+    <Matrix4> {
+      50 0 0 0
+      0 50 0 0
+      0 0 50 0
+      0 0 0 1
+    }
+  }
+  <VertexPool> ground {
+    <Vertex> 0 {
+      50 50 0
+    }
+    <Vertex> 1 {
+      -50 50 0
+    }
+    <Vertex> 2 {
+      -50 -50 0
+    }
+    <Vertex> 3 {
+      50 -50 0
+    }
+  }
+  <Polygon> {
+    <Normal> { 0 0 1 }
+    <MRef> { Material.000 }
+    <VertexRef> { 0 1 2 3 <Ref> { ground } }
+  }
+  <Group> bounds {
+    <Collide> { Polyset descend }
+    <Transform> {
+      <Matrix4> {
+        0.3 0 0 0
+        0 0.3 0 0
+        0 0 1 0
+        0 0 0 1
+      }
+    }
+    <Tag> isaWall {
+      True
+    }
+    <VertexPool> bounds {
+      <Vertex> 0 {
+        -15 15 10
+      }
+      <Vertex> 1 {
+        -15 -15 10
+      }
+      <Vertex> 2 {
+        -15 -15 0
+      }
+      <Vertex> 3 {
+        -15 15 0
+      }
+      <Vertex> 4 {
+        15 15 10
+      }
+      <Vertex> 5 {
+        15 15 0
+      }
+      <Vertex> 6 {
+        15 2.71487 9.47848
+      }
+      <Vertex> 7 {
+        15 -2.60675 9.47848
+      }
+      <Vertex> 8 {
+        15 -15 10
+      }
+      <Vertex> 9 {
+        15 -2.60675 0
+      }
+      <Vertex> 10 {
+        15 -15 0
+      }
+      <Vertex> 11 {
+        15 2.71487 0
+      }
+      <Vertex> 12 {
+        15.3776 2.71487 9.47848
+      }
+      <Vertex> 13 {
+        15.3776 2.71487 -0.051897
+      }
+      <Vertex> 14 {
+        15.3776 -2.60675 9.47848
+      }
+      <Vertex> 15 {
+        15.3776 -2.60675 -0.051897
+      }
+    }
+    <Polygon> {
+      <Normal> { 1 0 0 }
+      <VertexRef> { 0 1 2 3 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { 0 -1 0 }
+      <VertexRef> { 4 0 3 5 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { -1 0 0 }
+      <VertexRef> { 6 7 8 4 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { -1 0 0 }
+      <VertexRef> { 7 9 10 8 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { -1 0 0 }
+      <VertexRef> { 5 11 6 4 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { 0 1 0 }
+      <VertexRef> { 1 8 10 2 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { 0 -1 0 }
+      <VertexRef> { 12 6 11 13 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { 0 1 0 }
+      <VertexRef> { 14 15 9 <Ref> { bounds } }
+    }
+    <Polygon> {
+      <Normal> { 0 0 -1 }
+      <VertexRef> { 6 12 14 7 <Ref> { bounds } }
+    }
+  }
+}
+<Group> Lamp {
+  <Transform> {
+    <Matrix4> {
+      -0.291 0.955 -0.055 0
+      -0.771 -0.2 0.605 0
+      0.566 0.218 0.795 0
+      4.076 1.005 5.904 1
+    }
+  }
+}
+<Group> Camera {
+  <Transform> {
+    <Matrix4> {
+      0.686 0.728 -0.011 0
+      -0.317 0.312 0.895 0
+      0.655 -0.611 0.445 0
+      7.481 -6.508 5.344 1
+    }
+  }
+}

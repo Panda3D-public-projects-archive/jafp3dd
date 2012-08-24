@@ -79,13 +79,13 @@ class World(ShowBase):
         self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.egg'),controller=None)
          # Attach the player node to the camera empty node
         self.player.np.reparentTo(self.CC._target)
-#        self.player.np.setZ(.2)
+#        self.player.np.setZ(1)
         self.player.cnp = self.player.np.attachNewNode(CollisionNode('Player1--coll-node'))
         self.player.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         print("Adding ",self.player.cnp)
         self.player.cnp.show()
 
-        self.handlerPush.addCollider(self.player.cnp,self.player.np)
+        self.handlerPush.addCollider(self.player.cnp,self.CC._target)
         base.cTrav.addCollider(self.player.cnp,self.handlerPush)
         print(self.player.np.ls())
         
