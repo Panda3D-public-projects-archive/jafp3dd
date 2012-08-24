@@ -38,7 +38,7 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #            self.np = loader.loadModel(modelName)
             self.np = Actor(modelName)
             self.np.setName(name)
-
+#            self.np.showBounds()
 #TODO:     is NodePath.attachCollisionSphere the same? better? RESEARCH
 #TODO: search for collision geometry in the model and add to object
 #        self.cnp = self.np.find('**/colbox')
@@ -53,10 +53,10 @@ class GameObject(DirectObject): # Inherit from DO for event handling
         self.isSelected = False
         
         self.targetCard = loader.loadModel('resources/targeted.egg')
-        bv = self.np.node().getBounds()
+        bv = self.np.getBounds()
         if not bv.isEmpty():
             self.targetCard.setPos(bv.getCenter())
-            self.targetCard.setScale(2*bv.getRadius())
+            self.targetCard.setScale(1.5*bv.getRadius())
         self.targetCard.set_billboard_point_eye()
         self.targetCard.setDepthTest(False)
         self.targetCard.setDepthWrite(False)

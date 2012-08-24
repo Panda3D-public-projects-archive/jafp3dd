@@ -1,166 +1,240 @@
-<CoordinateSystem> { Z-Up }
-
-<Comment> {
-  "egg-trans -tbnall -o /home/shawn/Documents/jafo0.2/resources/groundc.egg /home/shawn/Documents/jafo0.2/resources/groundc.egg"
-}
-<Material> Material.000 {
-  <Scalar> diffr { 0.64 }
-  <Scalar> diffg { 0.64 }
-  <Scalar> diffb { 0.64 }
-  <Scalar> emitr { 0 }
-  <Scalar> emitg { 0 }
-  <Scalar> emitb { 0 }
-  <Scalar> specr { 0.5 }
-  <Scalar> specg { 0.5 }
-  <Scalar> specb { 0.5 }
+<CoordinateSystem> { Z-up } 
+<Material> Material.006 {
+  <Scalar> diffr { 0.640 }
+  <Scalar> diffg { 0.640 }
+  <Scalar> diffb { 0.640 }
+  <Scalar> specr { 0.500 }
+  <Scalar> specg { 0.500 }
+  <Scalar> specb { 0.500 }
   <Scalar> shininess { 12.5 }
+  <Scalar> emitr { 0.000 }
+  <Scalar> emitg { 0.000 }
+  <Scalar> emitb { 0.000 }
 }
-<Group> ground {
-  <Transform> {
-    <Matrix4> {
-      50 0 0 0
-      0 50 0 0
-      0 0 50 0
-      0 0 0 1
-    }
-  }
-  <VertexPool> ground {
-    <Vertex> 0 {
-      50 50 0
-    }
-    <Vertex> 1 {
-      -50 50 0
-    }
-    <Vertex> 2 {
-      -50 -50 0
-    }
-    <Vertex> 3 {
-      50 -50 0
-    }
-  }
-  <Polygon> {
-    <Normal> { 0 0 1 }
-    <MRef> { Material.000 }
-    <VertexRef> { 0 1 2 3 <Ref> { ground } }
-  }
-  <Group> bounds {
-    <Collide> { Polyset descend }
+
+<Texture> Texture.006 {
+  "./tex/texture.png"
+  <Scalar> envtype { MODULATE }
+  <Scalar> minfilter { LINEAR_MIPMAP_LINEAR }
+  <Scalar> magfilter { LINEAR_MIPMAP_LINEAR }
+  <Scalar> wrap { REPEAT }
+}
+
+  <Group> Point {
     <Transform> {
       <Matrix4> {
-        0.3 0 0 0
-        0 0.3 0 0
-        0 0 1 0
-        0 0 0 1
+        1.000 0.000 0.000 0.000 
+        0.000 1.000 0.000 0.000 
+        0.000 0.000 1.000 0.000 
+        0.000 0.000 6.243 1.000 
       }
     }
-    <Tag> isaWall {
-      True
+    
+  }
+  <Group> Plane.001 {
+    <Transform> {
+      <Matrix4> {
+        50.000 0.000 0.000 0.000 
+        0.000 50.000 0.000 0.000 
+        0.000 0.000 1.000 0.000 
+        0.000 0.000 0.000 1.000 
+      }
     }
-    <VertexPool> bounds {
+    
+    <VertexPool> Plane.001 {
+    
       <Vertex> 0 {
-        -15 15 10
+        50.0 50.0 0.0
+        
+        <UV>  {
+          1.000 1.000
+        }
       }
       <Vertex> 1 {
-        -15 -15 10
+        -50.0 50.0 0.0
+        
+        <UV>  {
+          0.000 1.000
+        }
       }
       <Vertex> 2 {
-        -15 -15 0
+        -50.0 -50.0 0.0
+        
+        <UV>  {
+          0.000 0.000
+        }
       }
       <Vertex> 3 {
-        -15 15 0
+        50.0 -50.0 0.0
+        
+        <UV>  {
+          1.000 0.000
+        }
+      }}
+    
+    
+    <Polygon> {
+      <TRef> { Texture.006 }
+      <MRef> { Material.006 }
+      <Normal> {0.000 0.000 1.000}
+      <VertexRef> { 0 1 2 3 <Ref> { Plane.001 }}
+    }
+  }
+  <Group> bounds.001 {
+    <Collide> { Polyset descend }
+    <Tag> isaWall { True }
+    <Transform> {
+      <Matrix4> {
+        0.300 0.000 0.000 0.000 
+        0.000 0.300 0.000 0.000 
+        0.000 0.000 1.000 0.000 
+        0.000 0.000 0.000 1.000 
+      }
+    }
+    
+    <VertexPool> bounds.001 {
+    
+      <Vertex> 0 {
+        -15.000001907348633 15.000001907348633 10.0
+      }
+      <Vertex> 1 {
+        -15.000001907348633 -15.000001907348633 10.0
+      }
+      <Vertex> 2 {
+        -15.000001907348633 -15.000001907348633 0.0
+      }
+      <Vertex> 3 {
+        -15.000001907348633 15.000001907348633 0.0
       }
       <Vertex> 4 {
-        15 15 10
+        15.000001907348633 15.000001907348633 10.0
       }
       <Vertex> 5 {
-        15 15 0
+        -15.000001907348633 15.000001907348633 10.0
       }
       <Vertex> 6 {
-        15 2.71487 9.47848
+        -15.000001907348633 15.000001907348633 0.0
       }
       <Vertex> 7 {
-        15 -2.60675 9.47848
+        15.000001907348633 15.000001907348633 0.0
       }
       <Vertex> 8 {
-        15 -15 10
+        15.000001907348633 2.7148690223693848 9.478483200073242
       }
       <Vertex> 9 {
-        15 -2.60675 0
+        15.000001907348633 -2.6067452430725098 9.478483200073242
       }
       <Vertex> 10 {
-        15 -15 0
+        15.000001907348633 -15.000001907348633 10.0
       }
       <Vertex> 11 {
-        15 2.71487 0
+        15.000001907348633 15.000001907348633 10.0
       }
       <Vertex> 12 {
-        15.3776 2.71487 9.47848
+        15.000001907348633 -2.6067452430725098 9.478483200073242
       }
       <Vertex> 13 {
-        15.3776 2.71487 -0.051897
+        15.000001907348633 -2.6067452430725098 0.0
       }
       <Vertex> 14 {
-        15.3776 -2.60675 9.47848
+        15.000001907348633 -15.000001907348633 0.0
       }
       <Vertex> 15 {
-        15.3776 -2.60675 -0.051897
+        15.000001907348633 -15.000001907348633 10.0
       }
+      <Vertex> 16 {
+        15.000001907348633 15.000001907348633 0.0
+      }
+      <Vertex> 17 {
+        15.000001907348633 2.7148690223693848 0.0
+      }
+      <Vertex> 18 {
+        15.000001907348633 2.7148690223693848 9.478483200073242
+      }
+      <Vertex> 19 {
+        15.000001907348633 15.000001907348633 10.0
+      }
+      <Vertex> 20 {
+        -15.000001907348633 -15.000001907348633 10.0
+      }
+      <Vertex> 21 {
+        15.000001907348633 -15.000001907348633 10.0
+      }
+      <Vertex> 22 {
+        15.000001907348633 -15.000001907348633 0.0
+      }
+      <Vertex> 23 {
+        -15.000001907348633 -15.000001907348633 0.0
+      }
+      <Vertex> 24 {
+        15.377622604370117 2.7148690223693848 9.478483200073242
+      }
+      <Vertex> 25 {
+        15.000001907348633 2.7148690223693848 9.478483200073242
+      }
+      <Vertex> 26 {
+        15.000001907348633 2.7148690223693848 0.0
+      }
+      <Vertex> 27 {
+        15.377622604370117 2.7148690223693848 -0.05189704895019531
+      }
+      <Vertex> 28 {
+        15.377622604370117 -2.6067452430725098 9.478483200073242
+      }
+      <Vertex> 29 {
+        15.377622604370117 -2.6067452430725098 -0.05189704895019531
+      }
+      <Vertex> 30 {
+        15.000001907348633 -2.6067452430725098 0.0
+      }
+      <Vertex> 31 {
+        15.000001907348633 2.7148690223693848 9.478483200073242
+      }
+      <Vertex> 32 {
+        15.377622604370117 2.7148690223693848 9.478483200073242
+      }
+      <Vertex> 33 {
+        15.377622604370117 -2.6067452430725098 9.478483200073242
+      }
+      <Vertex> 34 {
+        15.000001907348633 -2.6067452430725098 9.478483200073242
+      }}
+    
+    
+    <Polygon> {
+      <Normal> {1.000 0.000 0.000}
+      <VertexRef> { 0 1 2 3 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { 1 0 0 }
-      <VertexRef> { 0 1 2 3 <Ref> { bounds } }
+      <Normal> {0.000 -1.000 0.000}
+      <VertexRef> { 4 5 6 7 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { 0 -1 0 }
-      <VertexRef> { 4 0 3 5 <Ref> { bounds } }
+      <Normal> {-1.000 0.000 0.000}
+      <VertexRef> { 8 9 10 11 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { -1 0 0 }
-      <VertexRef> { 6 7 8 4 <Ref> { bounds } }
+      <Normal> {-1.000 0.000 0.000}
+      <VertexRef> { 12 13 14 15 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { -1 0 0 }
-      <VertexRef> { 7 9 10 8 <Ref> { bounds } }
+      <Normal> {-1.000 0.000 0.000}
+      <VertexRef> { 16 17 18 19 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { -1 0 0 }
-      <VertexRef> { 5 11 6 4 <Ref> { bounds } }
+      <Normal> {0.000 1.000 0.000}
+      <VertexRef> { 20 21 22 23 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { 0 1 0 }
-      <VertexRef> { 1 8 10 2 <Ref> { bounds } }
+      <Normal> {0.000 -1.000 0.000}
+      <VertexRef> { 24 25 26 27 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { 0 -1 0 }
-      <VertexRef> { 12 6 11 13 <Ref> { bounds } }
+      <Normal> {0.000 1.000 0.000}
+      <VertexRef> { 28 29 30 <Ref> { bounds.001 }}
     }
     <Polygon> {
-      <Normal> { 0 1 0 }
-      <VertexRef> { 14 15 9 <Ref> { bounds } }
-    }
-    <Polygon> {
-      <Normal> { 0 0 -1 }
-      <VertexRef> { 6 12 14 7 <Ref> { bounds } }
+      <Normal> {0.000 0.000 -1.000}
+      <VertexRef> { 31 32 33 34 <Ref> { bounds.001 }}
     }
   }
-}
-<Group> Lamp {
-  <Transform> {
-    <Matrix4> {
-      -0.291 0.955 -0.055 0
-      -0.771 -0.2 0.605 0
-      0.566 0.218 0.795 0
-      4.076 1.005 5.904 1
-    }
-  }
-}
-<Group> Camera {
-  <Transform> {
-    <Matrix4> {
-      0.686 0.728 -0.011 0
-      -0.317 0.312 0.895 0
-      0.655 -0.611 0.445 0
-      7.481 -6.508 5.344 1
-    }
-  }
-}
