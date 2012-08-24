@@ -1,8 +1,8 @@
 <CoordinateSystem> { Z-up } 
 <Material> Material.003 {
-  <Scalar> diffr { 0.000 }
-  <Scalar> diffg { 0.000 }
-  <Scalar> diffb { 0.800 }
+  <Scalar> diffr { 1.0 }
+  <Scalar> diffg { 1.0 }
+  <Scalar> diffb { 1.0 }
   <Scalar> specr { 1.000 }
   <Scalar> specg { 1.000 }
   <Scalar> specb { 1.000 }
@@ -13,9 +13,9 @@
 }
 
 <Material> Material.005 {
-  <Scalar> diffr { 0.640 }
-  <Scalar> diffg { 0.007 }
-  <Scalar> diffb { 0.000 }
+  <Scalar> diffr { 1.0 }
+  <Scalar> diffg { 1.0 }
+  <Scalar> diffb { 1.0 }
   <Scalar> specr { 1.000 }
   <Scalar> specg { 1.000 }
   <Scalar> specb { 1.000 }
@@ -26,9 +26,9 @@
 }
 
 <Material> Material.004 {
-  <Scalar> diffr { 0.000 }
-  <Scalar> diffg { 0.800 }
-  <Scalar> diffb { 0.000 }
+  <Scalar> diffr { 1.0 }
+  <Scalar> diffg { 1.0 }
+  <Scalar> diffb { 1.0 }
   <Scalar> specr { 1.000 }
   <Scalar> specg { 1.000 }
   <Scalar> specb { 1.000 }

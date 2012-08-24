@@ -139,7 +139,8 @@ class World(ShowBase):
         self.scene = loader.loadModel(sceneName)
         walls = self.scene.find('**/=isaWall')
 #        walls.node().setIntoCollideMask(BitMask32.bit(0))
-        walls.show()
+        if not walls.isEmpty():
+            walls.show()
         
         self.scene.reparentTo(render)
 #        self.setupModels()
