@@ -13,7 +13,7 @@
 }
 
 <Texture> Plane_diffuse {
-  "./tex/Plane_diffuse.png"
+  "./targeted2.png"
   <Scalar> envtype { MODULATE }
 }
 
