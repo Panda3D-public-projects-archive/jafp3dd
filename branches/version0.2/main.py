@@ -105,6 +105,11 @@ class World(ShowBase):
         self.pickerNode.addSolid(self.pickerRay)
         self.traverser.addCollider(self.pickerNP, self.handlerQ)
         
+        # TESTING SECTION
+        door = common.GameObject('testdoor','resources/door.egg')
+#        door.np.reparent(render)
+        door.np.setPos(2,1,0)
+        #
     def setAI(self):
         #Creating AI World
         self.AIworld = AIWorld(render)

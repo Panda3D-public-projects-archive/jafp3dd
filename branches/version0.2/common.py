@@ -16,6 +16,7 @@ from panda3d.ai import *
 from direct.actor.Actor import Actor
 
 TURN_RATE = 90    # Degrees per second
+MOUSE_TURN_MULTIPLIER = 100
 WALK_RATE = 30
 MIN_CAM_DIST = .333
 
@@ -135,7 +136,7 @@ class ControlledCamera(ControlledObject):
     # make zoom a proper PI controller: Set radius with wheel. let PID approach it
     # more robust free camera mode
 
-    MOUSE_STEER_SENSITIVITY = -70*TURN_RATE
+    MOUSE_STEER_SENSITIVITY = -MOUSE_TURN_MULTIPLIER*TURN_RATE
     ZOOM_STEP = 1
     radiusGain = 0.5
 
