@@ -46,7 +46,6 @@ RESOURCE_PATH = 'resources'
 #        # find lights from blender and create them with the right properties
 
 class World(ShowBase):
-
     #pure control states
     mousePos = [0,0]
     mousePos_old = mousePos
@@ -91,8 +90,9 @@ class World(ShowBase):
         
         
         self.textObject = OnscreenText(text = str(self.CC.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
-        taskMgr.add(self.updateOSD,'OSDupdater')
-
+        taskMgr.doMethodLater(1,self.updateOSD,'OSDupdater')
+#        taskMgr.doMethodLater(3,self.playAni,'test')
+        
         self.stickyTarget = None
         self.hover = None
         
@@ -106,9 +106,9 @@ class World(ShowBase):
         self.traverser.addCollider(self.pickerNP, self.handlerQ)
         
         # TESTING SECTION
-        door = common.GameObject('testdoor','resources/door.egg')
+#        door = common.GameObject('testdoor','resources/door.egg')
 #        door.np.reparent(render)
-        door.np.setPos(2,1,0)
+#        door.np.setPos(2,1,0)
         #
     def setAI(self):
         #Creating AI World
@@ -125,8 +125,8 @@ class World(ShowBase):
             newAI.np.setTag('ID',str(n))
 
             newAI.setCenterPos(Vec3(-1,1,0))
-            tx = random.randint(-50,50)
-            ty = random.randint(-50,50)
+            tx = random.randint(-10,10)
+            ty = random.randint(-10,10)
             newAI.setResourcePos( Vec3(tx,ty,0) )
 
             newAI.request('ToResource')
@@ -262,6 +262,7 @@ class World(ShowBase):
 #        messenger.send('deselect',[self.stickyTarget]) # toggle the old sticky target off     
         self.stickyTarget = self.hover                  # assign a new sticky target
         if self.stickyTarget:
+            print(self.stickyTarget.getName())
             messenger.send('clickedOn',[self.stickyTarget.getName()]) # tell new sticky target it is clicked on (and do actions accordingly)
         
     def updateOSD(self,task):
@@ -270,6 +271,11 @@ class World(ShowBase):
         [hdg,p,r] = self.player.np.getParent().getHpr()
         self.textObject.setText(str( (int(x), int(y), int(z), int(hdg)) ))
         return task.cont
-
+    
+    def playAni(self,task):
+        if self.npc:
+            self.npc[0].np.play('spin')
+            
+        return task.again
 W = World()
 W.run()
