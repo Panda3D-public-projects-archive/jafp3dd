@@ -31,7 +31,7 @@ class GameObject(DirectObject): # Inherit from DO for event handling
     def __init__(self,name='', modelName = None):
         self.name = name
         self.accept('highlight',self.onFocus)
-        self.accept('clickedOn',self.onClicked)
+        self.accept(name + 'clickedOn',self.onClicked)
 
         self.root = PandaNode(name + '_Gameobj_node')
         self.np = NodePath(self.root)
@@ -74,15 +74,19 @@ class GameObject(DirectObject): # Inherit from DO for event handling
                 self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
                 self._showTarget(False)
 
-    def onClicked(self,objectName):
-        if objectName == self.np.getName():
-            print "Sticky Target is now ", self.np.getName()
-            self.isSelected = True
-            self._showTarget(True)
-        else:                    
-            self.isSelected = False # allows same call to toggle off targeting
-            self._showTarget(False)
-        
+#    def onClicked(self,objectName):
+#        if objectName == self.np.getName():
+#            print "Sticky Target is now ", self.np.getName()
+#            self.isSelected = True
+#            self._showTarget(True)
+#        else:                    
+#            self.isSelected = False # allows same call to toggle off targeting
+#            self._showTarget(False)
+    def onClicked(self):
+        print "Sticky Target is now ", self.np.getName()
+        self.isSelected = True
+        self._showTarget(True)
+            
     def _showTarget(self,enabled=False):
         if enabled:
 #            self.targetCard.reparentTo(render)
@@ -273,8 +277,8 @@ class Gatherer(GameObject,FSM):
         taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
 
 
-    def onClicked(self,objectName):
-#        GameObject.onClicked(self,objectName)
+    def onClicked(self):
+        GameObject.onClicked(self)
         self.np.play('spin')
       
     def setResourcePos(self,position):
