@@ -253,7 +253,7 @@ class World(ShowBase):
                 picked = picked.findNetTag('selectable')
                 self.hover = None
                 if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
-                    messenger.send('highlight',[picked.getName()])
+                    messenger.send(picked.getName() + 'highlight')
                     self.hover = picked                   
 
         return task.cont
@@ -263,7 +263,7 @@ class World(ShowBase):
         self.stickyTarget = self.hover                  # assign a new sticky target
         if self.stickyTarget:
             print(self.stickyTarget.getName())
-            messenger.send('clickedOn',[self.stickyTarget.getName()]) # tell new sticky target it is clicked on (and do actions accordingly)
+            messenger.send(self.stickyTarget.getName() + 'clickedOn') # tell new sticky target it is clicked on (and do actions accordingly)
         
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
