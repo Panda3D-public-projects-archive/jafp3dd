@@ -67,7 +67,7 @@ class GameObject(DirectObject): # Inherit from DO for event handling
     def onFocus(self, pickedName):
         if not self.isSelected:
             if pickedName == self.np.getName():
-                print self.np.getName(), " touched"
+#                print self.np.getName(), " touched"
                 self.np.setColorScale(2,2,2,1)
                 self._showTarget(True)
             else:
@@ -274,7 +274,7 @@ class Gatherer(GameObject,FSM):
 
 
     def onClicked(self,objectName):
-        GameObject.onClicked(self,objectName)
+#        GameObject.onClicked(self,objectName)
         self.np.play('spin')
       
     def setResourcePos(self,position):
