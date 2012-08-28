@@ -1,8 +1,8 @@
 <CoordinateSystem> { Z-up } 
 <Material> Material.003 {
-  <Scalar> diffr { 1.0 }
-  <Scalar> diffg { 1.0 }
-  <Scalar> diffb { 1.0 }
+  <Scalar> diffr { 0.000 }
+  <Scalar> diffg { 0.000 }
+  <Scalar> diffb { 0.800 }
   <Scalar> specr { 1.000 }
   <Scalar> specg { 1.000 }
   <Scalar> specb { 1.000 }
@@ -13,9 +13,9 @@
 }
 
 <Material> Material.005 {
-  <Scalar> diffr { 1.0 }
-  <Scalar> diffg { 1.0 }
-  <Scalar> diffb { 1.0 }
+  <Scalar> diffr { 0.640 }
+  <Scalar> diffg { 0.007 }
+  <Scalar> diffb { 0.000 }
   <Scalar> specr { 1.000 }
   <Scalar> specg { 1.000 }
   <Scalar> specb { 1.000 }
@@ -26,9 +26,9 @@
 }
 
 <Material> Material.004 {
-  <Scalar> diffr { 1.0 }
-  <Scalar> diffg { 1.0 }
-  <Scalar> diffb { 1.0 }
+  <Scalar> diffr { 0.000 }
+  <Scalar> diffg { 0.800 }
+  <Scalar> diffb { 0.000 }
   <Scalar> specr { 1.000 }
   <Scalar> specg { 1.000 }
   <Scalar> specb { 1.000 }
@@ -310,118 +310,6 @@
         <MRef> { Material.005 }
         <Normal> {0.050 0.999 0.000}
         <VertexRef> { 13 14 15 <Ref> { xhat }}
-      }
-    }
-    <Group> colbox {
-      <Collide> { Polygon }
-      <Transform> {
-        <Matrix4> {
-          0.500 0.000 0.000 0.000 
-          0.000 0.500 0.000 0.000 
-          0.000 0.000 1.000 0.000 
-          0.000 0.000 0.990 1.000 
-        }
-      }
-      
-      <VertexPool> colbox {
-      
-        <Vertex> 0 {
-          -0.5 -0.5 1.9900000095367432
-        }
-        <Vertex> 1 {
-          -0.5 0.5 1.9900000095367432
-        }
-        <Vertex> 2 {
-          -0.5 0.5 -0.009999990463256836
-        }
-        <Vertex> 3 {
-          -0.5 -0.5 -0.009999990463256836
-        }
-        <Vertex> 4 {
-          -0.5 0.5 1.9900000095367432
-        }
-        <Vertex> 5 {
-          0.5 0.5 1.9900000095367432
-        }
-        <Vertex> 6 {
-          0.5 0.5 -0.009999990463256836
-        }
-        <Vertex> 7 {
-          -0.5 0.5 -0.009999990463256836
-        }
-        <Vertex> 8 {
-          0.5 0.5 1.9900000095367432
-        }
-        <Vertex> 9 {
-          0.5 -0.5 1.9900000095367432
-        }
-        <Vertex> 10 {
-          0.5 -0.5 -0.009999990463256836
-        }
-        <Vertex> 11 {
-          0.5 0.5 -0.009999990463256836
-        }
-        <Vertex> 12 {
-          0.5 -0.5 1.9900000095367432
-        }
-        <Vertex> 13 {
-          -0.5 -0.5 1.9900000095367432
-        }
-        <Vertex> 14 {
-          -0.5 -0.5 -0.009999990463256836
-        }
-        <Vertex> 15 {
-          0.5 -0.5 -0.009999990463256836
-        }
-        <Vertex> 16 {
-          -0.5 -0.5 -0.009999990463256836
-        }
-        <Vertex> 17 {
-          -0.5 0.5 -0.009999990463256836
-        }
-        <Vertex> 18 {
-          0.5 0.5 -0.009999990463256836
-        }
-        <Vertex> 19 {
-          0.5 -0.5 -0.009999990463256836
-        }
-        <Vertex> 20 {
-          0.5 -0.5 1.9900000095367432
-        }
-        <Vertex> 21 {
-          0.5 0.5 1.9900000095367432
-        }
-        <Vertex> 22 {
-          -0.5 0.5 1.9900000095367432
-        }
-        <Vertex> 23 {
-          -0.5 -0.5 1.9900000095367432
-        }}
-      
-      
-      <Polygon> {
-        <Normal> {-1.000 0.000 0.000}
-        <VertexRef> { 0 1 2 3 <Ref> { colbox }}
-      }
-      <Polygon> {
-        <Normal> {0.000 1.000 0.000}
-        <VertexRef> { 4 5 6 7 <Ref> { colbox }}
-      }
-      <Polygon> {
-        <Normal> {1.000 0.000 0.000}
-        <VertexRef> { 8 9 10 11 <Ref> { colbox }}
-      }
-      <Polygon> {
-        <Normal> {0.000 -1.000 0.000}
-        <VertexRef> { 12 13 14 15 <Ref> { colbox }}
-      }
-      <Polygon> {
-        <Normal> {0.000 0.000 -1.000}
-        <VertexRef> { 16 17 18 19 <Ref> { colbox }}
-      }
-      <Polygon> {
-        <Normal> {0.000 0.000 1.000}
-        <VertexRef> { 20 21 22 23 <Ref> { colbox }}
       }
     }
   }
