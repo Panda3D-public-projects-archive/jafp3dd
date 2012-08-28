@@ -5,14 +5,13 @@ Created on Fri Feb 03 14:24:37 2012
 @author: us997259
 """
 
-import random
+
 from math import sin,cos,pi
 
 from direct.showbase.ShowBase import taskMgr
 from direct.showbase.DirectObject import DirectObject
 from panda3d.core import * #PandaNode, NodePath, CollisionNode, CollisionSphere
 from direct.fsm.FSM import FSM
-from panda3d.ai import *
 from direct.actor.Actor import Actor
 
 TURN_RATE = 90    # Degrees per second
@@ -210,130 +209,4 @@ class ControlledCamera(ControlledObject):
     #    print _camVector
         return task.cont
 
-
-
-class NpcAI(GameObject,FSM):
-
-    def __init__(self,name=None,modelName=None,modelScale=1,**kwargs):
-        GameObject.__init__(self,name,modelName,**kwargs)
-        FSM.__init__(self, 'aGatherer')
-
-#        self.defaultTransitions = {
-#            'Walk' : [ 'Walk2Swim' ],
-#            'Walk2Swim' : [ 'Swim' ],
-#            'Swim' : [ 'Swim2Walk', 'Drowning' ],
-#            'Swim2Walk' : [ 'Walk' ],
-#            'Drowning' : [ ],
-#            }
-
-#TODO: Load ACTORS as well as static models...
-        self.np.setScale(modelScale)
-        self.AI = AICharacter(name,self.np, 50, 0.05, 5)
-        self.behavior = self.AI.getAiBehaviors()
-
-        taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
-        
-    def stateMonitor(self,task):
-#        if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
-#            self.request('Deliver')
-        pass
-        return task.again
-
-    
-class Gatherer(GameObject,FSM):
-
-    def __init__(self,name=None,modelName=None,modelScale=1,**kwargs):
-        GameObject.__init__(self,name,modelName,**kwargs)
-        FSM.__init__(self, 'aGatherer')
-
-#        self.defaultTransitions = {
-#            'Walk' : [ 'Walk2Swim' ],
-#            'Walk2Swim' : [ 'Swim' ],
-#            'Swim' : [ 'Swim2Walk', 'Drowning' ],
-#            'Swim2Walk' : [ 'Walk' ],
-#            'Drowning' : [ ],
-#            }
-
-#TODO: Load ACTORS as well as static models...
-        self.np.setScale(modelScale)
-        color = (VBase4(random.random(),random.random(),random.random(),1)*0.8)
-        self.np.setColor(color)
-
-        self.resPos = None
-        self.centerPos = None
-        self.cargo = 0
-        self.maxCargo = 5
-        self.loadRate = 1
-        self.AI = AICharacter(name,self.np, 50, 0.05, 5)
-        self.behavior = self.AI.getAiBehaviors()
-
-        taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
-
-
-    def onClicked(self):
-        GameObject.onClicked(self)
-        self.np.play('spin')
-      
-    def setResourcePos(self,position):
-        self.resPos = position # should be vec3
-
-    def setCenterPos(self,position):
-        self.centerPos = position
-#        self.behavior.removeAi('seek')
-#        self.behavior.seek(self.centerPos,1.0)
-
-#    def enterSearch(self):
-#        self.behavior.wander(10, 0, 64, 1.0)
-#
-#    def exitSearch(self):
-#        self.behavior.removeAi('wander')
-
-    def enterToResource(self):
-        self.behavior.seek(self.resPos,1.0)
-
-    def exitToResource(self):
-        self.behavior.removeAi('seek')
-
-    def enterGather(self):
-#        self.behavior.wander(3, 0, 3, 1.0)
-#        self.np.loop('spin')
-        taskMgr.doMethodLater(5,self.gatherTimer,'gatherTask')
-
-    def exitGather(self):
-        self.behavior.removeAi('wander')
-#        self.np.play('spin', fromFrame= self.np.getCurrentFrame('spin'))
-        
-    def enterToCenter(self):
-        self.behavior.seek(self.centerPos,1.0)
-
-    def exitToCenter(self):
-        self.behavior.removeAi('seek')
-
-    def enterDeliver(self):
-#        self.behavior.wander(1, 0, 1, 1.0)
-        taskMgr.doMethodLater(5,self.deliverTimer,'deliverTask')
-
-    def exitDeliver(self):
-        self.behavior.removeAi('wander')
-
-#    def enterDanger(self):
-#        print "Aahhh! Implement me!"
-#
-#    def exitDanger(self):
-#        pass
-
-    def stateMonitor(self,task):
-        if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
-            self.request('Deliver')
-        if self.state == 'ToResource' and self.behavior.behaviorStatus('seek') == 'done':
-            self.request('Gather')
-        return task.again
-
-    def gatherTimer(self,task):
-        self.request('ToCenter')
-        return task.done
-
-    def deliverTimer(self,task):
-        self.request('ToResource')
-        return task.done
 
