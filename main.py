@@ -256,7 +256,7 @@ class World(ShowBase):
                         if self.focus:
                             self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked    
                         self.focus = picked # change 
-                        self.focus.setColorScale(2,2,2,1)
+                        self.focus.setColorScale(1.25,1.25,1.25,1)
             elif self.focus: # no collisions means lost focus (with collidables) so disable last known focus
                 self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
                 self.focus = None
