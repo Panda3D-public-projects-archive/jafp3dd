@@ -30,7 +30,7 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 
     def __init__(self,name='', modelName = None):
         self.name = name
-        self.accept('highlight',self.onFocus)
+        self.accept(name + 'highlight',self.onFocus)
         self.accept(name + 'clickedOn',self.onClicked)
 
         self.root = PandaNode(name + '_Gameobj_node')
@@ -64,39 +64,32 @@ class GameObject(DirectObject): # Inherit from DO for event handling
         self.targetCard.reparentTo(base.hidden)
         self.targetCard.set_light_off()
     
-    def onFocus(self, pickedName):
-        if not self.isSelected:
-            if pickedName == self.np.getName():
+    def onFocus(self):
+        pass
+    
+#        if not self.isSelected:
+#            if pickedName == self.np.getName():
 #                print self.np.getName(), " touched"
-                self.np.setColorScale(2,2,2,1)
-                self._showTarget(True)
-            else:
-                self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
-                self._showTarget(False)
+#                self.np.setColorScale(2,2,2,1)
+#            else:
+#                self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
 
-#    def onClicked(self,objectName):
-#        if objectName == self.np.getName():
-#            print "Sticky Target is now ", self.np.getName()
-#            self.isSelected = True
-#            self._showTarget(True)
-#        else:                    
-#            self.isSelected = False # allows same call to toggle off targeting
-#            self._showTarget(False)
     def onClicked(self):
-        print "Sticky Target is now ", self.np.getName()
-        self.isSelected = True
-        self._showTarget(True)
-            
-    def _showTarget(self,enabled=False):
-        if enabled:
-#            self.targetCard.reparentTo(render)
-            self.targetCard.reparentTo(self.np) # need to follow object np, so parent to it
-#            b = self.np.getBounds()
-#            localCenter = b.getCenter() - self.targetCard.getPos()
-#            self.targetCard.setPos(localCenter)
-#            self.targetCard.setScale(1.1*b.getRadius())
-        else:
-            self.targetCard.reparentTo(base.hidden)
+        pass
+#        print "Sticky Target is now ", self.np.getName()
+#        self.isSelected = True
+#        self._showTarget(True)
+#            
+#    def _showTarget(self,enabled=False):
+#        if enabled:
+##            self.targetCard.reparentTo(render)
+#            self.targetCard.reparentTo(self.np) # need to follow object np, so parent to it
+##            b = self.np.getBounds()
+##            localCenter = b.getCenter() - self.targetCard.getPos()
+##            self.targetCard.setPos(localCenter)
+##            self.targetCard.setScale(1.1*b.getRadius())
+#        else:
+#            self.targetCard.reparentTo(base.hidden)
         
         
 class NodePathController():
@@ -263,7 +256,7 @@ class Gatherer(GameObject,FSM):
 
 #TODO: Load ACTORS as well as static models...
         self.np.setScale(modelScale)
-        color = (VBase4(random.random(),random.random(),random.random(),1))
+        color = (VBase4(random.random(),random.random(),random.random(),1)*0.8)
         self.np.setColor(color)
 
         self.resPos = None

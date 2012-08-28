@@ -71,6 +71,7 @@ class World(ShowBase):
         self.setupKeys()
         self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
+        taskMgr.doMethodLater(1, self.updateTargets, 'Target Manager')
         
         print('loading scenery...')
         self.loadScene(os.path.join(RESOURCE_PATH,'groundc.egg'))
@@ -94,7 +95,7 @@ class World(ShowBase):
 #        taskMgr.doMethodLater(3,self.playAni,'test')
         
         self.stickyTarget = None
-        self.hover = None
+        self.focus = None
         
         # setup camera view picker
         self.pickerNode = CollisionNode('mouseRay')
@@ -246,21 +247,25 @@ class World(ShowBase):
             self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
 
             self.traverser.traverse(render)
-            messenger.send('highlight',[None])
             if self.handlerQ.getNumEntries() > 0:
                 self.handlerQ.sortEntries()        # This is so we get the closest object.
                 picked = self.handlerQ.getEntry(0).getIntoNodePath()
                 picked = picked.findNetTag('selectable')
-                self.hover = None
-                if not picked.isEmpty() and picked.getNetTag('selectable') == '1':
-                    messenger.send(picked.getName() + 'highlight')
-                    self.hover = picked                   
-
+                if not picked.isEmpty():
+                    if not picked == self.focus:
+                        if self.focus:
+                            self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked    
+                        self.focus = picked # change 
+                        self.focus.setColorScale(2,2,2,1)
+            elif self.focus: # no collisions means lost focus (with collidables) so disable last known focus
+                self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
+                self.focus = None
+                
         return task.cont
 
     def pickingFunc(self):
-#        messenger.send('deselect',[self.stickyTarget]) # toggle the old sticky target off     
-        self.stickyTarget = self.hover                  # assign a new sticky target
+# and picked.getNetTag('selectable') == '1'
+        self.stickyTarget = self.focus                  # assign a new sticky target
         if self.stickyTarget:
             print(self.stickyTarget.getName())
             messenger.send(self.stickyTarget.getName() + 'clickedOn') # tell new sticky target it is clicked on (and do actions accordingly)
@@ -272,9 +277,8 @@ class World(ShowBase):
         self.textObject.setText(str( (int(x), int(y), int(z), int(hdg)) ))
         return task.cont
     
-    def playAni(self,task):
-        if self.npc:
-            self.npc[0].np.play('spin')
+    def updateTargets(self,task):
+        pass
             
         return task.again
 W = World()
