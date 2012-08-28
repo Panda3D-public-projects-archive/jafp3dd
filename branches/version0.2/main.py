@@ -10,10 +10,11 @@ import sys, os, random
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
-from direct.actor.Actor import Actor
+#from direct.actor.Actor import Actor
 from panda3d.ai import *
 
 import common
+import AI
 
 #PStatClient.connect()
 #from pandac.PandaModules import loadPrcFileData
@@ -119,7 +120,7 @@ class World(ShowBase):
         self.npc = []
         for n in range(NUM_NPC):
 
-            newAI = common.Gatherer("NPC"+str(n),'resources/aniCube2.egg')
+            newAI = AI.Gatherer("NPC"+str(n),'resources/aniCube2.egg')
             newAI.np.reparentTo(render)
             
             newAI.np.setPos(0,0,0)
@@ -155,7 +156,7 @@ class World(ShowBase):
     def setupLights(self):
         self.render.setShaderAuto()
         self.alight = AmbientLight('alight')
-        self.alight.setColor(VBase4(1,1,1,1))
+        self.alight.setColor(VBase4(1,1,1,1)*.1)
         self.alnp = self.render.attachNewNode(self.alight)
         render.setLight(self.alnp)
 
@@ -165,7 +166,7 @@ class World(ShowBase):
         render.setLight(self.dlnp)
 
         self.slight = Spotlight('slight')
-        self.slight.setColor(VBase4(1,1,1,1))
+        self.slight.setColor(VBase4(1,.1,.1,1))
         self.slnp = self.render.attachNewNode(self.slight)
         self.slnp.setPos(0,0,10)
         render.setLight(self.slnp)
@@ -257,10 +258,13 @@ class World(ShowBase):
                             self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked    
                         self.focus = picked # change 
                         self.focus.setColorScale(1.25,1.25,1.25,1)
+                else: # a collisions occured but not with a selectable object
+                    if self.focus:
+                        self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
             elif self.focus: # no collisions means lost focus (with collidables) so disable last known focus
                 self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
                 self.focus = None
-                
+                print "Focus lost\n"
         return task.cont
 
     def pickingFunc(self):
