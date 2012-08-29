@@ -50,7 +50,7 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #            self.cnp.show()
         
         self.np.setTag('selectable','1')
-        self.isSelected = False
+#        self.isSelected = False
         
         self.targetCard = loader.loadModel('resources/targeted.egg')
         bv = self.np.getBounds()
@@ -65,13 +65,6 @@ class GameObject(DirectObject): # Inherit from DO for event handling
     
     def onFocus(self):
         pass
-    
-#        if not self.isSelected:
-#            if pickedName == self.np.getName():
-#                print self.np.getName(), " touched"
-#                self.np.setColorScale(2,2,2,1)
-#            else:
-#                self.np.setColorScale(1,1,1,1) # remove highlight from previously picked
 
     def onClicked(self):
         pass
@@ -79,16 +72,16 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #        self.isSelected = True
 #        self._showTarget(True)
 #            
-#    def _showTarget(self,enabled=False):
-#        if enabled:
-##            self.targetCard.reparentTo(render)
-#            self.targetCard.reparentTo(self.np) # need to follow object np, so parent to it
-##            b = self.np.getBounds()
-##            localCenter = b.getCenter() - self.targetCard.getPos()
-##            self.targetCard.setPos(localCenter)
-##            self.targetCard.setScale(1.1*b.getRadius())
-#        else:
-#            self.targetCard.reparentTo(base.hidden)
+    def _showTarget(self,enabled=False):
+        if enabled:
+#            self.targetCard.reparentTo(render)
+            self.targetCard.reparentTo(self.np) # need to follow object np, so parent to it
+#            b = self.np.getBounds()
+#            localCenter = b.getCenter() - self.targetCard.getPos()
+#            self.targetCard.setPos(localCenter)
+#            self.targetCard.setScale(1.1*b.getRadius())
+        else:
+            self.targetCard.reparentTo(base.hidden)
         
         
 class NodePathController():
