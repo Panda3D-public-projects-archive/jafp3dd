@@ -257,7 +257,7 @@ class World(ShowBase):
                         if self.focus:
                             self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked    
                         self.focus = picked # change 
-                        self.focus.setColorScale(1.25,1.25,1.25,1)
+                        self.focus.setColorScale(1.5,1.5,1.5,1)
                 else: # a collisions occured but not with a selectable object
                     if self.focus:
                         self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
