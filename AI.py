@@ -66,7 +66,7 @@ class Gatherer(GameObject,FSM):
         self.cargo = 0
         self.maxCargo = 5
         self.loadRate = 1
-        self.AI = AICharacter(name,self.np, 50, 0.05, 5)
+        self.AI = AICharacter(name,self.np, 50, 0.05, .3)
         self.behavior = self.AI.getAiBehaviors()
 
         taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
