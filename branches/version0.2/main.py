@@ -21,7 +21,7 @@ import AI
 #loadPrcFileData("", "want-directtools #t")
 #loadPrcFileData("", "want-tk #t")
 
-NUM_NPC = 3
+NUM_NPC = 5
 
 RESOURCE_PATH = 'resources'
 
@@ -258,9 +258,11 @@ class World(ShowBase):
                             self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked    
                         self.focus = picked # change 
                         self.focus.setColorScale(1.5,1.5,1.5,1)
-                else: # a collisions occured but not with a selectable object
+                else: # a collisions occured but not with a selectable object so clear focus
                     if self.focus:
                         self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
+                        self.focus = None
+                        print "Focus lost\n"
             elif self.focus: # no collisions means lost focus (with collidables) so disable last known focus
                 self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
                 self.focus = None
@@ -269,13 +271,16 @@ class World(ShowBase):
 
     def pickingFunc(self):
 # and picked.getNetTag('selectable') == '1'
-        ai = [x for x in self.npc if  x.np.getName() in self.focus.getName()]
-        ai = ai[0]
-        print ai.np.getName()
-        self.npc.remove(ai)
-        ai.np.cleanup()
-        ai.np.removeNode()
-        del(ai)
+        if self.focus:
+            ai = [x for x in self.npc if  x.np.getName() in self.focus.getName()]
+            if ai:
+                ai = ai[0]
+                print ai.np.getName()
+                self.npc.remove(ai)
+                ai.np.cleanup()
+                ai.np.removeNode()
+                del(ai)
+                
 #        self.stickyTarget = self.focus                  # assign a new sticky target
 #        if self.stickyTarget:
 #            print(self.stickyTarget.getName())

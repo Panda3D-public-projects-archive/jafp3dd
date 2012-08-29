@@ -16,7 +16,7 @@ from common import GameObject
 
 class NpcAI(GameObject,FSM):
 
-    def __init__(self,name=None,modelName=None,modelScale=1,**kwargs):
+    def __init__(self,name=None,modelName=None,**kwargs):
         GameObject.__init__(self,name,modelName,**kwargs)
         FSM.__init__(self, 'aGatherer')
 
@@ -29,12 +29,12 @@ class NpcAI(GameObject,FSM):
 #            }
 
 #TODO: Load ACTORS as well as static models...
-        self.np.setScale(modelScale)
+#        self.np.setScale(modelScale)
         self.AI = AICharacter(name,self.np, 50, 0.05, 5)
         self.behavior = self.AI.getAiBehaviors()
 
-        taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
-        
+        taskMgr.doMethodLater(.25,self.stateMonitor,name + 'StateMonitor')
+#        
     def stateMonitor(self,task):
 #        if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
 #            self.request('Deliver')
@@ -42,22 +42,11 @@ class NpcAI(GameObject,FSM):
         return task.again
 
     
-class Gatherer(GameObject,FSM):
+class Gatherer(NpcAI):
 
-    def __init__(self,name=None,modelName=None,modelScale=1,**kwargs):
-        GameObject.__init__(self,name,modelName,**kwargs)
-        FSM.__init__(self, 'aGatherer')
+    def __init__(self,name=None,modelName=None,**kwargs):
+        NpcAI.__init__(self,name,modelName,**kwargs)
 
-#        self.defaultTransitions = {
-#            'Walk' : [ 'Walk2Swim' ],
-#            'Walk2Swim' : [ 'Swim' ],
-#            'Swim' : [ 'Swim2Walk', 'Drowning' ],
-#            'Swim2Walk' : [ 'Walk' ],
-#            'Drowning' : [ ],
-#            }
-
-#TODO: Load ACTORS as well as static models...
-        self.np.setScale(modelScale)
         color = (VBase4(random.random(),random.random(),random.random(),1)*0.8)
         self.np.setColor(color)
 
@@ -70,7 +59,7 @@ class Gatherer(GameObject,FSM):
         self.np.setPlayRate(3,'spin')   # custom to anicube2 right now (08-29-12)
         self.behavior = self.AI.getAiBehaviors()
 
-        taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
+#        taskMgr.doMethodLater(.25,self.stateMonitor,name + 'StateMonitor')
 
 
     def onClicked(self):
