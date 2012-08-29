@@ -66,7 +66,8 @@ class Gatherer(GameObject,FSM):
         self.cargo = 0
         self.maxCargo = 5
         self.loadRate = 1
-        self.AI = AICharacter(name,self.np, 50, 0.05, .3)
+        self.AI = AICharacter(name,self.np, 50, 0.05, .9)
+        self.np.setPlayRate(3,'spin')   # custom to anicube2 right now (08-29-12)
         self.behavior = self.AI.getAiBehaviors()
 
         taskMgr.doMethodLater(.25,self.stateMonitor,'GathererMonitor')
@@ -74,7 +75,7 @@ class Gatherer(GameObject,FSM):
 
     def onClicked(self):
         GameObject.onClicked(self)
-        self.np.play('spin')
+#        self.np.play('spin')
       
     def setResourcePos(self,position):
         self.resPos = position # should be vec3
@@ -92,10 +93,13 @@ class Gatherer(GameObject,FSM):
 
     def enterToResource(self):
         self.behavior.seek(self.resPos,1.0)
+        self.np.loop('spin', restart=0)
 
     def exitToResource(self):
         self.behavior.removeAi('seek')
-
+        self.np.stop()
+        self.np.pose('spin', 0)
+        
     def enterGather(self):
 #        self.behavior.wander(3, 0, 3, 1.0)
 #        self.np.loop('spin')
@@ -107,10 +111,13 @@ class Gatherer(GameObject,FSM):
         
     def enterToCenter(self):
         self.behavior.seek(self.centerPos,1.0)
+        self.np.loop('spin', restart=0)
 
     def exitToCenter(self):
         self.behavior.removeAi('seek')
-
+        self.np.stop()
+        self.np.pose('spin', 0)
+        
     def enterDeliver(self):
 #        self.behavior.wander(1, 0, 1, 1.0)
         taskMgr.doMethodLater(5,self.deliverTimer,'deliverTask')

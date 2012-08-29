@@ -21,7 +21,7 @@ import AI
 #loadPrcFileData("", "want-directtools #t")
 #loadPrcFileData("", "want-tk #t")
 
-NUM_NPC = 2
+NUM_NPC = 3
 
 RESOURCE_PATH = 'resources'
 
@@ -83,8 +83,8 @@ class World(ShowBase):
 #        self.player.np.setZ(1)
         self.player.cnp = self.player.np.attachNewNode(CollisionNode('Player1--coll-node'))
         self.player.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-        print("Adding ",self.player.cnp)
-        self.player.cnp.show()
+        print "Adding ",self.player.cnp
+#        self.player.cnp.show()
 
         self.handlerPush.addCollider(self.player.cnp,self.CC._target)
         base.cTrav.addCollider(self.player.cnp,self.handlerPush)
@@ -269,11 +269,18 @@ class World(ShowBase):
 
     def pickingFunc(self):
 # and picked.getNetTag('selectable') == '1'
-        self.stickyTarget = self.focus                  # assign a new sticky target
-        if self.stickyTarget:
-            print(self.stickyTarget.getName())
-            messenger.send(self.stickyTarget.getName() + 'clickedOn') # tell new sticky target it is clicked on (and do actions accordingly)
-        
+        ai = [x for x in self.npc if  x.np.getName() in self.focus.getName()]
+        ai = ai[0]
+        print ai.np.getName()
+        self.npc.remove(ai)
+        ai.np.cleanup()
+        ai.np.removeNode()
+        del(ai)
+#        self.stickyTarget = self.focus                  # assign a new sticky target
+#        if self.stickyTarget:
+#            print(self.stickyTarget.getName())
+#            messenger.send(self.stickyTarget.getName() + 'clickedOn') # tell new sticky target it is clicked on (and do actions accordingly)
+#        
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
         [x,y,z] = self.player.np.getParent().getPos()
