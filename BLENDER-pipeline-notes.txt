@@ -1,0 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Aug 29 10:04:07 2012
+
+@author: shawn
+"""
+
+Textures:
+    USE UV MAPS TO WORK.
+
+OBSTACLES:
+    DEFINE walls, triggers, etc using Blender Game Properties
+    typically make property: Collide with value Polyset descend keep (see egg syntax for full options)
+
+Animations:
+    REMEMBER to add the animation to the armature list before exporting
