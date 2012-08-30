@@ -32,9 +32,13 @@ class NpcAI(GameObject,FSM):
 #        self.np.setScale(modelScale)
         self.AI = AICharacter(name,self.np, 50, 0.05, 5)
         self.behavior = self.AI.getAiBehaviors()
-
+        self.accept(name + 'terminate',self.terminate)
         taskMgr.doMethodLater(.25,self.stateMonitor,name + 'StateMonitor')
-#        
+#    
+    def terminate(self):
+        self.np.cleanup()
+        self.np.removeNode()
+        
     def stateMonitor(self,task):
 #        if self.state == 'ToCenter' and self.behavior.behaviorStatus('seek') == 'done':
 #            self.request('Deliver')

@@ -271,21 +271,21 @@ class World(ShowBase):
 
     def pickingFunc(self):
 # and picked.getNetTag('selectable') == '1'
-        if self.focus:
-            ai = [x for x in self.npc if  x.np.getName() in self.focus.getName()]
-            if ai:
-                ai = ai[0]
-                print ai.np.getName()
-                self.npc.remove(ai)
-                ai.np.cleanup()
-                ai.np.removeNode()
-                del(ai)
+#        if self.focus:
+#            ai = [x for x in self.npc if  x.np.getName() in self.focus.getName()]
+#            if ai:
+#                ai = ai[0]
+#                print ai.np.getName()
+#                self.npc.remove(ai)
+#                ai.terminate()
+#                del(ai)
                 
-#        self.stickyTarget = self.focus                  # assign a new sticky target
-#        if self.stickyTarget:
-#            print(self.stickyTarget.getName())
+        self.stickyTarget = self.focus                  # assign a new sticky target
+        if self.stickyTarget:
+            print(self.stickyTarget.getName())
 #            messenger.send(self.stickyTarget.getName() + 'clickedOn') # tell new sticky target it is clicked on (and do actions accordingly)
-#        
+            messenger.send(self.stickyTarget.getName() + 'terminate')
+            
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
         [x,y,z] = self.player.np.getParent().getPos()
