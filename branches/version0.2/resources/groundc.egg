@@ -136,6 +136,7 @@
   }
   <Group> Cube.001 {
     <Collide> { Polyset descend keep }
+    <Tag> isaWall { True }
     <Transform> {
       <Matrix4> {
         -14.400 0.000 0.000 0.000 
@@ -237,6 +238,7 @@
   }
   <Group> Cube {
     <Collide> { Polyset descend keep }
+    <Tag> isaWall { True }
     <Transform> {
       <Matrix4> {
         8.000 0.000 0.000 0.000 
@@ -694,6 +696,7 @@
     }
   }
   <Group> Plane {
+    <Tag> isaWall { 0.0 }
     <Transform> {
       <Matrix4> {
         50.000 0.000 0.000 0.000 

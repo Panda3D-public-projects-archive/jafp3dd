@@ -62,9 +62,8 @@ class Gatherer(NpcAI):
         self.AI = AICharacter(name,self.np, 50, 0.05, .9)
         self.np.setPlayRate(3,'spin')   # custom to anicube2 right now (08-29-12)
         self.behavior = self.AI.getAiBehaviors()
-
-#        taskMgr.doMethodLater(.25,self.stateMonitor,name + 'StateMonitor')
-
+        
+        self.behavior.obstacleAvoidance(1.0)
 
     def onClicked(self):
         GameObject.onClicked(self)

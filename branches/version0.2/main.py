@@ -72,10 +72,10 @@ class World(ShowBase):
         self.setupKeys()
         self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
-        taskMgr.doMethodLater(1, self.updateTargets, 'Target Manager')
         
         print('loading scenery...')
-        self.loadScene(os.path.join(RESOURCE_PATH,'groundc.egg'))
+        self.loadScene(os.path.join(RESOURCE_PATH,'groundd.egg'))
+        
         print('loading player...')
         self.player = common.ControlledObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.egg'),controller=None)
          # Attach the player node to the camera empty node
@@ -123,7 +123,7 @@ class World(ShowBase):
             newAI = AI.Gatherer("NPC"+str(n),'resources/aniCube2.egg')
             newAI.np.reparentTo(render)
             
-            newAI.np.setPos(0,0,0)
+            newAI.np.setPos(0,0,0.01)
             newAI.np.setTag('ID',str(n))
 
             newAI.setCenterPos(Vec3(-1,1,0))
@@ -147,7 +147,9 @@ class World(ShowBase):
         walls = self.scene.find('**/=isaWall')
 #        walls.node().setIntoCollideMask(BitMask32.bit(0))
         if not walls.isEmpty():
+            walls.ls()
             walls.show()
+            self.AIworld.addObstacle(walls)
         
         self.scene.reparentTo(render)
 #        self.setupModels()
@@ -293,9 +295,5 @@ class World(ShowBase):
         self.textObject.setText(str( (int(x), int(y), int(z), int(hdg)) ))
         return task.cont
     
-    def updateTargets(self,task):
-        pass
-            
-        return task.again
 W = World()
 W.run()
