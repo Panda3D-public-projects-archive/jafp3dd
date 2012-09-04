@@ -5,7 +5,7 @@
 #path.append('c:\Panda3D-1.7.2\\bin');
 #_DATAPATH_ = "./resources"
 
-import sys, os, random
+import sys, os
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
@@ -120,18 +120,18 @@ class World(ShowBase):
         self.npc = []
         for n in range(NUM_NPC):
 
-            newAI = AI.Gatherer("NPC"+str(n),'resources/aniCube2.egg')
+            newAI = AI.Wanderer("NPC"+str(n),'resources/aniCube2.egg')
             newAI.np.reparentTo(render)
             
             newAI.np.setPos(0,0,0.01)
             newAI.np.setTag('ID',str(n))
 
-            newAI.setCenterPos(Vec3(-1,1,0))
-            tx = random.randint(-10,10)
-            ty = random.randint(-10,10)
-            newAI.setResourcePos( Vec3(tx,ty,0) )
+#            newAI.setCenterPos(Vec3(-1,1,0))
+#            tx = random.randint(-10,10)
+#            ty = random.randint(-10,10)
+#            newAI.setResourcePos( Vec3(tx,ty,0) )
 
-            newAI.request('ToResource')
+#            newAI.request('ToResource')
             self.npc.append( newAI )
             self.AIworld.addAiChar(newAI.AI)
 #            self.seeker.loop("run") # starts actor animations
@@ -141,15 +141,20 @@ class World(ShowBase):
         return task.cont
         
     def loadScene(self,sceneName):
-#        self.scene = common.GameObject('ground',sceneName)
-#        self.scene.np.setTag('selectable','0')
         self.scene = loader.loadModel(sceneName)
-        walls = self.scene.find('**/=isaWall')
-#        walls.node().setIntoCollideMask(BitMask32.bit(0))
-        if not walls.isEmpty():
-            walls.ls()
-            walls.show()
-            self.AIworld.addObstacle(walls)
+        wall = loader.loadModel("./resources/wall.egg")
+        wall.reparentTo(render)
+        wall.setColor(1,0,0,1)
+        wall.setPosHpr(0,1,0,90,0,0)
+        self.AIworld.addObstacle(wall)
+
+        self.walls = self.scene.find_all_matches('**/=isaWall')
+#        print walls
+        for w in self.walls:
+            w.printPos()
+#            w.hide()
+#            w.show()
+            self.AIworld.addObstacle(w)
         
         self.scene.reparentTo(render)
 #        self.setupModels()
