@@ -45,7 +45,21 @@ class NpcAI(GameObject,FSM):
         pass
         return task.again
 
-    
+class Wanderer(NpcAI):
+
+    def __init__(self,name=None,modelName=None,**kwargs):
+        NpcAI.__init__(self,name,modelName,**kwargs)
+
+        color = (VBase4(random.random(),random.random(),random.random(),1)*0.8)
+        self.np.setColor(color)
+
+        self.AI = AICharacter(name,self.np, 50, 0.05, 3)
+        self.np.setPlayRate(3,'spin')   # custom playrate to anicube2 right now (08-29-12)
+        self.behavior = self.AI.getAiBehaviors()
+        
+        self.behavior.wander(5,0,10,1.0)
+        self.behavior.obstacleAvoidance(1)
+        
 class Gatherer(NpcAI):
 
     def __init__(self,name=None,modelName=None,**kwargs):
@@ -60,7 +74,7 @@ class Gatherer(NpcAI):
         self.maxCargo = 5
         self.loadRate = 1
         self.AI = AICharacter(name,self.np, 50, 0.05, .9)
-        self.np.setPlayRate(3,'spin')   # custom to anicube2 right now (08-29-12)
+        self.np.setPlayRate(3,'spin')   # custom playrate to anicube2 right now (08-29-12)
         self.behavior = self.AI.getAiBehaviors()
         
         self.behavior.obstacleAvoidance(1.0)
