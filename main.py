@@ -73,6 +73,9 @@ class World(ShowBase):
         self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
+        print('starting music...')
+        self.setupMusic()
+        
         print('loading scenery...')
         self.loadScene(os.path.join(RESOURCE_PATH,'groundd.egg'))
         
@@ -108,10 +111,18 @@ class World(ShowBase):
         self.traverser.addCollider(self.pickerNP, self.handlerQ)
         
         # TESTING SECTION
-#        door = common.GameObject('testdoor','resources/door.egg')
+        door = common.GameObject('testdoor','resources/door.egg')
 #        door.np.reparent(render)
 #        door.np.setPos(2,1,0)
         #
+    
+    def setupMusic(self):
+        ms = loader.loadMusic('music/epilogue.ogg')
+        ms.setLoop(True)
+        ms.setVolume(0.4)
+        ms.play()
+        ms.status()
+        
     def setAI(self):
         #Creating AI World
         self.AIworld = AIWorld(render)
@@ -142,11 +153,11 @@ class World(ShowBase):
         
     def loadScene(self,sceneName):
         self.scene = loader.loadModel(sceneName)
-        wall = loader.loadModel("./resources/wall.egg")
-        wall.reparentTo(render)
-        wall.setColor(1,0,0,1)
-        wall.setPosHpr(0,1,0,90,0,0)
-        self.AIworld.addObstacle(wall)
+        self.wall= loader.loadModel("./resources/wall.egg")
+        self.wall.reparentTo(render)
+        self.wall.setColor(1,0,0,1)
+        self.wall.setPosHpr(0,1,0,90,0,0)
+        self.AIworld.addObstacle(self.wall)
 
         self.walls = self.scene.find_all_matches('**/=isaWall')
 #        print walls
