@@ -134,7 +134,7 @@ class World(ShowBase):
             newAI = AI.Wanderer("NPC"+str(n),'resources/aniCube2.egg')
             newAI.np.reparentTo(render)
             
-            newAI.np.setPos(0,0,0.01)
+            newAI.np.setPos(5,0,0.01)
             newAI.np.setTag('ID',str(n))
 
 #            newAI.setCenterPos(Vec3(-1,1,0))
@@ -153,6 +153,8 @@ class World(ShowBase):
         
     def loadScene(self,sceneName):
         self.scene = loader.loadModel(sceneName)
+        
+        # TEST ADDING AI OBSTACLES
         self.wall= loader.loadModel("./resources/wall.egg")
         self.wall.reparentTo(render)
         self.wall.setColor(1,0,0,1)
@@ -160,7 +162,7 @@ class World(ShowBase):
         self.AIworld.addObstacle(self.wall)
 
         self.walls = self.scene.find_all_matches('**/=isaWall')
-#        print walls
+        print self.walls
         for w in self.walls:
             w.printPos()
 #            w.hide()
@@ -174,7 +176,7 @@ class World(ShowBase):
     def setupLights(self):
         self.render.setShaderAuto()
         self.alight = AmbientLight('alight')
-        self.alight.setColor(VBase4(1,1,1,1)*.1)
+        self.alight.setColor(VBase4(1,1,1,1)*.3)
         self.alnp = self.render.attachNewNode(self.alight)
         render.setLight(self.alnp)
 
@@ -262,6 +264,7 @@ class World(ShowBase):
             self.controls['mouseDeltaXY'] = [dX,dY]
 
 #TODO: Clean merger with above; same variables, etc
+            # RAY PICKING STARTS HERE
             mpos = base.mouseWatcherNode.getMouse()
             self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
 
