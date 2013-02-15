@@ -47,7 +47,7 @@ class World(ShowBase):
 
         self.setFrameRateMeter(1)
         self.setupKeys()
-#        self.setAI()
+        self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
         print('starting music...')
@@ -64,12 +64,8 @@ class World(ShowBase):
         
         camera.reparentTo(self.player.np)
         self.camController = common.ControlledCamera(self.controls, camera, self.player.np)
-        camera.setPos(VBase3(0,-25,10))
-#        camera.lookAt(self.player.np)
         
         
-         # Attach the player node to the camera empty node
-#        self.player.np.reparentTo(self.CC._target)
 #        self.player.np.setZ(1)
         self.player.cnp = self.player.np.attachNewNode(CollisionNode('Player1--coll-node'))
         self.player.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
@@ -146,7 +142,7 @@ class World(ShowBase):
         self.wall.reparentTo(render)
         self.wall.setColor(1,0,0,1)
         self.wall.setPosHpr(0,1,0,90,0,0)
-#        self.AIworld.addObstacle(self.wall)
+        self.AIworld.addObstacle(self.wall)
 
         self.walls = self.scene.find_all_matches('**/=isaWall')
         print self.walls
