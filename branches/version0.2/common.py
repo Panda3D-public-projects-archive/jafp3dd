@@ -52,16 +52,6 @@ class GameObject(DirectObject): # Inherit from DO for event handling
         self.np.setTag('selectable','1')
 #        self.isSelected = False
         
-        self.targetCard = loader.loadModel('resources/targeted.egg')
-        bv = self.np.getBounds()
-        if not bv.isEmpty():
-            self.targetCard.setPos(bv.getCenter())
-            self.targetCard.setScale(1.5*bv.getRadius())
-        self.targetCard.set_billboard_point_eye()
-        self.targetCard.setDepthTest(False)
-        self.targetCard.setDepthWrite(False)
-        self.targetCard.reparentTo(base.hidden)
-        self.targetCard.set_light_off()
     
     def onFocus(self):
         pass
@@ -72,16 +62,30 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #        self.isSelected = True
 #        self._showTarget(True)
 #            
-    def _showTarget(self,enabled=False):
-        if enabled:
-#            self.targetCard.reparentTo(render)
-            self.targetCard.reparentTo(self.np) # need to follow object np, so parent to it
-#            b = self.np.getBounds()
-#            localCenter = b.getCenter() - self.targetCard.getPos()
-#            self.targetCard.setPos(localCenter)
-#            self.targetCard.setScale(1.1*b.getRadius())
-        else:
-            self.targetCard.reparentTo(base.hidden)
+
+#class TargetCard():
+#    def init(self):
+#        self.targetCard = loader.loadModel('resources/targeted.egg')
+#        bv = self.np.getBounds()
+#        if not bv.isEmpty():
+#            self.targetCard.setPos(bv.getCenter())
+#            self.targetCard.setScale(1.5*bv.getRadius())
+#        self.targetCard.set_billboard_point_eye()
+#        self.targetCard.setDepthTest(False)
+#        self.targetCard.setDepthWrite(False)
+#        self.targetCard.reparentTo(base.hidden)
+#        self.targetCard.set_light_off()
+#
+#    def _showTarget(self,enabled=False):
+#        if enabled:
+##            self.targetCard.reparentTo(render)
+#            self.targetCard.reparentTo(self.np) # need to follow object np, so parent to it
+##            b = self.np.getBounds()
+##            localCenter = b.getCenter() - self.targetCard.getPos()
+##            self.targetCard.setPos(localCenter)
+##            self.targetCard.setScale(1.1*b.getRadius())
+#        else:
+#            self.targetCard.reparentTo(base.hidden)
         
         
 class NodePathController():
@@ -103,15 +107,15 @@ class NodePathController():
             
         return task.cont
          
-class ControlledObject(GameObject,NodePathController):
-    """ GameObject with that add Controls"""
+#class ControlledObject(GameObject,NodePathController):
+#    """ GameObject with that add Controls"""
+#
+#    def __init__(self,controller=None, **kwargs):
+#        GameObject.__init__(self,**kwargs)
+#        NodePathController.__init__(self,controller,self.np)
 
-    def __init__(self,controller=None, **kwargs):
-        GameObject.__init__(self,**kwargs)
-        NodePathController.__init__(self,controller,self.np)
 
-
-class ControlledCamera(ControlledObject):
+class ControlledCamera(NodePathController):
     """ Expects Panda3d base globals to be present already
     ControlledCamera always has a "target" (think of it as an 'empty' in blender)
     parented to base.render
@@ -129,18 +133,18 @@ class ControlledCamera(ControlledObject):
     ZOOM_STEP = 1
     radiusGain = 0.5
 
-    def __init__(self,controller=None,**kwargs):
-        ControlledObject.__init__(self,controller,**kwargs)
+    def __init__(self,controller=None,np=None,**kwargs):
+        NodePathController.__init__(self,controller,**kwargs)
         base.disableMouse() # ONLY disables the mouse drive of the camera
         self._camVector = [10,0,10]    # [goal* distance to target, heading to target, pitch to target ]
         # Target oject or location for camera to look at
-        self._target = self.np    # remnant of 1st implementation
-        self.np.reparentTo(base.render)
-        camera.reparentTo(self._target)
+#        self._target = self.np    # remnant of 1st implementation
+#        self.np.reparentTo(base.render)
+#        camera.reparentTo(self._target)
 
                     
     def update(self,task):
-        ControlledObject.update(self,task)
+        NodePathController.update(self,task)
         dt = globalClock.getDt() # to stay time based, not frame based
 
         if self.controlState["mouseSteer"]:
@@ -183,7 +187,7 @@ class ControlledCamera(ControlledObject):
         camera.setX(radius*cos(phi)*sin(theta))
         camera.setY(-radius*cos(phi)*cos(theta))
         camera.setZ(radius*sin(phi))
-        camera.lookAt(self._target) # look at the avatar nodepath
+        camera.lookAt(self.controlledNP) # look at the avatar nodepath
 
 #===============================================================================
 # Keep Camera above terrain

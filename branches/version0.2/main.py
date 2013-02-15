@@ -70,7 +70,7 @@ class World(ShowBase):
         self.CC = common.ControlledCamera(self.controls)
 
         self.setupKeys()
-        self.setAI()
+#        self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
         print('starting music...')
@@ -159,7 +159,7 @@ class World(ShowBase):
         self.wall.reparentTo(render)
         self.wall.setColor(1,0,0,1)
         self.wall.setPosHpr(0,1,0,90,0,0)
-        self.AIworld.addObstacle(self.wall)
+#        self.AIworld.addObstacle(self.wall)
 
         self.walls = self.scene.find_all_matches('**/=isaWall')
         print self.walls
@@ -167,7 +167,7 @@ class World(ShowBase):
             w.printPos()
 #            w.hide()
 #            w.show()
-            self.AIworld.addObstacle(w)
+#            self.AIworld.addObstacle(w)
         
         self.scene.reparentTo(render)
 #        self.setupModels()
@@ -193,7 +193,7 @@ class World(ShowBase):
 
     def setupKeys(self):
 
-        _KeyMap ={'action':'mouse1','left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
+        _KeyMap ={'action':'mouse1','left':'a','right':'d','strafe_L':'q','strafe_R':'e','wire':'z'}
 
         self.accept(_KeyMap['left'],self._setControls,["turn",1])
         self.accept(_KeyMap['left']+"-up",self._setControls,["turn",0])
@@ -237,10 +237,11 @@ class World(ShowBase):
         self.accept("wheel_down",self._setControls,["mouseWheel",1])
 #        self.accept("wheel_up-up",self._setControls,["mouseWheel",0])
 #        self.accept("wheel_down-up",self._setControls,["mouseWheel",0])
-
+        
         self.accept(_KeyMap['wire'],self.toggleWireframe)
         self.accept("escape",sys.exit)
-
+        
+        
     def _setControls(self,key,value):
             self.controls[key] = value
             # manage special conditions/states
