@@ -25,27 +25,6 @@ NUM_NPC = 5
 
 RESOURCE_PATH = 'resources'
 
-#class Scene(common.GameObject):
-#    """ Used to load static geometry"""
-#
-#    def __init__(self,sceneName):
-#        if not sceneName:
-#            print "No Scene name given on init!!!"
-#            return -1
-#        common.GameObject.__init__(self)
-#        self.np = self.loadScene(sceneName)
-##        self.cnp = self.np.attachNewNode(CollisionNode('plr-coll-node'))
-#
-#    def loadScene(self,sceneName):
-#        tmp = loader.loadModel(os.path.join(RESOURCE_PATH,sceneName))
-#        if tmp:
-#            # do things with tmp like split up, add lights, whatever
-#            return tmp
-#        else:
-#            return None
-#        # load scene tree from blender
-#        # find lights from blender and create them with the right properties
-
 class World(ShowBase):
     #pure control states
     mousePos = [0,0]
@@ -67,8 +46,6 @@ class World(ShowBase):
 
 
         self.setFrameRateMeter(1)
-#        self.CC = common.ControlledCamera(self.controls)
-
         self.setupKeys()
 #        self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
@@ -86,8 +63,9 @@ class World(ShowBase):
         self.player.np.reparentTo(render)
         
         camera.reparentTo(self.player.np)
-        camera.setPos(VBase3(0,-50,10))
-        camera.lookAt(self.player.np)
+        self.camController = common.ControlledCamera(self.controls, camera, self.player.np)
+        camera.setPos(VBase3(0,-25,10))
+#        camera.lookAt(self.player.np)
         
         
          # Attach the player node to the camera empty node
