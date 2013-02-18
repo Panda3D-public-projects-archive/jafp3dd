@@ -133,61 +133,63 @@ class ControlledCamera(NodePathController):
     ZOOM_STEP = 1
     radiusGain = 0.5
 
-    def __init__(self,controller=None,np=None,**kwargs):
-        NodePathController.__init__(self,controller,**kwargs)
+    def __init__(self,controller=None,np=None,target=None):
+        NodePathController.__init__(self,controller,np)
         base.disableMouse() # ONLY disables the mouse drive of the camera
         self._camVector = [10,0,10]    # [goal* distance to target, heading to target, pitch to target ]
-        # Target oject or location for camera to look at
-#        self._target = self.np    # remnant of 1st implementation
+        # Target object or location for camera to look at
+        self._target = target    # remnant of 1st implementation
 #        self.np.reparentTo(base.render)
 #        camera.reparentTo(self._target)
 
                     
     def update(self,task):
-        NodePathController.update(self,task)
-        dt = globalClock.getDt() # to stay time based, not frame based
-
-        if self.controlState["mouseSteer"]:
-            self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mouseDeltaXY'][0]*dt) # mouse steering
-        else:
-            pass
-
-        # MOVE CAMERA ACCORDINGLY
-        if self.controlState["mouseLook"]:
-            self._camVector[1] += -TURN_RATE*self.controlState["mouseDeltaXY"][0]
-        if self.controlState["mouseLook"] or self.controlState["mouseSteer"]:
-            self._camVector[2] += -TURN_RATE*self.controlState["mouseDeltaXY"][1]
-
-
-#TODO: ENABLE CAMERA CONTROLS FROM KEYS
-#        self._camVector[0] += 15*(self.Kzoom)*dt
-#        self._camVector[1] += .5*TURN_RATE*self.Ktheta*dt
-#        self._camVector[2] += .5*TURN_RATE*self.Kpitch*dt
-
-        self._camVector[0] += self.controlState["mouseWheel"] * self.ZOOM_STEP
-        self.controlState["mouseWheel"] = 0
-        radius = self._camVector[0]
-        radiusErr = camera.getPos().length() - radius
-#        print self.controlState["mouseWheel"], radiusErr
-
-        if radiusErr > 0.0:
-            radius -= self.radiusGain*radiusErr
-
-        phi = max(-pi/2,min(pi/2,self._camVector[2]*pi/180))
-        theta = self._camVector[1]*pi/180 # orbit angle unbound this way
-        if radius >= 1000:
-            radius = 1000
-#            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
-        elif radius <= MIN_CAM_DIST:
-            radius = MIN_CAM_DIST
-#            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
-
-
-        # THERE IS ALWAYS A TARGET EMPTY
-        camera.setX(radius*cos(phi)*sin(theta))
-        camera.setY(-radius*cos(phi)*cos(theta))
-        camera.setZ(radius*sin(phi))
-        camera.lookAt(self.controlledNP) # look at the avatar nodepath
+        if self.controlState:
+            NodePathController.update(self,task)
+            dt = globalClock.getDt() # to stay time based, not frame based
+    
+            if self.controlState["mouseSteer"]:
+                self._target.setH(self._target,self.MOUSE_STEER_SENSITIVITY*self.controlState['mouseDeltaXY'][0]*dt) # mouse steering
+            else:
+                pass
+    
+            # MOVE CAMERA ACCORDINGLY
+            if self.controlState["mouseLook"]:
+                self._camVector[1] += -TURN_RATE*self.controlState["mouseDeltaXY"][0]
+            if self.controlState["mouseLook"] or self.controlState["mouseSteer"]:
+                self._camVector[2] += -TURN_RATE*self.controlState["mouseDeltaXY"][1]
+    
+    
+    #TODO: ENABLE CAMERA CONTROLS FROM KEYS
+    #        self._camVector[0] += 15*(self.Kzoom)*dt
+    #        self._camVector[1] += .5*TURN_RATE*self.Ktheta*dt
+    #        self._camVector[2] += .5*TURN_RATE*self.Kpitch*dt
+    
+            self._camVector[0] += self.controlState["mouseWheel"] * self.ZOOM_STEP
+            self.controlState["mouseWheel"] = 0
+            radius = self._camVector[0]
+            radiusErr = camera.getPos().length() - radius
+    #        print self.controlState["mouseWheel"], radiusErr
+    
+            if radiusErr > 0.0:
+                radius -= self.radiusGain*radiusErr
+    
+            phi = max(-pi/2,min(pi/2,self._camVector[2]*pi/180))
+            theta = self._camVector[1]*pi/180 # orbit angle unbound this way
+            if radius >= 1000:
+                radius = 1000
+    #            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+            elif radius <= MIN_CAM_DIST:
+                radius = MIN_CAM_DIST
+    #            self.controlState["mouseWheel"] = 0 # clear out any buffered changes
+    
+    
+            camera.setX(radius*cos(phi)*sin(theta))
+            camera.setY(-radius*cos(phi)*cos(theta))
+            camera.setZ(radius*sin(phi))
+        
+        if self._target:
+            camera.lookAt(self._target) # look at the target nodepath
 
 #===============================================================================
 # Keep Camera above terrain
