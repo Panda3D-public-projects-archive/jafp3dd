@@ -58,7 +58,7 @@ class World(ShowBase):
         self.setupMusic()
         
         print('loading scenery...')
-        self.loadScene(os.path.join(RESOURCE_PATH,'groundd.egg'))
+        self.loadScene(os.path.join(RESOURCE_PATH,'groundd2.egg'))
         self.setupLights()   
 
         self.initPhysics()
@@ -72,6 +72,13 @@ class World(ShowBase):
         an = ActorNode("jetpack-guy-physics")
         anp = np.attachNewNode(an)
         base.physicsMgr.attachPhysicalNode(an)
+
+        gravityFN = ForceNode("GravityForceNode")
+#        gravityFNP = render.attachNewNode(gravityFN)
+        gravityForce = LinearVectorForce(0,0,-0.8)
+        an.getPhysical(0).addLinearForce(gravityForce)
+        gravityFN.addForce(gravityForce)
+        
 #
 #        jetpackGuy = loader.loadModel("models/jetpack_guy")
 #        jetpackGuy.reparentTo(anp)
@@ -80,7 +87,7 @@ class World(ShowBase):
         self.playerController = common.NodePathController(self.controls,self.player)
         self.player.reparentTo(anp)
         
-#        self.player.setZ(1)
+        self.player.setZ(5)
         cnp = self.player.attachNewNode(CollisionNode('Player1--coll-node'))
         cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         print "Adding ",self.player
@@ -116,11 +123,7 @@ class World(ShowBase):
 #        door.np.setPos(2,1,0)
         
     def initPhysics(self):
-        gravityFN = ForceNode("GravityForceNode")
-        gravityFNP = render.attachNewNode(gravityFN)
-        gravityForce = LinearVectorForce(0,0,-9.8)
-#        base.physicsMgr.addLinearForce(gravityForce)
-        gravityFN.addForce(gravityForce)
+        pass
         
     def setupMusic(self):
         ms = loader.loadMusic('music/epilogue.ogg')
