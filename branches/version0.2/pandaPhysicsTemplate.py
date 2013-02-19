@@ -49,7 +49,7 @@ class World(ShowBase):
         self.handlerPush = CollisionHandlerPusher()
 
         #Setup some basic interface stuff
-        self.toggleWireframe        
+        self.toggleWireframe()        
         self.setFrameRateMeter(1)
         self.setupKeys()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
