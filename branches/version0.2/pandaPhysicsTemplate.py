@@ -10,6 +10,8 @@ import sys, os
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
 from direct.gui.OnscreenText import OnscreenText
+from pandac.PandaModules import ActorNode, ForceNode, LinearVectorForce
+
 #from direct.actor.Actor import Actor
 #from panda3d.ai import *
 
@@ -36,19 +38,20 @@ class World(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         base.enableParticles()  # needed to start basic physics
+        
+        # Setup some collision stuff for picking and general interactions
         base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
         base.cTrav.showCollisions(self.render)
 
         self.traverser = CollisionTraverser('CameraPickingTraverse') # set up picker's own traverser for responsiveness
 #        self.traverser.showCollisions(self.render)
-
         self.handlerQ = CollisionHandlerQueue()
         self.handlerPush = CollisionHandlerPusher()
 
-
+        #Setup some basic interface stuff
+        self.toggleWireframe        
         self.setFrameRateMeter(1)
         self.setupKeys()
-        self.setAI()
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
         print('starting music...')
@@ -57,28 +60,41 @@ class World(ShowBase):
         print('loading scenery...')
         self.loadScene(os.path.join(RESOURCE_PATH,'groundd.egg'))
         self.setupLights()   
-        
-        print('loading player...')
-        self.player = common.GameObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.egg'))
-        self.playerController = common.NodePathController(self.controls,self.player.np)
-        self.player.np.reparentTo(render)
-        
-        camera.reparentTo(self.player.np)
-        self.camController = common.ControlledCamera(self.controls, camera, self.player.np)
-        
-        
-#        self.player.np.setZ(1)
-        self.player.cnp = self.player.np.attachNewNode(CollisionNode('Player1--coll-node'))
-        self.player.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-        print "Adding ",self.player.cnp
-#        self.player.cnp.show()
 
-        self.handlerPush.addCollider(self.player.cnp,self.player.np)
-        base.cTrav.addCollider(self.player.cnp,self.handlerPush)
-        print(self.player.np.ls())
+        self.initPhysics()
         
+        print('configuring AI')        
+        self.setAI()
+
+        print('loading player...')
+        np = NodePath("PhysicsNode")
+        np.reparentTo(render)
+        an = ActorNode("jetpack-guy-physics")
+        anp = np.attachNewNode(an)
+        base.physicsMgr.attachPhysicalNode(an)
+#
+#        jetpackGuy = loader.loadModel("models/jetpack_guy")
+#        jetpackGuy.reparentTo(anp)
         
-        self.textObject = OnscreenText(text = str(self.player.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
+        self.player = loader.loadModel(os.path.join(RESOURCE_PATH,'axes.egg'))
+        self.playerController = common.NodePathController(self.controls,self.player)
+        self.player.reparentTo(anp)
+        
+#        self.player.setZ(1)
+        cnp = self.player.attachNewNode(CollisionNode('Player1--coll-node'))
+        cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+        print "Adding ",self.player
+        cnp.show()
+
+        self.handlerPush.addCollider(cnp,self.player)
+        base.cTrav.addCollider(cnp,self.handlerPush)
+        print(self.player.ls())
+        
+        # attach camera to player node
+        camera.reparentTo(self.player)
+        self.camController = common.ControlledCamera(self.controls, camera, self.player)
+        
+        self.textObject = OnscreenText(text = str(self.player.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
         taskMgr.doMethodLater(1,self.updateOSD,'OSDupdater')
 #        taskMgr.doMethodLater(3,self.playAni,'test')
         
@@ -98,8 +114,14 @@ class World(ShowBase):
 #        door = common.GameObject('testdoor','resources/door.egg')
 #        door.np.reparent(render)
 #        door.np.setPos(2,1,0)
-        #
-    
+        
+    def initPhysics(self):
+        gravityFN = ForceNode("GravityForceNode")
+        gravityFNP = render.attachNewNode(gravityFN)
+        gravityForce = LinearVectorForce(0,0,-9.8)
+#        base.physicsMgr.addLinearForce(gravityForce)
+        gravityFN.addForce(gravityForce)
+        
     def setupMusic(self):
         ms = loader.loadMusic('music/epilogue.ogg')
         ms.setLoop(True)
@@ -295,8 +317,8 @@ class World(ShowBase):
             
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
-        [x,y,z] = self.player.np.getPos()
-        [hdg,p,r] = self.player.np.getHpr()
+        [x,y,z] = self.player.getPos()
+        [hdg,p,r] = self.player.getHpr()
         self.textObject.setText(str( (int(x), int(y), int(z), int(hdg)) ))
         return task.cont
     
