@@ -111,7 +111,7 @@ class World(ShowBase):
         self.traverser.addCollider(self.pickerNP, self.handlerQ)
         
         # TESTING SECTION
-        door = common.GameObject('testdoor','resources/door.egg')
+#        door = common.GameObject('testdoor','resources/door.egg')
 #        door.np.reparent(render)
 #        door.np.setPos(2,1,0)
         #
