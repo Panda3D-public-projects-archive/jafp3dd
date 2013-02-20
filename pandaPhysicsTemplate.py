@@ -87,13 +87,13 @@ class World(ShowBase):
         self.playerController = common.NodePathController(self.controls,self.player)
         self.player.reparentTo(anp)
         
-        self.player.setZ(5)
+        anp.setZ(15)
         cnp = self.player.attachNewNode(CollisionNode('Player1--coll-node'))
         cnp.node().addSolid(CollisionSphere(0,0,1,.5))
         print "Adding ",self.player
         cnp.show()
 
-        self.handlerPush.addCollider(cnp,self.player)
+        self.handlerPush.addCollider(cnp,anp)
         base.cTrav.addCollider(cnp,self.handlerPush)
         print(self.player.ls())
         
@@ -320,8 +320,8 @@ class World(ShowBase):
             
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
-        [x,y,z] = self.player.getPos()
-        [hdg,p,r] = self.player.getHpr()
+        [x,y,z] = self.player.getPos(render)
+        [hdg,p,r] = self.player.getHpr(render)
         self.textObject.setText(str( (int(x), int(y), int(z), int(hdg)) ))
         return task.cont
     
