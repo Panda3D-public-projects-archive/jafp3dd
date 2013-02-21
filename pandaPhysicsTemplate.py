@@ -1,329 +1,207 @@
 
-# SETUP SOME PATH's
-#from sys import path
-#path.append('c:\Panda3D-1.7.2')
-#path.append('c:\Panda3D-1.7.2\\bin');
-#_DATAPATH_ = "./resources"
-
-import sys, os
-
-from direct.showbase.ShowBase import ShowBase
-from panda3d.core import *
-from direct.gui.OnscreenText import OnscreenText
-from pandac.PandaModules import ActorNode, ForceNode, LinearVectorForce
-
-#from direct.actor.Actor import Actor
-#from panda3d.ai import *
-
-import common
-#import AI
-
-#PStatClient.connect()
 #from pandac.PandaModules import loadPrcFileData
-#loadPrcFileData("", "want-directtools #t")
-#loadPrcFileData("", "want-tk #t")
+#loadPrcFileData('', 'load-display tinydisplay')
 
-NUM_NPC = 5
+#loadPrcFileData('', 'bullet-additional-damping true')
+#loadPrcFileData('', 'bullet-additional-damping-linear-factor 0.005')
+#loadPrcFileData('', 'bullet-additional-damping-angular-factor 0.01')
+#loadPrcFileData('', 'bullet-additional-damping-linear-threshold 0.01')
+#loadPrcFileData('', 'bullet-additional-damping-angular-threshold 0.01')
 
-RESOURCE_PATH = 'resources'
+import sys
+import direct.directbase.DirectStart
 
-class World(ShowBase):
-    #pure control states
-    mousePos = [0,0]
-    mousePos_old = mousePos
-    controls = {"turn":0, "walk":0, "strafe":0,"fly":0,\
-        'camZoom':0,'camHead':0,'camPitch':0,\
-        "mouseDeltaXY":[0,0],"mouseWheel":0,"mouseLook":False,"mouseSteer":False}
+from direct.showbase.DirectObject import DirectObject
+from direct.showbase.InputStateGlobal import inputState
 
-    def __init__(self):
-        ShowBase.__init__(self)
-        base.enableParticles()  # needed to start basic physics
+from panda3d.core import AmbientLight
+from panda3d.core import DirectionalLight
+from panda3d.core import Vec3
+from panda3d.core import Vec4
+from panda3d.core import Point3
+from panda3d.core import TransformState
+from panda3d.core import BitMask32
+
+from panda3d.bullet import BulletWorld
+from panda3d.bullet import BulletPlaneShape
+from panda3d.bullet import BulletBoxShape
+from panda3d.bullet import BulletRigidBodyNode
+from panda3d.bullet import BulletDebugNode
+
+class Game(DirectObject):
+
+  def __init__(self):
+    base.setBackgroundColor(0.1, 0.1, 0.8, 1)
+    base.setFrameRateMeter(True)
+
+    base.cam.setPos(0, -20, 4)
+    base.cam.lookAt(0, 0, 0)
         
-        # Setup some collision stuff for picking and general interactions
-        base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
-        base.cTrav.showCollisions(self.render)
+    # Light
+    alight = AmbientLight('ambientLight')
+    alight.setColor(Vec4(0.5, 0.5, 0.5, 1))
+    alightNP = render.attachNewNode(alight)
 
-        self.traverser = CollisionTraverser('CameraPickingTraverse') # set up picker's own traverser for responsiveness
-#        self.traverser.showCollisions(self.render)
-        self.handlerQ = CollisionHandlerQueue()
-        self.handlerPush = CollisionHandlerPusher()
+    dlight = DirectionalLight('directionalLight')
+    dlight.setDirection(Vec3(1, 1, -1))
+    dlight.setColor(Vec4(0.7, 0.7, 0.7, 1))
+    dlightNP = render.attachNewNode(dlight)
 
-        #Setup some basic interface stuff
-        self.toggleWireframe()        
-        self.setFrameRateMeter(1)
-        self.setupKeys()
-        taskMgr.add(self.mouseHandler,'Mouse Manager')
+    render.clearLight()
+    render.setLight(alightNP)
+    render.setLight(dlightNP)
+
+    # Input
+    self.accept('escape', self.doExit)
+    self.accept('r', self.doReset)
+    self.accept('f1', self.toggleWireframe)
+    self.accept('f2', self.toggleTexture)
+    self.accept('f3', self.toggleDebug)
+    self.accept('f5', self.doScreenshot)
+
+    inputState.watchWithModifiers('forward', 'w')
+    inputState.watchWithModifiers('left', 'a')
+    inputState.watchWithModifiers('reverse', 's')
+    inputState.watchWithModifiers('right', 'd')
+    inputState.watchWithModifiers('turnLeft', 'q')
+    inputState.watchWithModifiers('turnRight', 'e')
+    inputState.watchWithModifiers('jump', 'space')
+
+    # Task
+    taskMgr.add(self.update, 'updateWorld')
+
+    # Physics
+    self.setup()
+
+  # _____HANDLER_____
+
+  def doExit(self):
+    self.cleanup()
+    sys.exit(1)
+
+  def doReset(self):
+    self.cleanup()
+    self.setup()
+
+  def toggleWireframe(self):
+    base.toggleWireframe()
+
+  def toggleTexture(self):
+    base.toggleTexture()
+
+  def toggleDebug(self):
+    if self.debugNP.isHidden():
+      self.debugNP.show()
+    else:
+      self.debugNP.hide()
+
+  def doScreenshot(self):
+    base.screenshot('Bullet')
+
+  # ____TASK___
+
+  def processInput(self, dt):
+    force = Vec3(0, 0, 0)
+    torque = Vec3(0, 0, 0)
+
+    if inputState.isSet('forward'): force.setY( 1.0)
+    if inputState.isSet('reverse'): force.setY(-1.0)
+    if inputState.isSet('left'):    force.setX(-1.0)
+    if inputState.isSet('right'):   force.setX( 1.0)
+    if inputState.isSet('jump') and not self.isJumping:
+        self.isJumping = True
+        base.taskMgr.add(self.doJump,'JumpTask')
         
-        print('starting music...')
-        self.setupMusic()
-        
-        print('loading scenery...')
-        self.loadScene(os.path.join(RESOURCE_PATH,'groundd2.egg'))
-        self.setupLights()   
+    if inputState.isSet('turnLeft'):  torque.setZ( 1.0)
+    if inputState.isSet('turnRight'): torque.setZ(-1.0)
 
-        self.initPhysics()
-        
-        print('configuring AI')        
-        self.setAI()
+    force *= 3.0
+    torque *= 1.0
 
-        print('loading player...')
-        np = NodePath("PhysicsNode")
-        np.reparentTo(render)
-        an = ActorNode("jetpack-guy-physics")
-        anp = np.attachNewNode(an)
-        base.physicsMgr.attachPhysicalNode(an)
+    force = render.getRelativeVector(self.boxNP, force)
+    torque = render.getRelativeVector(self.boxNP, torque)
 
-        gravityFN = ForceNode("GravityForceNode")
-#        gravityFNP = render.attachNewNode(gravityFN)
-        gravityForce = LinearVectorForce(0,0,-0.8)
-        an.getPhysical(0).addLinearForce(gravityForce)
-        gravityFN.addForce(gravityForce)
-        
-#
-#        jetpackGuy = loader.loadModel("models/jetpack_guy")
-#        jetpackGuy.reparentTo(anp)
-        
-        self.player = loader.loadModel(os.path.join(RESOURCE_PATH,'axes.egg'))
-        self.playerController = common.NodePathController(self.controls,self.player)
-        self.player.reparentTo(anp)
-        
-        anp.setZ(15)
-        cnp = self.player.attachNewNode(CollisionNode('Player1--coll-node'))
-        cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-        print "Adding ",self.player
-        cnp.show()
+    self.boxNP.node().setActive(True)
+    self.boxNP.node().applyCentralForce(force)
+    self.boxNP.node().applyTorque(torque)
 
-        self.handlerPush.addCollider(cnp,anp)
-        base.cTrav.addCollider(cnp,self.handlerPush)
-        print(self.player.ls())
-        
-        # attach camera to player node
-        camera.reparentTo(self.player)
-        self.camController = common.ControlledCamera(self.controls, camera, self.player)
-        
-        self.textObject = OnscreenText(text = str(self.player.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
-        taskMgr.doMethodLater(1,self.updateOSD,'OSDupdater')
-#        taskMgr.doMethodLater(3,self.playAni,'test')
-        
-        self.stickyTarget = None
-        self.focus = None
-        
-        # setup camera view picker
-        self.pickerNode = CollisionNode('mouseRay')
-        self.pickerNP = camera.attachNewNode(self.pickerNode)
-        self.pickerNode.setFromCollideMask(GeomNode.getDefaultCollideMask())
-        self.pickerNode.setIntoCollideMask(0) # nothing runs INTO the ray.
-        self.pickerRay = CollisionRay()
-        self.pickerNode.addSolid(self.pickerRay)
-        self.traverser.addCollider(self.pickerNP, self.handlerQ)
-        
-        # TESTING SECTION
-#        door = common.GameObject('testdoor','resources/door.egg')
-#        door.np.reparent(render)
-#        door.np.setPos(2,1,0)
-        
-    def initPhysics(self):
-        pass
-        
-    def setupMusic(self):
-        ms = loader.loadMusic('music/epilogue.ogg')
-        ms.setLoop(True)
-        ms.setVolume(0.4)
-        ms.play()
-        ms.status()
-        
-    def setAI(self):
-        pass
-        #Creating AI World
-#        self.AIworld = AIWorld(render)
-#        taskMgr.add(self.updateAI,'updateAI')
-#
-#        self.npc = []
-#        for n in range(NUM_NPC):
-#
-#            newAI = AI.Wanderer("NPC"+str(n),'resources/aniCube2.egg')
-#            newAI.np.reparentTo(render)
-#            
-#            newAI.np.setPos(5,0,0.01)
-#            newAI.np.setTag('ID',str(n))
-#
-##            newAI.setCenterPos(Vec3(-1,1,0))
-##            tx = random.randint(-10,10)
-##            ty = random.randint(-10,10)
-##            newAI.setResourcePos( Vec3(tx,ty,0) )
-#
-##            newAI.request('ToResource')
-#            self.npc.append( newAI )
-#            self.AIworld.addAiChar(newAI.AI)
-##            self.seeker.loop("run") # starts actor animations
+  def doJump(self,task):
+      if task.time > 0.500:
+          return task.done
+      self.boxNP.node().applyCentralForce(Vec3(0,0,20))
+      return task.cont
 
-#    def updateAI(self,task):
-#        self.AIworld.update()
-#        return task.cont
-        
-    def loadScene(self,sceneName):
-        self.scene = loader.loadModel(sceneName)
-        
-#        # TEST ADDING AI OBSTACLES
-#        self.wall= loader.loadModel("./resources/wall.egg")
-#        self.wall.reparentTo(render)
-#        self.wall.setColor(1,0,0,1)
-#        self.wall.setPosHpr(0,1,0,90,0,0)
-#        self.AIworld.addObstacle(self.wall)
-#
-#        self.walls = self.scene.find_all_matches('**/=isaWall')
-#        print self.walls
-#        for w in self.walls:
-#            w.printPos()
-#            w.hide()
-#            w.show()
-#            self.AIworld.addObstacle(w)
-        
-        self.scene.reparentTo(render)
-#        self.setupModels()
+  def update(self, task):
+    dt = globalClock.getDt()
+    print self.isJumping
 
+    self.processInput(dt)
+    #self.world.doPhysics(dt)
+    self.world.doPhysics(dt, 5, 1.0/180.0)
 
-    def setupLights(self):
-        self.render.setShaderAuto()
-        self.alight = AmbientLight('alight')
-        self.alight.setColor(VBase4(1,1,1,1)*.3)
-        self.alnp = self.render.attachNewNode(self.alight)
-        render.setLight(self.alnp)
+    return task.cont
 
-        self.dlight = DirectionalLight('dlight')
-        self.dlight.setColor(VBase4(.8,.8,.8,1))
-        self.dlnp = self.render.attachNewNode(self.dlight)
-        render.setLight(self.dlnp)
+  def cleanup(self):
+    self.world.removeRigidBody(self.groundNP.node())
+    self.world.removeRigidBody(self.boxNP.node())
+    self.world = None
 
-        self.slight = Spotlight('slight')
-        self.slight.setColor(VBase4(1,.1,.1,1))
-        self.slnp = self.render.attachNewNode(self.slight)
-        self.slnp.setPos(0,0,10)
-        render.setLight(self.slnp)
+    self.debugNP = None
+    self.groundNP = None
+    self.boxNP = None
 
-    def setupKeys(self):
+    self.worldNP.removeNode()
 
-        _KeyMap ={'action':'mouse1','left':'a','right':'d','strafe_L':'q','strafe_R':'e','wire':'z'}
+  def setup(self):
+    self.worldNP = render.attachNewNode('World')
+    self.isJumping = False
 
-        self.accept(_KeyMap['left'],self._setControls,["turn",1])
-        self.accept(_KeyMap['left']+"-up",self._setControls,["turn",0])
-        self.accept(_KeyMap['right'],self._setControls,["turn",-1])
-        self.accept(_KeyMap['right']+"-up",self._setControls,["turn",0])
+    # World
+    self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
+    self.debugNP.show()
+    self.debugNP.node().showWireframe(True)
+    self.debugNP.node().showConstraints(True)
+    self.debugNP.node().showBoundingBoxes(False)
+    self.debugNP.node().showNormals(True)
 
+    #self.debugNP.showTightBounds()
+    #self.debugNP.showBounds()
 
-        self.accept(_KeyMap['strafe_L'],self._setControls,["strafe",-1])
-        self.accept(_KeyMap['strafe_L']+"-up",self._setControls,["strafe",0])
-        self.accept(_KeyMap['strafe_R'],self._setControls,["strafe",1])
-        self.accept(_KeyMap['strafe_R']+"-up",self._setControls,["strafe",0])
+    self.world = BulletWorld()
+    self.world.setGravity(Vec3(0, 0, -9.81))
+    self.world.setDebugNode(self.debugNP.node())
 
-        self.accept("w",self._setControls,["walk",1])
-        self.accept("s",self._setControls,["walk",-1])
-        self.accept("s-up",self._setControls,["walk",0])
-        self.accept("w-up",self._setControls,["walk",0])
-        self.accept("r",self._setControls,["autoWalk",1])
+    # Ground (static)
+    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
 
-        self.accept("page_up",self._setControls,["camPitch",-1])
-        self.accept("page_down",self._setControls,["camPitch",1])
-        self.accept("page_up-up",self._setControls,["camPitch",0])
-        self.accept("page_down-up",self._setControls,["camPitch",0])
-        self.accept("arrow_left",self._setControls,["camHead",-1])
-        self.accept("arrow_right",self._setControls,["camHead",1])
-        self.accept("arrow_left-up",self._setControls,["camHead",0])
-        self.accept("arrow_right-up",self._setControls,["camHead",0])
+    self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ground'))
+    self.groundNP.node().addShape(shape)
+    self.groundNP.setPos(0, 0, -2)
+    self.groundNP.setCollideMask(BitMask32.allOn())
 
-        self.accept("arrow_down",self._setControls,["camZoom",1])
-        self.accept("arrow_up",self._setControls,["camZoom",-1])
-        self.accept("arrow_down-up",self._setControls,["camZoom",0])
-        self.accept("arrow_up-up",self._setControls,["camZoom",0])
+    self.world.attachRigidBody(self.groundNP.node())
 
-        self.accept(_KeyMap['action'],self.pickingFunc)
-        self.accept("mouse1-up",self._setControls,["mouseLook",False])
-        self.accept("mouse2",self._setControls,["mouseLook",True])
-        self.accept("mouse2-up",self._setControls,["mouseLook",False])
-        self.accept("mouse3",self._setControls,["mouseSteer",True])
-        self.accept("mouse3-up",self._setControls,["mouseSteer",False])
+    # Box (dynamic)
+    shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
 
-        self.accept("wheel_up",self._setControls,["mouseWheel",-1])
-        self.accept("wheel_down",self._setControls,["mouseWheel",1])
-#        self.accept("wheel_up-up",self._setControls,["mouseWheel",0])
-#        self.accept("wheel_down-up",self._setControls,["mouseWheel",0])
-        
-        self.accept(_KeyMap['wire'],self.toggleWireframe)
-        self.accept("escape",sys.exit)
-        
-        
-    def _setControls(self,key,value):
-            self.controls[key] = value
-            # manage special conditions/states
-            if key == 'autoWalk':
-                if self.controls["walk"] == 0:
-                    self.controls["walk"] = 1
-                else:
-                    self.controls["walk"] = 0
-            if key == 'mouseWheel':
-                cur = self.controls['mouseWheel']
-                self.controls['mouseWheel'] = cur + value # add up mouse wheel clicks
+    self.boxNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Box'))
+    self.boxNP.node().setMass(1.0)
+    self.boxNP.node().addShape(shape)
+    self.boxNP.setPos(0, 0, 2)
+    #self.boxNP.setScale(2, 1, 0.5)
+    self.boxNP.setCollideMask(BitMask32.allOn())
+    #self.boxNP.node().setDeactivationEnabled(False)
 
-    def mouseHandler(self,task):
+    self.world.attachRigidBody(self.boxNP.node())
 
-        if base.mouseWatcherNode.hasMouse():
-            self.mousePos_old = self.mousePos
-            self.mousePos = [base.mouseWatcherNode.getMouseX(), \
-            base.mouseWatcherNode.getMouseY()]
-            dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
-            dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
-            self.controls['mouseDeltaXY'] = [dX,dY]
+    visualNP = loader.loadModel('models/box.egg')
+    visualNP.clearModelNodes()
+    visualNP.reparentTo(self.boxNP)
 
-#TODO: Clean merger with above; same variables, etc
-            # RAY PICKING STARTS HERE
-            mpos = base.mouseWatcherNode.getMouse()
-            self.pickerRay.setFromLens(base.camNode, mpos.getX(), mpos.getY())
+    # Bullet nodes should survive a flatten operation!
+    #self.worldNP.flattenStrong()
+    #render.ls()
 
-            self.traverser.traverse(render)
-            if self.handlerQ.getNumEntries() > 0:
-                self.handlerQ.sortEntries()        # This is so we get the closest object.
-                picked = self.handlerQ.getEntry(0).getIntoNodePath()
-                picked = picked.findNetTag('selectable')
-                if not picked.isEmpty():
-                    if not picked == self.focus:
-                        if self.focus:
-                            self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked    
-                        self.focus = picked # change 
-                        self.focus.setColorScale(1.5,1.5,1.5,1)
-                else: # a collisions occured but not with a selectable object so clear focus
-                    if self.focus:
-                        self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
-                        self.focus = None
-                        print "Focus lost\n"
-            elif self.focus: # no collisions means lost focus (with collidables) so disable last known focus
-                self.focus.setColorScale(1,1,1,1) # remove highlight from previously picked
-                self.focus = None
-                print "Focus lost\n"
-        return task.cont
+game = Game()
+run()
 
-    def pickingFunc(self):
-# and picked.getNetTag('selectable') == '1'
-#        if self.focus:
-#            ai = [x for x in self.npc if  x.np.getName() in self.focus.getName()]
-#            if ai:
-#                ai = ai[0]
-#                print ai.np.getName()
-#                self.npc.remove(ai)
-#                ai.terminate()
-#                del(ai)
-                
-        self.stickyTarget = self.focus                  # assign a new sticky target
-        if self.stickyTarget:
-            print(self.stickyTarget.getName())
-#            messenger.send(self.stickyTarget.getName() + 'clickedOn') # tell new sticky target it is clicked on (and do actions accordingly)
-            messenger.send(self.stickyTarget.getName() + 'terminate')
-            
-    def updateOSD(self,task):
-#TODO: change to dotasklater with 1 sec update...no need to hammer this
-        [x,y,z] = self.player.getPos(render)
-        [hdg,p,r] = self.player.getHpr(render)
-        self.textObject.setText(str( (int(x), int(y), int(z), int(hdg)) ))
-        return task.cont
-    
-W = World()
-W.run()
