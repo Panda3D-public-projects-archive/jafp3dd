@@ -367,7 +367,7 @@ if __name__ == "__main__":
 
     # LEAF PARAMETERS
 #    _LeafTex = 'Green Leaf.png'
-    _LeafModel = 'myLeafModel10.x'
+    _LeafModel = 'myLeafModel6.x'
 #    _LeafModel = 'shrubbery'
 #    _LeafTex = 'material-10-cl.png'
     
