@@ -54,7 +54,7 @@ class Game(DirectObject):
     # Input
     self.accept('escape', self.doExit)
     self.accept('r', self.doReset)
-    self.accept('f1', self.toggleWireframe)
+    self.accept('z', self.toggleWireframe)
     self.accept('f2', self.toggleTexture)
     self.accept('f3', self.toggleDebug)
     self.accept('f5', self.doScreenshot)
@@ -115,7 +115,7 @@ class Game(DirectObject):
     if inputState.isSet('turnLeft'):  torque.setZ( 1.0)
     if inputState.isSet('turnRight'): torque.setZ(-1.0)
 
-    force *= 3.0
+    force *= 6.0
     torque *= 1.0
 
     force = render.getRelativeVector(self.boxNP, force)
@@ -126,9 +126,13 @@ class Game(DirectObject):
     self.boxNP.node().applyTorque(torque)
 
   def doJump(self,task):
-      if task.time > 0.500:
-          return task.done
-      self.boxNP.node().applyCentralForce(Vec3(0,0,20))
+      if task.time < 0.500:      
+          self.boxNP.node().applyCentralForce(Vec3(0,0,20))
+      else:
+          result = self.world.contactTestPair(self.boxNP.node(),self.groundNP.node())
+          if result.getNumContacts() > 0:
+              self.isJumping = False # reset on contact with ground
+              return task.done
       return task.cont
 
   def update(self, task):
@@ -138,7 +142,6 @@ class Game(DirectObject):
     self.processInput(dt)
     #self.world.doPhysics(dt)
     self.world.doPhysics(dt, 5, 1.0/180.0)
-
     return task.cont
 
   def cleanup(self):
