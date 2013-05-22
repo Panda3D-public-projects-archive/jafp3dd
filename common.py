@@ -54,9 +54,11 @@ class GameObject(DirectObject): # Inherit from DO for event handling
         
     
     def onFocus(self):
+        #mouse over focus, do this
         pass
 
     def onClicked(self):
+        # mouse selected, do this
         pass
 #        print "Sticky Target is now ", self.np.getName()
 #        self.isSelected = True

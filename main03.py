@@ -5,7 +5,7 @@
 #path.append('c:\Panda3D-1.7.2\\bin');
 #_DATAPATH_ = "./resources"
 
-import sys, os
+import sys, os, random
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
@@ -116,8 +116,9 @@ class World(ShowBase):
 
             newAI = AI.Wanderer("NPC"+str(n),'resources/aniCube2.egg')
             newAI.np.reparentTo(render)
-            
-            newAI.np.setPos(5,0,0.01)
+            tx = random.randint(-1,1)
+            ty = random.randint(-1,1)        
+            newAI.np.setPos(Vec3(tx,ty,0.01))
             newAI.np.setTag('ID',str(n))
 
 #            newAI.setCenterPos(Vec3(-1,1,0))
@@ -289,7 +290,9 @@ class World(ShowBase):
         if self.stickyTarget:
             print(self.stickyTarget.getName())
 #            messenger.send(self.stickyTarget.getName() + 'clickedOn') # tell new sticky target it is clicked on (and do actions accordingly)
-            messenger.send(self.stickyTarget.getName() + 'terminate')
+            targetName = self.stickyTarget.getName()            
+            messenger.send(targetName + 'terminate')
+            self.AIworld.removeAiChar(targetName) # REMOVE AI FROM AIWORLD, OTHERWISE WILL CRASH ON NEXT UPDATE
             
     def updateOSD(self,task):
 #TODO: change to dotasklater with 1 sec update...no need to hammer this
