@@ -64,6 +64,9 @@ class World(ShowBase):
         self.player.np.reparentTo(render)
         
         camera.reparentTo(self.player.np)
+        self.ccnp = camera.attachNewNode(CollisionNode('Camera-floor-follower'))
+        
+        self.ccnp.node().addSolid(CollisionRay(0,0,0,0,0,-1))
         self.camController = common.ControlledCamera(self.controls, camera, self.player.np)
         
         
@@ -78,9 +81,12 @@ class World(ShowBase):
         self.player.cnp.show()
         
         self.terrainLifter.addCollider(self.player.cnp2, self.player.np)
+        self.terrainLifter.addCollider(self.ccnp, camera)
+        
         self.handlerPush.addCollider(self.player.cnp,self.player.np)
         
         base.cTrav.addCollider(self.player.cnp2,self.terrainLifter)
+        base.cTrav.addCollider(self.ccnp,self.terrainLifter)
         base.cTrav.addCollider(self.player.cnp,self.handlerPush)
         print(self.player.np.ls())
         
