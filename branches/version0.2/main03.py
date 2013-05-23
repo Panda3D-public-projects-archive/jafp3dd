@@ -24,6 +24,7 @@ import AI
 NUM_NPC = 5
 
 RESOURCE_PATH = 'resources'
+SCENE_MODEL_FILE = 'grounde.egg'
 
 class World(ShowBase):
     #pure control states
@@ -43,7 +44,7 @@ class World(ShowBase):
 
         self.handlerQ = CollisionHandlerQueue()
         self.handlerPush = CollisionHandlerPusher()
-
+        self.terrainLifter = CollisionHandlerFloor()
 
         self.setFrameRateMeter(1)
         self.setupKeys()
@@ -54,7 +55,7 @@ class World(ShowBase):
         self.setupMusic()
         
         print('loading scenery...')
-        self.loadScene(os.path.join(RESOURCE_PATH,'groundd.egg'))
+        self.loadScene(os.path.join(RESOURCE_PATH,SCENE_MODEL_FILE))
         
         print('loading player...')
         
@@ -68,11 +69,18 @@ class World(ShowBase):
         
 #        self.player.np.setZ(1)
         self.player.cnp = self.player.np.attachNewNode(CollisionNode('Player1--coll-node'))
-        self.player.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
-        print "Adding ",self.player.cnp
-#        self.player.cnp.show()
+        self.player.cnp2 = self.player.np.attachNewNode(CollisionNode('Player1--coll-floor'))
 
+        self.player.cnp.node().addSolid(CollisionSphere(0,0,1,.25))
+        self.player.cnp2.node().addSolid(CollisionRay(0,0,0,0,0,-1))
+        
+        print "Adding ",self.player.cnp
+        self.player.cnp.show()
+        
+        self.terrainLifter.addCollider(self.player.cnp2, self.player.np)
         self.handlerPush.addCollider(self.player.cnp,self.player.np)
+        
+        base.cTrav.addCollider(self.player.cnp2,self.terrainLifter)
         base.cTrav.addCollider(self.player.cnp,self.handlerPush)
         print(self.player.np.ls())
         
