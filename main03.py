@@ -66,10 +66,10 @@ class World(ShowBase):
         camera.reparentTo(self.player.np)
         self.ccnp = camera.attachNewNode(CollisionNode('Camera-floor-follower'))
         
-        self.ccnp.node().addSolid(CollisionRay(0,0,0,0,0,-1))
+        self.ccnp.node().addSolid(CollisionSphere(0,0,0,1))
         self.camController = common.ControlledCamera(self.controls, camera, self.player.np)
         
-        
+        # ADD COLLISION NODES
 #        self.player.np.setZ(1)
         self.player.cnp = self.player.np.attachNewNode(CollisionNode('Player1--coll-node'))
         self.player.cnp2 = self.player.np.attachNewNode(CollisionNode('Player1--coll-floor'))
