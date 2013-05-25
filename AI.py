@@ -57,7 +57,7 @@ class Wanderer(NpcAI):
         self.np.setPlayRate(3,'spin')   # custom playrate to anicube2 right now (08-29-12)
         self.behavior = self.AI.getAiBehaviors()
         
-        self.behavior.wander(5,0,2,.5)
+        self.behavior.wander(25,3,25,.5)
         self.behavior.obstacleAvoidance(1)
         
 class Gatherer(NpcAI):
