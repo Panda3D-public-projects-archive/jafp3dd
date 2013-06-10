@@ -26,6 +26,7 @@ NUM_NPC = 5
 RESOURCE_PATH = 'resources'
 SCENE_MODEL_FILE = 'grounde.egg'
 
+    
 class World(ShowBase):
     #pure control states
     mousePos = [0,0]
@@ -37,7 +38,7 @@ class World(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         base.cTrav = CollisionTraverser('Standard Traverser') # add a base collision traverser
-#        base.cTrav.showCollisions(self.render)
+        base.cTrav.showCollisions(self.render)
 
         self.traverser = CollisionTraverser('CameraPickingTraverse') # set up picker's own traverser for responsiveness
 #        self.traverser.showCollisions(self.render)
@@ -49,6 +50,10 @@ class World(ShowBase):
         self.setFrameRateMeter(1)
         self.setupKeys()
         self.setAI()
+        
+        projP = common.Projectile(os.path.join(RESOURCE_PATH,'axes.egg'),'projectile1',r0=Vec3(1,1,1,))
+        projP.np.reparentTo(self.render)
+        
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
         print('starting music...')
@@ -64,8 +69,9 @@ class World(ShowBase):
         self.player.np.reparentTo(render)
         
         camera.reparentTo(self.player.np)
-#        self.ccnp = camera.attachNewNode(CollisionNode('Camera-floor-follower'))
-#        self.ccnp.node().addSolid(CollisionSphere(0,0,0,1))
+        self.ccnp = camera.attachNewNode(CollisionNode('Camera-floor-follower'))
+        
+        self.ccnp.node().addSolid(CollisionSphere(0,0,0,1))
         self.camController = common.ControlledCamera(self.controls, camera, self.player.np)
         
         # ADD COLLISION NODES
@@ -80,10 +86,12 @@ class World(ShowBase):
         self.player.cnp.show()
         
         self.terrainLifter.addCollider(self.player.cnp2, self.player.np)
+        self.terrainLifter.addCollider(self.ccnp, camera)
         
         self.handlerPush.addCollider(self.player.cnp,self.player.np)
         
         base.cTrav.addCollider(self.player.cnp2,self.terrainLifter)
+        base.cTrav.addCollider(self.ccnp,self.terrainLifter)
         base.cTrav.addCollider(self.player.cnp,self.handlerPush)
         print(self.player.np.ls())
         
@@ -116,7 +124,25 @@ class World(ShowBase):
         ms.setVolume(0.4)
         ms.play()
         ms.status()
-        
+       
+    def spawnNPC(self,NPCname):
+        newAI = AI.Wanderer(NPCname,'resources/aniCube2.egg')
+        newAI.np.reparentTo(render)
+        tx = random.randint(-1,1)
+        ty = random.randint(-1,1)        
+        newAI.np.setPos(Vec3(tx,ty,0.01))
+        newAI.np.setTag('ID',NPCname)
+
+#            newAI.setCenterPos(Vec3(-1,1,0))
+#            tx = random.randint(-10,10)
+#            ty = random.randint(-10,10)
+#            newAI.setResourcePos( Vec3(tx,ty,0) )
+
+#            newAI.request('ToResource')
+        self.npc.append( newAI )
+        self.AIworld.addAiChar(newAI.AI)
+#            self.seeker.loop("run") # starts actor animations
+
     def setAI(self):
         #Creating AI World
         self.AIworld = AIWorld(render)
@@ -124,28 +150,7 @@ class World(ShowBase):
 
         self.npc = []
         for n in range(NUM_NPC):
-
-            newAI = AI.Wanderer("NPC"+str(n),'resources/aniCube2.egg')
-            newAI.np.reparentTo(render)
-            
-            tx = random.randint(-25,25)
-            ty = random.randint(-25,25)        
-            newAI.np.setPos(Vec3(tx,ty,1))
-            newAI.np.setTag('ID',str(n))
-
-#            newAI.setCenterPos(Vec3(-1,1,0))
-#            tx = random.randint(-10,10)
-#            ty = random.randint(-10,10)
-#            newAI.setResourcePos( Vec3(tx,ty,0) )
-
-#            AIcnp = newAI.np.attachNewNode(CollisionNode("AI-coll-node"))
-#            AIcnp.node().addSolid(CollisionRay(0,0,0,0,0,-1))
-#            self.terrainLifter.addCollider(AIcnp,newAI.np)
-#            base.cTrav.addCollider(AIcnp,self.terrainLifter)
-
-            self.npc.append( newAI )
-            self.AIworld.addAiChar(newAI.AI)
-#            self.seeker.loop("run") # starts actor animations
+            self.spawnNPC("NPC"+str(n))
 
     def updateAI(self,task):
         self.AIworld.update()
@@ -167,7 +172,7 @@ class World(ShowBase):
             w.printPos()
 #            w.hide()
 #            w.show()
-            self.AIworld.addObstacle(w)
+#            self.AIworld.addObstacle(w)
         
         self.scene.reparentTo(render)
 #        self.setupModels()
@@ -176,18 +181,17 @@ class World(ShowBase):
     def setupLights(self):
         self.render.setShaderAuto()
         self.alight = AmbientLight('alight')
-        self.alight.setColor(VBase4(1,1,1,1)*.2)
+        self.alight.setColor(VBase4(1,1,1,1)*.3)
         self.alnp = self.render.attachNewNode(self.alight)
         render.setLight(self.alnp)
 
         self.dlight = DirectionalLight('dlight')
-        self.dlight.setColor(VBase4(.8,1,1,1))
+        self.dlight.setColor(VBase4(.8,.8,.8,1))
         self.dlnp = self.render.attachNewNode(self.dlight)
-        self.dlnp.setHpr(90,-30,0)
         render.setLight(self.dlnp)
 
         self.slight = Spotlight('slight')
-        self.slight.setColor(VBase4(5,.1,.1,1))
+        self.slight.setColor(VBase4(1,.1,.1,1))
         self.slnp = self.render.attachNewNode(self.slight)
         self.slnp.setPos(0,0,10)
         render.setLight(self.slnp)
