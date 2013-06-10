@@ -7,6 +7,7 @@ Created on Fri Feb 03 14:24:37 2012
 
 
 from math import sin,cos,pi
+import time
 
 from direct.showbase.ShowBase import taskMgr
 from direct.showbase.DirectObject import DirectObject
@@ -60,11 +61,14 @@ class GameObject(DirectObject): # Inherit from DO for event handling
     def onClicked(self):
         # mouse selected, do this
         pass
-#        print "Sticky Target is now ", self.np.getName()
-#        self.isSelected = True
-#        self._showTarget(True)
-#            
+    
+    def terminate(self):
+        self.np.cleanup()
+        self.np.removeNode()
+        
 
+        
+        
 #class TargetCard():
 #    def init(self):
 #        self.targetCard = loader.loadModel('resources/targeted.egg')
@@ -73,7 +77,8 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #            self.targetCard.setPos(bv.getCenter())
 #            self.targetCard.setScale(1.5*bv.getRadius())
 #        self.targetCard.set_billboard_point_eye()
-#        self.targetCard.setDepthTest(False)
+#       def terminate(self):
+#   self.targetCard.setDepthTest(False)
 #        self.targetCard.setDepthWrite(False)
 #        self.targetCard.reparentTo(base.hidden)
 #        self.targetCard.set_light_off()
@@ -89,6 +94,33 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #        else:
 #            self.targetCard.reparentTo(base.hidden)
         
+
+class Projectile(GameObject):
+    # An object that lives for a short time,
+    # spawns at initial x,y,z
+    # travels in direction V0, with linear acceleration vector Accel
+    # TBD add rotation vector(s)?
+
+    def __init__(self,modelName,name='',r0=Vec3(0,0,0),V0=Vec3(0,0,0),Accel=Vec3(0,0,0),maxTime = 3):
+        GameObject.__init__(self,name,modelName)
+        self.r0 = r0
+        self.v0 = V0
+        self.acc = Accel
+        self.t0 = time.time()
+        self.Tmax = maxTime # duration of object before auto despawning
+        
+        taskMgr.add(self.update,'UpdatePosition')
+        
+    def update(self,task):
+        T = time.time() - self.t0
+        pos = self.r0 + self.v0*T + self.acc*(T**2)/2.0
+        self.np.setPos(pos)
+        if T <= self.Tmax:
+            return task.cont
+        else:
+            GameObject.terminate(self)
+            return task.done
+
         
 class NodePathController():
     """ Controls for a nodepath (usually a game object associated with)
