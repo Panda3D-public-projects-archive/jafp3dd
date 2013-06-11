@@ -45,11 +45,12 @@ class GameObject(DirectObject): # Inherit from DO for event handling
 #        self.cnp = self.np.find('**/colbox')
 #        if not self.cnp.isEmpty():
 ##            self.cnp.remove()
-#            self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
-#            self.cnp.node().addSolid(CollisionSphere(0,0,1,.5))
+            self.cnp = self.np.attachNewNode(CollisionNode(name + '-coll-node'))
+            self.cnp.node().addSolid(CollisionSphere(0,0,0,.5))
 #            print("Adding ",self.cnp)
-#            self.cnp.show()
-        
+            self.cnp.show()
+
+
         self.np.setTag('selectable','1')
 #        self.isSelected = False
         
@@ -101,19 +102,19 @@ class Projectile(GameObject):
     # travels in direction V0, with linear acceleration vector Accel
     # TBD add rotation vector(s)?
 
-    def __init__(self,modelName,name='',r0=Vec3(0,0,0),V0=Vec3(0,0,0),Accel=Vec3(0,0,0),maxTime = 3):
+    def __init__(self,modelName,name='',r0=Vec3(0,0,0),V0=Vec3(0,0,0),Accel=Vec3(0,0,0),timeout = 3):
         GameObject.__init__(self,name,modelName)
         self.r0 = r0
         self.v0 = V0
         self.acc = Accel
         self.t0 = time.time()
-        self.Tmax = maxTime # duration of object before auto despawning
+        self.Tmax = timeout # duration of object before auto despawning
         
         taskMgr.add(self.update,'UpdatePosition')
         
     def update(self,task):
         T = time.time() - self.t0
-        pos = self.r0 + self.v0*T + self.acc*(T**2)/2.0
+        pos = self.r0 + self.v0*T + (self.acc/2.0)*(T**2)
         self.np.setPos(pos)
         if T <= self.Tmax:
             return task.cont
