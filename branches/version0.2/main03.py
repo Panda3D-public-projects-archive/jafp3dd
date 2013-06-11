@@ -21,7 +21,7 @@ import AI
 #loadPrcFileData("", "want-directtools #t")
 #loadPrcFileData("", "want-tk #t")
 
-NUM_NPC = 5
+NUM_NPC = 0
 
 RESOURCE_PATH = 'resources'
 SCENE_MODEL_FILE = 'grounde.egg'
@@ -50,9 +50,13 @@ class World(ShowBase):
         self.setFrameRateMeter(1)
         self.setupKeys()
         self.setAI()
+        self.toggleWireframe()
         
-        projP = common.Projectile(os.path.join(RESOURCE_PATH,'axes.egg'),'projectile1',r0=Vec3(1,1,1,),V0=Vec3(1,-1,-.5))
+        projP = common.Projectile(os.path.join(RESOURCE_PATH,'axes.egg'),'projectile1',r0=Vec3(1,1,1,),
+                                  V0=Vec3(1,0,0)*.2, Accel=Vec3(0,0,-.1), timeout = 10)
         projP.np.reparentTo(self.render)
+        self.handlerPush.addCollider(projP.cnp,projP.np) 
+        base.cTrav.addCollider(projP.cnp,self.handlerPush)
         
         taskMgr.add(self.mouseHandler,'Mouse Manager')
         
@@ -69,8 +73,7 @@ class World(ShowBase):
         self.player.np.reparentTo(render)
         
         camera.reparentTo(self.player.np)
-        self.ccnp = camera.attachNewNode(CollisionNode('Camera-floor-follower'))
-        
+        self.ccnp = camera.attachNewNode(CollisionNode('Camera-floor-follower')) 
         self.ccnp.node().addSolid(CollisionSphere(0,0,0,1))
         self.camController = common.ControlledCamera(self.controls, camera, self.player.np)
         
