@@ -51,7 +51,7 @@ class World(ShowBase):
         self.setupKeys()
         self.setAI()
         
-        projP = common.Projectile(os.path.join(RESOURCE_PATH,'axes.egg'),'projectile1',r0=Vec3(1,1,1,))
+        projP = common.Projectile(os.path.join(RESOURCE_PATH,'axes.egg'),'projectile1',r0=Vec3(1,1,1,),V0=Vec3(1,-1,-.5))
         projP.np.reparentTo(self.render)
         
         taskMgr.add(self.mouseHandler,'Mouse Manager')

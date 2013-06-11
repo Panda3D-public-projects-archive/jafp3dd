@@ -80,11 +80,11 @@ class World(DirectObject):
         self.AIworld.addObstacle(self.obstacle1)
         self.AIworld.addObstacle(self.obstacle2)
         
-        self.AItarg = AICharacter("target",self.target,50,.05,5.2)
-        self.AIworld.addAiChar(self.AItarg)
-        self.TB = self.AItarg.getAiBehaviors()
-        self.TB.wander(5,0,5,1)
-        self.TB.obstacleAvoidance(1.0)
+#        self.AItarg = AICharacter("target",self.target,50,.05,5.2)
+#        self.AIworld.addAiChar(self.AItarg)
+#        self.TB = self.AItarg.getAiBehaviors()
+#        self.TB.wander(5,0,5,1)
+#        self.TB.obstacleAvoidance(1.0)
         
         #AI World update        
         taskMgr.add(self.AIUpdate,"AIUpdate")

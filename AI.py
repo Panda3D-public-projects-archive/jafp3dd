@@ -32,7 +32,7 @@ class NpcAI(GameObject,FSM):
 #        self.np.setScale(modelScale)
         self.AI = AICharacter(name,self.np, 50, 0.05, 5)
         self.behavior = self.AI.getAiBehaviors()
-        self.accept(name + 'terminate',GameObject.terminate)
+        self.accept(name + 'terminate',GameObject.terminate,[self])
         taskMgr.doMethodLater(.25,self.stateMonitor,name + 'StateMonitor')
 #    
 
@@ -56,7 +56,7 @@ class Wanderer(NpcAI):
         self.behavior = self.AI.getAiBehaviors()
         
         self.behavior.wander(25,3,25,.5)
-        self.behavior.obstacleAvoidance(1)
+#        self.behavior.obstacleAvoidance(1)
         
 class Gatherer(NpcAI):
 
