@@ -22,6 +22,21 @@ MIN_CAM_DIST = .333
 
 from CONSTANTS import *
 
+class populationCenter():
+    def __init__(self):
+        taskManager.add(self.update,'PopCenterUpdateTask')
+    
+    def spawnNPC(self):
+        pass
+    
+    def spawnStructure(self):
+        pass
+    
+    def update(self,task):
+        
+        return task.cont
+        
+        
 class GameObject(DirectObject): # Inherit from DO for event handling
     """ fancy wrapper for Actor Class. 
         adds properties like selectable and adding
