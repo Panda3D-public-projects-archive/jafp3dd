@@ -8,7 +8,7 @@ Created on Tue Aug 28 16:23:24 2012
 import random
 from direct.fsm.FSM import FSM
 from panda3d.ai import *
-from panda3d.core import VBase4
+from panda3d.core import VBase4,Vec3
 
 from common import GameObject
 
@@ -150,3 +150,38 @@ class Gatherer(NpcAI):
         self.request('ToResource')
         return task.done
 
+class PopulationCenter():
+    npcList = []
+    structuresList = []
+    resources = {'wood':0,'stone':0,'metal':0,'preciousstone':0,'preciousMetal':0}
+    
+    def __init__(self):
+        taskMgr.add(self.update,'PopCenterUpdateTask')
+    
+    def spawnLaborer(self,NPCname=''):
+        # Laborer can harvest any resource, build and repair structures, and become farm labor
+        # Laborer FSM: harvest, build/repair        
+        newAI = Wanderer(NPCname,'resources/aniCube2.egg')
+        newAI.np.reparentTo(render)
+        tx = random.randint(-1,1)
+        ty = random.randint(-1,1)        
+        newAI.np.setPos(Vec3(tx,ty,0.01))
+        newAI.np.setTag('ID',NPCname)
+
+#            newAI.setCenterPos(Vec3(-1,1,0))
+#            tx = random.randint(-10,10)
+#            ty = random.randint(-10,10)
+#            newAI.setResourcePos( Vec3(tx,ty,0) )
+
+#            newAI.request('ToResource')
+        self.npcList.append( newAI )
+        World.AIworld.addAiChar(newAI.AI)
+#        pass
+    
+    def spawnStructure(self):
+                
+        pass
+    
+    def update(self,task):
+        
+        return task.cont
