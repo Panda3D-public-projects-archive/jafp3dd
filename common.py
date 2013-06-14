@@ -22,19 +22,17 @@ MIN_CAM_DIST = .333
 
 from CONSTANTS import *
 
-class populationCenter():
-    def __init__(self):
-        taskManager.add(self.update,'PopCenterUpdateTask')
-    
-    def spawnNPC(self):
-        pass
-    
-    def spawnStructure(self):
-        pass
-    
-    def update(self,task):
+class resourceNode():
+    __health = 0
+    __location = [0,0,0]
+    def __init__(self,quantity=1,loc=[0,0,0]):
+        self.__health = quantity
+        self.__location = loc        
         
-        return task.cont
+    def exchange(self,amount):
+        self.__health += amount
+        
+    
         
         
 class GameObject(DirectObject): # Inherit from DO for event handling
