@@ -67,6 +67,30 @@ class World(ShowBase):
         self.loadScene(os.path.join(RESOURCE_PATH,SCENE_MODEL_FILE))
         
         print('loading player...')
+        self.spawnPlayer()
+        
+        self.textObject = OnscreenText(text = str(self.player.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
+        taskMgr.doMethodLater(1,self.updateOSD,'OSDupdater')
+#        taskMgr.doMethodLater(3,self.playAni,'test')
+        
+        self.stickyTarget = None
+        self.focus = None
+        
+        # setup camera view picker
+        self.pickerNode = CollisionNode('mouseRay')
+        self.pickerNP = camera.attachNewNode(self.pickerNode)
+        self.pickerNode.setFromCollideMask(GeomNode.getDefaultCollideMask())
+        self.pickerNode.setIntoCollideMask(0) # nothing runs INTO the ray.
+        self.pickerRay = CollisionRay()
+        self.pickerNode.addSolid(self.pickerRay)
+        self.traverser.addCollider(self.pickerNP, self.handlerQ)
+        
+        # TESTING SECTION
+#        door = common.GameObject('testdoor','resources/door.egg')
+#        door.np.reparent(render)
+#        door.np.setPos(2,1,0)
+        #
+    def spawnPlayer(self):
         
         self.player = common.GameObject(name='Player_1',modelName=os.path.join(RESOURCE_PATH,'axes.egg'))
         self.playerController = common.NodePathController(self.controls,self.player.np)
@@ -97,30 +121,7 @@ class World(ShowBase):
         base.cTrav.addCollider(self.ccnp,self.terrainLifter)
         base.cTrav.addCollider(self.player.cnp,self.handlerPush)
         print(self.player.np.ls())
-        
-        
-        self.textObject = OnscreenText(text = str(self.player.np.getPos()), pos = (-0.9, 0.9), scale = 0.07, fg = (1,1,1,1))
-        taskMgr.doMethodLater(1,self.updateOSD,'OSDupdater')
-#        taskMgr.doMethodLater(3,self.playAni,'test')
-        
-        self.stickyTarget = None
-        self.focus = None
-        
-        # setup camera view picker
-        self.pickerNode = CollisionNode('mouseRay')
-        self.pickerNP = camera.attachNewNode(self.pickerNode)
-        self.pickerNode.setFromCollideMask(GeomNode.getDefaultCollideMask())
-        self.pickerNode.setIntoCollideMask(0) # nothing runs INTO the ray.
-        self.pickerRay = CollisionRay()
-        self.pickerNode.addSolid(self.pickerRay)
-        self.traverser.addCollider(self.pickerNP, self.handlerQ)
-        
-        # TESTING SECTION
-#        door = common.GameObject('testdoor','resources/door.egg')
-#        door.np.reparent(render)
-#        door.np.setPos(2,1,0)
-        #
-    
+       
     def setupMusic(self):
         ms = loader.loadMusic('music/epilogue.ogg')
         ms.setLoop(True)
