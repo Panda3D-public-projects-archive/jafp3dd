@@ -177,7 +177,8 @@ class Game(DirectObject):
     # Ground (static)
 #    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
     terrain = loader.loadModel('resources/grounde.egg')
-    terrain.ls()
+    print terrain.ls()
+    terrain.reparentTo(render)
     geom = terrain.findAllMatches('**/+GeomNode')   
     mesh = BulletTriangleMesh()
     mesh.addGeom(geom[2].node().getGeom(0))   
@@ -185,7 +186,7 @@ class Game(DirectObject):
     
     self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ground'))
     self.groundNP.node().addShape(shape)
-    self.groundNP.setPos(0, 0, -2)
+#    self.groundNP.setPos(0, 0, -2)
     self.groundNP.setCollideMask(BitMask32.allOn())
 
     self.world.attachRigidBody(self.groundNP.node())
