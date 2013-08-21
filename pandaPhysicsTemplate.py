@@ -23,7 +23,7 @@ from panda3d.core import TransformState
 from panda3d.core import BitMask32
 
 from panda3d.bullet import BulletWorld
-from panda3d.bullet import BulletPlaneShape
+from panda3d.bullet import BulletPlaneShape, BulletTriangleMesh, BulletTriangleMeshShape
 from panda3d.bullet import BulletBoxShape
 from panda3d.bullet import BulletRigidBodyNode
 from panda3d.bullet import BulletDebugNode
@@ -175,8 +175,14 @@ class Game(DirectObject):
     self.world.setDebugNode(self.debugNP.node())
 
     # Ground (static)
-    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
-
+#    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
+    terrain = loader.loadModel('resources/grounde.egg')
+    terrain.ls()
+    geom = terrain.findAllMatches('**/+GeomNode')   
+    mesh = BulletTriangleMesh()
+    mesh.addGeom(geom[2].node().getGeom(0))   
+    shape = BulletTriangleMeshShape(mesh,dynamic='false')
+    
     self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ground'))
     self.groundNP.node().addShape(shape)
     self.groundNP.setPos(0, 0, -2)
