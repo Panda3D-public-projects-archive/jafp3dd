@@ -24,7 +24,7 @@ from panda3d.core import BitMask32
 
 from panda3d.bullet import BulletWorld
 from panda3d.bullet import BulletPlaneShape, BulletTriangleMesh, BulletTriangleMeshShape
-from panda3d.bullet import BulletBoxShape
+from panda3d.bullet import BulletBoxShape, BulletSphereShape, BulletCylinderShape
 from panda3d.bullet import BulletRigidBodyNode
 from panda3d.bullet import BulletDebugNode
 
@@ -34,8 +34,7 @@ class Game(DirectObject):
     base.setBackgroundColor(0.1, 0.1, 0.8, 1)
     base.setFrameRateMeter(True)
 
-    base.cam.setPos(0, -20, 4)
-    base.cam.lookAt(0, 0, 0)
+
         
     # Light
     alight = AmbientLight('ambientLight')
@@ -48,7 +47,7 @@ class Game(DirectObject):
     dlightNP = render.attachNewNode(dlight)
 
     render.clearLight()
-    render.setLight(alightNP)
+#    render.setLight(alightNP)
     render.setLight(dlightNP)
 
     # Input
@@ -72,7 +71,9 @@ class Game(DirectObject):
 
     # Physics
     self.setup()
-
+#    base.cam.reparentTo(self.boxNP)
+    base.cam.setPos(0, -20, 4)
+    
   # _____HANDLER_____
 
   def doExit(self):
@@ -108,6 +109,9 @@ class Game(DirectObject):
     if inputState.isSet('reverse'): force.setY(-1.0)
     if inputState.isSet('left'):    force.setX(-1.0)
     if inputState.isSet('right'):   force.setX( 1.0)
+#    if inputState.isSet('forward'): torque.setX(-1.0)
+#    if inputState.isSet('reverse'): torque.setX(1.0)
+
     if inputState.isSet('jump') and not self.isJumping:
         self.isJumping = True
         base.taskMgr.add(self.doJump,'JumpTask')
@@ -115,8 +119,8 @@ class Game(DirectObject):
     if inputState.isSet('turnLeft'):  torque.setZ( 1.0)
     if inputState.isSet('turnRight'): torque.setZ(-1.0)
 
-    force *= 6.0
-    torque *= 1.0
+    force *= 10.0
+    torque *= 5.0
 
     force = render.getRelativeVector(self.boxNP, force)
     torque = render.getRelativeVector(self.boxNP, torque)
@@ -137,11 +141,19 @@ class Game(DirectObject):
 
   def update(self, task):
     dt = globalClock.getDt()
-    print self.isJumping
+#    print self.isJumping
 
     self.processInput(dt)
     #self.world.doPhysics(dt)
     self.world.doPhysics(dt, 5, 1.0/180.0)
+    self.boxNP.setP(0)
+    
+    # adjust Camera
+#    base.cam.setX(self.boxNP,0)
+#    base.cam.setY(self.boxNP,-20)
+#    base.cam.setZ(5)
+    base.cam.lookAt(self.boxNP)  
+    
     return task.cont
 
   def cleanup(self):
@@ -176,12 +188,12 @@ class Game(DirectObject):
 
     # Ground (static)
 #    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
-    terrain = loader.loadModel('resources/grounde.egg')
+    terrain = loader.loadModel('resources/groundf.egg')
     print terrain.ls()
     terrain.reparentTo(render)
     geom = terrain.findAllMatches('**/+GeomNode')   
     mesh = BulletTriangleMesh()
-    mesh.addGeom(geom[2].node().getGeom(0))   
+    mesh.addGeom(geom[0].node().getGeom(0))   
     shape = BulletTriangleMeshShape(mesh,dynamic='false')
     
     self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ground'))
@@ -192,8 +204,11 @@ class Game(DirectObject):
     self.world.attachRigidBody(self.groundNP.node())
 
     # Box (dynamic)
-    shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
-
+#    shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
+    shape = BulletSphereShape(0.5)
+#    shape = BulletCylinderShape(0.5,1,0)
+    
+    
     self.boxNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Box'))
     self.boxNP.node().setMass(1.0)
     self.boxNP.node().addShape(shape)
@@ -204,7 +219,7 @@ class Game(DirectObject):
 
     self.world.attachRigidBody(self.boxNP.node())
 
-    visualNP = loader.loadModel('models/box.egg')
+    visualNP = loader.loadModel('models/ball.egg')
     visualNP.clearModelNodes()
     visualNP.reparentTo(self.boxNP)
 
