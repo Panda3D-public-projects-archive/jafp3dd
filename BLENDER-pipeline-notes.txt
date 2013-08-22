@@ -5,12 +5,22 @@ Created on Wed Aug 29 10:04:07 2012
 @author: shawn
 """
 
+Transforms:
+APPLY BEFORE EXPORT! (or write import code to apply it...easier upfront!)
+
 Textures:
     USE UV MAPS TO WORK.
 
-OBSTACLES:
+OBSTACLES: 
+(base panda collision nodes)
     DEFINE walls, triggers, etc using Blender Game Properties
     typically make property: Collide with value Polyset descend keep (see egg syntax for full options)
+
+(using bullet panda)
+	static Rigid objects: import complex as primitives, convexhull, or triangleMeshShape. if visible, reparent to render tree
+		test for visible using blender game property -> a node tag. Test tag value/existence
+
+	dynamic Rigid objects: make sure to reparent the visible model to the RigidbodyNode
 
 Animations:
     REMEMBER to add the animation to the armature list before exporting

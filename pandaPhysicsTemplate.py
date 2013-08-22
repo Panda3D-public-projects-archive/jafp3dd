@@ -71,8 +71,6 @@ class Game(DirectObject):
 
     # Physics
     self.setup()
-#    base.cam.reparentTo(self.boxNP)
-    base.cam.setPos(0, -20, 4)
     
   # _____HANDLER_____
 
@@ -122,8 +120,8 @@ class Game(DirectObject):
     force *= 10.0
     torque *= 5.0
 
-    force = render.getRelativeVector(self.boxNP, force)
-    torque = render.getRelativeVector(self.boxNP, torque)
+#    force = render.getRelativeVector(self.boxNP, force)
+#    torque = render.getRelativeVector(self.boxNP, torque)
 
     self.boxNP.node().setActive(True)
     self.boxNP.node().applyCentralForce(force)
@@ -146,12 +144,12 @@ class Game(DirectObject):
     self.processInput(dt)
     #self.world.doPhysics(dt)
     self.world.doPhysics(dt, 5, 1.0/180.0)
-    self.boxNP.setP(0)
     
     # adjust Camera
-#    base.cam.setX(self.boxNP,0)
-#    base.cam.setY(self.boxNP,-20)
-#    base.cam.setZ(5)
+    base.cam.setX(self.boxNP,0)
+    base.cam.setY(self.boxNP,-20)
+    base.cam.setZ(5)
+    base.cam.setHpr(self.boxNP.getH(render),0,0)
     base.cam.lookAt(self.boxNP)  
     
     return task.cont
@@ -190,18 +188,21 @@ class Game(DirectObject):
 #    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
     terrain = loader.loadModel('resources/groundf.egg')
     print terrain.ls()
-    terrain.reparentTo(render)
-    geom = terrain.findAllMatches('**/+GeomNode')   
-    mesh = BulletTriangleMesh()
-    mesh.addGeom(geom[0].node().getGeom(0))   
-    shape = BulletTriangleMeshShape(mesh,dynamic='false')
+    geomNodes = terrain.findAllMatches('**/+GeomNode')
+    for geom in geomNodes:
+        if(geom.node().getTag('isVisible')):
+            geom.reparentTo(render)
+            
+        mesh = BulletTriangleMesh()
+        mesh.addGeom(geom.node().getGeom(0))   
+        shape = BulletTriangleMeshShape(mesh,dynamic='false')
     
-    self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ground'))
-    self.groundNP.node().addShape(shape)
-#    self.groundNP.setPos(0, 0, -2)
-    self.groundNP.setCollideMask(BitMask32.allOn())
-
-    self.world.attachRigidBody(self.groundNP.node())
+        self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode(geom.node().getName()))
+        self.groundNP.node().addShape(shape)
+    #    self.groundNP.setPos(0, 0, -2)
+        self.groundNP.setCollideMask(BitMask32.allOn())
+    
+        self.world.attachRigidBody(self.groundNP.node())
 
     # Box (dynamic)
 #    shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
@@ -216,12 +217,13 @@ class Game(DirectObject):
     #self.boxNP.setScale(2, 1, 0.5)
     self.boxNP.setCollideMask(BitMask32.allOn())
     #self.boxNP.node().setDeactivationEnabled(False)
-
+    self.boxNP.node().setInertia(Vec3(.1,1e6,.1))
     self.world.attachRigidBody(self.boxNP.node())
 
     visualNP = loader.loadModel('models/ball.egg')
     visualNP.clearModelNodes()
     visualNP.reparentTo(self.boxNP)
+    visualNP.setColor(1,0,0)
 
     # Bullet nodes should survive a flatten operation!
     #self.worldNP.flattenStrong()
