@@ -68,7 +68,8 @@ class Game(DirectObject):
 
     # Task
     taskMgr.add(self.update, 'updateWorld')
-
+    base.camera.setPos(0,20,4)
+    
     # Physics
     self.setup()
     
@@ -146,11 +147,11 @@ class Game(DirectObject):
     self.world.doPhysics(dt, 5, 1.0/180.0)
     
     # adjust Camera
-    base.cam.setX(self.boxNP,0)
-    base.cam.setY(self.boxNP,-20)
-    base.cam.setZ(5)
-    base.cam.setHpr(self.boxNP.getH(render),0,0)
-    base.cam.lookAt(self.boxNP)  
+#    base.cam.setX(self.boxNP,0)
+#    base.cam.setY(self.boxNP,-20)
+#    base.cam.setZ(5)
+#    base.cam.setHpr(self.boxNP.getH(render),0,0)
+#    base.cam.lookAt(self.boxNP)  
     
     return task.cont
 
@@ -165,6 +166,25 @@ class Game(DirectObject):
 
     self.worldNP.removeNode()
 
+ 
+  def importBlenderScene(self,eggname):
+      
+      terrain = loader.loadModel(eggname)
+      print terrain.ls()
+      geomNodes = terrain.findAllMatches('**/+GeomNode')
+      for geom in geomNodes:
+          if not geom.node().getTag('isGhost'):
+              geom.reparentTo(render)            
+          mesh = BulletTriangleMesh()
+          mesh.addGeom(geom.node().getGeom(0))   
+          shape = BulletTriangleMeshShape(mesh,dynamic='false')
+          self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode(geom.node().getName()))
+          self.groundNP.node().addShape(shape)
+      #    self.groundNP.setPos(0, 0, -2)
+          self.groundNP.setCollideMask(BitMask32.allOn())
+          self.world.attachRigidBody(self.groundNP.node())
+ 
+    
   def setup(self):
     self.worldNP = render.attachNewNode('World')
     self.isJumping = False
@@ -186,24 +206,8 @@ class Game(DirectObject):
 
     # Ground (static)
 #    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
-    terrain = loader.loadModel('resources/groundf.egg')
-    print terrain.ls()
-    geomNodes = terrain.findAllMatches('**/+GeomNode')
-    for geom in geomNodes:
-        if(geom.node().getTag('isVisible')):
-            geom.reparentTo(render)
-            
-        mesh = BulletTriangleMesh()
-        mesh.addGeom(geom.node().getGeom(0))   
-        shape = BulletTriangleMeshShape(mesh,dynamic='false')
+    self.importBlenderScene('resources/groundf.egg')
     
-        self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode(geom.node().getName()))
-        self.groundNP.node().addShape(shape)
-    #    self.groundNP.setPos(0, 0, -2)
-        self.groundNP.setCollideMask(BitMask32.allOn())
-    
-        self.world.attachRigidBody(self.groundNP.node())
-
     # Box (dynamic)
 #    shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
     shape = BulletSphereShape(0.5)
