@@ -30,10 +30,12 @@ from panda3d.bullet import BulletDebugNode
 
 import common
 
+_KeyMap ={'jump':'space','action':'mouse1','left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
+
 class Game(DirectObject):
   mousePos = [0,0]
   mousePos_old = mousePos
-  controls = {"turn":0, "walk":0, "strafe":0,"fly":0,\
+  controls = {"turn":0, "walk":0, "strafe":0,"fly":0,'jump':0,\
       'camZoom':0,'camHead':0,'camPitch':0,\
       "mouseDeltaXY":[0,0],"mouseWheel":0,"mouseLook":False,"mouseSteer":False}
 
@@ -57,35 +59,28 @@ class Game(DirectObject):
     render.setLight(dlightNP)
 
     # Input
+
     self._setupKeys()
-    self.accept('escape', self.doExit)
-    self.accept('r', self.doReset)
-    self.accept('z', self.toggleWireframe)
+#    self.accept('r', self.doReset)
     self.accept('f2', self.toggleTexture)
     self.accept('f3', self.toggleDebug)
-    self.accept('f5', self.doScreenshot)
-
-#    inputState.watchWithModifiers('forward', 'w')
-#    inputState.watchWithModifiers('left', 'a')
-#    inputState.watchWithModifiers('reverse', 's')
-#    inputState.watchWithModifiers('right', 'd')
-#    inputState.watchWithModifiers('turnLeft', 'q')
-#    inputState.watchWithModifiers('turnRight', 'e')
-#    inputState.watchWithModifiers('jump', 'space')
+#    self.accept('f5', self.doScreenshot)
 
     # Task
     taskMgr.add(self.update, 'updateWorld')
     taskMgr.add(self.mouseHandler,'Mouse Manager')
-    base.camera.setPos(0,-5,4)
+    base.camera.setPos(0,-5,25)
     
     # Physics
     self.setup()
+    
+    # CAMERA
+    base.camera.reparentTo(self.boxNP)
+    base.camera.setCompass()
     self.camController = common.ControlledCamera(self.controls, base.camera, self.boxNP)
-
+    
   def _setupKeys(self):
-  
-      _KeyMap ={'action':'mouse1','left':'a','right':'d','strafe_L':'q','strafe_R':'e','wire':'z'}
-  
+    
       self.accept(_KeyMap['left'],self._setControls,["turn",1])
       self.accept(_KeyMap['left']+"-up",self._setControls,["turn",0])
       self.accept(_KeyMap['right'],self._setControls,["turn",-1])
@@ -97,6 +92,9 @@ class Game(DirectObject):
       self.accept(_KeyMap['strafe_R'],self._setControls,["strafe",1])
       self.accept(_KeyMap['strafe_R']+"-up",self._setControls,["strafe",0])
   
+      self.accept(_KeyMap['jump'],self._setControls,["jump",1])
+      self.accept(_KeyMap['jump']+'-up',self._setControls,["jump",0])
+      
       self.accept("w",self._setControls,["walk",1])
       self.accept("s",self._setControls,["walk",-1])
       self.accept("s-up",self._setControls,["walk",0])
@@ -118,11 +116,12 @@ class Game(DirectObject):
       self.accept("arrow_up-up",self._setControls,["camZoom",0])
   
 #      self.accept(_KeyMap['action'],self.pickingFunc)
-      self.accept("mouse1-up",self._setControls,["mouseLook",False])
-      self.accept("mouse2",self._setControls,["mouseLook",True])
-      self.accept("mouse2-up",self._setControls,["mouseLook",False])
-      self.accept("mouse3",self._setControls,["mouseSteer",True])
-      self.accept("mouse3-up",self._setControls,["mouseSteer",False])
+      self.accept("mouse3",self._setControls,["mouseLook",True])
+      self.accept("mouse3-up",self._setControls,["mouseLook",False])
+#      self.accept("mouse2",self._setControls,["mouseLook",True])
+#      self.accept("mouse2-up",self._setControls,["mouseLook",False])
+#      self.accept("mouse3",self._setControls,["mouseSteer",True])
+#      self.accept("mouse3-up",self._setControls,["mouseSteer",False])
   
       self.accept("wheel_up",self._setControls,["mouseWheel",-1])
       self.accept("wheel_down",self._setControls,["mouseWheel",1])
@@ -133,19 +132,20 @@ class Game(DirectObject):
       self.accept("escape",sys.exit)
       
       
-  def _setControls(self,key,value):
-          self.controls[key] = value
-          print key,value
-          # manage special conditions/states
-          if key == 'autoWalk':
-              if self.controls["walk"] == 0:
-                  self.controls["walk"] = 1
-              else:
-                  self.controls["walk"] = 0
-          if key == 'mouseWheel':
-              cur = self.controls['mouseWheel']
-              self.controls['mouseWheel'] = cur + value # add up mouse wheel clicks
+  def _setControls(self,key,value):  
+    self.controls[key] = value
+    # manage special conditions/states
+    if key == 'autoWalk':
+        if self.controls["walk"] == 0:
+            self.controls["walk"] = 1
+        else:
+            self.controls["walk"] = 0
+    if key == 'mouseWheel':
+        cur = self.controls['mouseWheel']
+        self.controls['mouseWheel'] = cur + value # add up mouse wheel clicks
+        
 
+    
   def mouseHandler(self,task):
   
       if base.mouseWatcherNode.hasMouse():
@@ -192,54 +192,40 @@ class Game(DirectObject):
     
     force.setY(self.controls['walk'])
     force.setX(self.controls['strafe'])
-    torque.setX(self.controls['turn'])
-    
-    print force,torque
-    
-#    if inputState.isSet('forward'): force.setY( 1.0)
-#    if inputState.isSet('reverse'): force.setY(-1.0)
-#    if inputState.isSet('left'):    force.setX(-1.0)
-#    if inputState.isSet('right'):   force.setX( 1.0)
-#    if inputState.isSet('forward'): torque.setX(-1.0)
-#    if inputState.isSet('reverse'): torque.setX(1.0)
-
-#    if inputState.isSet('jump') and not self.isJumping:
-#        self.isJumping = True
-#        base.taskMgr.add(self.doJump,'JumpTask')
-        
-#    if inputState.isSet('turnLeft'):  torque.setZ( 1.0)
-#    if inputState.isSet('turnRight'): torque.setZ(-1.0)
+#    torque.setZ(self.controls['turn'])
+    if self.controls['jump']:
+      result = self.world.contactTest(self.boxNP.node())
+#      print result.getNumContacts()
+      if result.getNumContacts() > 0:
+        self.boxNP.node().applyCentralImpulse(Vec3(0,0,5))
 
     force *= 10.0
     torque *= 5.0
 
-#    force = render.getRelativeVector(self.boxNP, force)
-#    torque = render.getRelativeVector(self.boxNP, torque)
+    force = render.getRelativeVector(camera, force)
+#    torque = render.getRelativeVector(camera, torque)
 
     self.boxNP.node().setActive(True)
     self.boxNP.node().applyCentralForce(force)
     self.boxNP.node().applyTorque(torque)
 
-  def doJump(self,task):
-      if task.time < 0.500:      
-          self.boxNP.node().applyCentralForce(Vec3(0,0,20))
-      else:
-          result = self.world.contactTestPair(self.boxNP.node(),self.groundNP.node())
-          if result.getNumContacts() > 0:
-              self.isJumping = False # reset on contact with ground
-              return task.done
-      return task.cont
+#  def doJump(self,task):
+#      if task.time < 0.500:      
+#          self.boxNP.node().applyCentralForce(Vec3(0,0,20))
+#      else:
+##          result = self.world.contactTestPair(self.boxNP.node(),self.groundNP.node())
+#          result = self.world.contactTest(self.boxNP.node())
+#          print result.getNumContacts()
+#          if result.getNumContacts() > 0:
+#              self.isJumping = False # reset on contact with ground
+#              return task.done
+#      return task.cont
 
   def update(self, task):
     dt = globalClock.getDt()
-#    print self.isJumping
-
     self.processInput(dt)
     #self.world.doPhysics(dt)
-    self.world.doPhysics(dt, 5, 1.0/180.0)
-    
-#    base.cam.lookAt(self.boxNP)  
-    
+    self.world.doPhysics(dt, 5, 1.0/180.0) 
     return task.cont
 
   def cleanup(self):
@@ -306,7 +292,7 @@ class Game(DirectObject):
     #self.boxNP.setScale(2, 1, 0.5)
     self.boxNP.setCollideMask(BitMask32.allOn())
     #self.boxNP.node().setDeactivationEnabled(False)
-#    self.boxNP.node().setInertia(Vec3(.1,1e6,.1))
+    self.boxNP.node().setInertia(Vec3(.1,1e16,.1))
     self.world.attachRigidBody(self.boxNP.node())
 
     visualNP = loader.loadModel('models/ball.egg')
@@ -317,7 +303,8 @@ class Game(DirectObject):
     # Ball2 (dynamic)
     shape = BulletSphereShape(0.5)
     self.ball2NP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ball 2'))
-    self.ball2NP.node().setMass(2.0)
+    self.ball2NP.setScale(2)
+    self.ball2NP.node().setMass(8)
     self.ball2NP.node().addShape(shape)
     self.ball2NP.setPos(0, -5, 2)
     #self.ball2NP.setScale(2, 1, 0.5)
