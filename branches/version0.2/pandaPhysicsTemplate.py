@@ -193,6 +193,7 @@ class Game(DirectObject):
     force.setY(self.controls['walk'])
     force.setX(self.controls['strafe'])
 #    torque.setZ(self.controls['turn'])
+    print self.controls['jump']
     if self.controls['jump']:
       result = self.world.contactTest(self.boxNP.node())
 #      print result.getNumContacts()
@@ -282,8 +283,9 @@ class Game(DirectObject):
     self.importBlenderScene('resources/groundf.egg')
     
     # Box (dynamic)
+    _ballRadius = 0.4
 #    shape = BulletBoxShape(Vec3(0.5, 0.5, 0.5))
-    shape = BulletSphereShape(0.5)
+    shape = BulletSphereShape(_ballRadius)
 #    shape = BulletCylinderShape(0.5,1,0)
     self.boxNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Box'))
     self.boxNP.node().setMass(1.0)
@@ -292,7 +294,7 @@ class Game(DirectObject):
     #self.boxNP.setScale(2, 1, 0.5)
     self.boxNP.setCollideMask(BitMask32.allOn())
     #self.boxNP.node().setDeactivationEnabled(False)
-    self.boxNP.node().setInertia(Vec3(.1,1e16,.1))
+    self.boxNP.node().setInertia(Vec3(.1,0,.1))
     self.world.attachRigidBody(self.boxNP.node())
 
     visualNP = loader.loadModel('models/ball.egg')
@@ -301,7 +303,7 @@ class Game(DirectObject):
     visualNP.setColor(1,0,0)
 
     # Ball2 (dynamic)
-    shape = BulletSphereShape(0.5)
+    shape = BulletSphereShape(_ballRadius)
     self.ball2NP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ball 2'))
     self.ball2NP.setScale(2)
     self.ball2NP.node().setMass(8)
