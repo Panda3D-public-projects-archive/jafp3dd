@@ -209,9 +209,9 @@ class ControlledCamera(NodePathController):
     
     
     #TODO: ENABLE CAMERA CONTROLS FROM KEYS
-    #        self._camVector[0] += 15*(self.Kzoom)*dt
-    #        self._camVector[1] += .5*TURN_RATE*self.Ktheta*dt
-    #        self._camVector[2] += .5*TURN_RATE*self.Kpitch*dt
+            self._camVector[0] += 15*self.controlState["camZoom"]*dt
+            self._camVector[1] += TURN_RATE*self.controlState["camHead"]*dt
+            self._camVector[2] += TURN_RATE*self.controlState["camPitch"]*dt
     
             self._camVector[0] += self.controlState["mouseWheel"] * self.ZOOM_STEP
             self.controlState["mouseWheel"] = 0
