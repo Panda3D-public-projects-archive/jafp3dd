@@ -32,7 +32,7 @@ from panda3d.bullet import BulletDebugNode
 import common
 
 NUM_MARBLES = 10
-_KeyMap ={'jump':'space','action':'mouse1','left':'q','right':'e','strafe_L':'a','strafe_R':'d','wire':'z'}
+_KeyMap ={'jump':'space','action':'mouse1','left':'a','right':'d','strafe_L':'q','strafe_R':'e','wire':'z'}
 
 class Game(DirectObject):
   mousePos = [0,0]
@@ -84,10 +84,10 @@ class Game(DirectObject):
     
   def _setupKeys(self):
     
-      self.accept(_KeyMap['left'],self._setControls,["turn",1])
-      self.accept(_KeyMap['left']+"-up",self._setControls,["turn",0])
-      self.accept(_KeyMap['right'],self._setControls,["turn",-1])
-      self.accept(_KeyMap['right']+"-up",self._setControls,["turn",0])
+      self.accept(_KeyMap['left'],self._setControls,["camHead",1])
+      self.accept(_KeyMap['left']+"-up",self._setControls,["camHead",0])
+      self.accept(_KeyMap['right'],self._setControls,["camHead",-1])
+      self.accept(_KeyMap['right']+"-up",self._setControls,["camHead",0])
   
   
       self.accept(_KeyMap['strafe_L'],self._setControls,["strafe",-1])
@@ -194,9 +194,8 @@ class Game(DirectObject):
     torque = Vec3(0, 0, 0)
     
     force.setY(self.controls['walk'])
-    force.setX(self.controls['strafe'])
+#    force.setX(self.controls['strafe'])
 #    torque.setZ(self.controls['turn'])
-    print self.controls['jump']
     if self.controls['jump']:
       result = self.world.contactTest(self.boxNP.node())
 #      print result.getNumContacts()
@@ -213,17 +212,6 @@ class Game(DirectObject):
     self.boxNP.node().applyCentralForce(force)
     self.boxNP.node().applyTorque(torque)
 
-#  def doJump(self,task):
-#      if task.time < 0.500:      
-#          self.boxNP.node().applyCentralForce(Vec3(0,0,20))
-#      else:
-##          result = self.world.contactTestPair(self.boxNP.node(),self.groundNP.node())
-#          result = self.world.contactTest(self.boxNP.node())
-#          print result.getNumContacts()
-#          if result.getNumContacts() > 0:
-#              self.isJumping = False # reset on contact with ground
-#              return task.done
-#      return task.cont
 
   def update(self, task):
     dt = globalClock.getDt()
@@ -283,8 +271,6 @@ class Game(DirectObject):
     
   def setup(self):
     self.worldNP = render.attachNewNode('World')
-    self.isJumping = False
-
     # World
     self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
     self.debugNP.show()
@@ -292,7 +278,6 @@ class Game(DirectObject):
     self.debugNP.node().showConstraints(True)
     self.debugNP.node().showBoundingBoxes(False)
     self.debugNP.node().showNormals(True)
-
     #self.debugNP.showTightBounds()
     #self.debugNP.showBounds()
 
@@ -306,6 +291,7 @@ class Game(DirectObject):
     
     # Player Ball
     self.boxNP = self.spawnMarble('Player1',1.0,Vec3(0,0,2),Vec4(1,0,0,1))
+    self.boxNP.node().applyCentralImpulse(Vec3(0,0,15))
       
     # Objective balls
     for i in range(NUM_MARBLES):
