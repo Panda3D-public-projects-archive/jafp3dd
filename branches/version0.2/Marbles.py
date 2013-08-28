@@ -45,7 +45,6 @@ class Game(DirectObject):
   def __init__(self):
     base.setBackgroundColor(0.1, 0.1, 0.8, 1)
     base.setFrameRateMeter(True)
-
     
     # Light
     alight = AmbientLight('ambientLight')
@@ -118,7 +117,7 @@ class Game(DirectObject):
       self.accept("arrow_down-up",self._setControls,["camZoom",0])
       self.accept("arrow_up-up",self._setControls,["camZoom",0])
   
-#      self.accept(_KeyMap['action'],self.pickingFunc)
+      self.accept(_KeyMap['action'],self.pickingFunc)
       self.accept("mouse3",self._setControls,["mouseLook",True])
       self.accept("mouse3-up",self._setControls,["mouseLook",False])
 #      self.accept("mouse2",self._setControls,["mouseLook",True])
@@ -151,14 +150,13 @@ class Game(DirectObject):
     
   def mouseHandler(self,task):
   
-      if base.mouseWatcherNode.hasMouse():
-          self.mousePos_old = self.mousePos
-          self.mousePos = [base.mouseWatcherNode.getMouseX(), \
-          base.mouseWatcherNode.getMouseY()]
-          dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
-          dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
-          self.controls['mouseDeltaXY'] = [dX,dY]
-  
+    if base.mouseWatcherNode.hasMouse():
+      self.mousePos_old = self.mousePos
+      self.mousePos = [base.mouseWatcherNode.getMouseX(), \
+      base.mouseWatcherNode.getMouseY()]
+      dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
+      dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
+      self.controls['mouseDeltaXY'] = [dX,dY]    
       return task.cont
 
             
@@ -187,6 +185,19 @@ class Game(DirectObject):
   def doScreenshot(self):
     base.screenshot('Bullet')
 
+  def pickingFunc(self):
+    # Get to and from pos in camera coordinates
+    pMouse = base.mouseWatcherNode.getMouse()
+    pFrom = Point3()
+    pTo = Point3()
+    base.camLens.extrude(pMouse, pFrom, pTo)
+     
+    # Transform to global coordinates
+    pFrom = render.getRelativePoint(base.cam, pFrom)
+    pTo = render.getRelativePoint(base.cam, pTo)    
+    result = self.world.rayTestClosest(pFrom,pTo)
+    print result.getNode().getName()
+    
   # ____TASK___
 
   def processInput(self, dt):
@@ -251,7 +262,7 @@ class Game(DirectObject):
  
   def spawnMarble(self,name='',size=1.0,position=Vec3(0,0,0),color=Vec3(1,1,1)):
     # Ball2 (dynamic)
-    shape = BulletSphereShape(0.4)
+    shape = BulletSphereShape(0.45)
     ballnp = self.worldNP.attachNewNode(BulletRigidBodyNode(name))
     ballnp.setScale(size)
     ballnp.node().setMass(size**3)  # dynamic objects have mass; constant density -> m = scale***3
@@ -296,7 +307,7 @@ class Game(DirectObject):
     # Objective balls
     for i in range(NUM_MARBLES):
       R = 20
-      rs = log(1.1 + 10*random.random())
+      rs = .25 + 1.75*random.random()
       rp = Vec3(random.randint(-R,R),random.randint(-R,R),random.randint(.5*R,2*R))
       rc = Vec4(random.random(),random.random(),random.random(),1)
       self.objects.append(self.spawnMarble('Marble'+str(i),rs,rp,rc))
