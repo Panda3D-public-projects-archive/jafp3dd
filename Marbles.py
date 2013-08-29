@@ -9,9 +9,13 @@
 #loadPrcFileData('', 'bullet-additional-damping-angular-threshold 0.01')
 
 import sys, random
-import direct.directbase.DirectStart
 from math import log
 
+#from panda3d.core import loadPrcFileData
+#loadPrcFileData("", "want-directtools #t")
+#loadPrcFileData("", "want-tk #t")
+
+import direct.directbase.DirectStart
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.InputStateGlobal import inputState
 
@@ -31,7 +35,10 @@ from panda3d.bullet import BulletDebugNode
 
 import common
 
-NUM_MARBLES = 10
+#from panda3d.core import PStatClient
+#PStatClient.connect()
+
+NUM_MARBLES = 0
 _KeyMap ={'jump':'space','action':'mouse1','left':'a','right':'d','strafe_L':'q','strafe_R':'e','wire':'z'}
 
 class Game(DirectObject):
@@ -48,7 +55,7 @@ class Game(DirectObject):
     
     # Light
     alight = AmbientLight('ambientLight')
-    alight.setColor(Vec4(0.5, 0.5, 0.5, 1))
+    alight.setColor(Vec4(0.5, 0.5, 0.5, 1)*.2)
     alightNP = render.attachNewNode(alight)
 
     dlight = DirectionalLight('directionalLight')
@@ -57,15 +64,15 @@ class Game(DirectObject):
     dlightNP = render.attachNewNode(dlight)
 
     render.clearLight()
-#    render.setLight(alightNP)
+    render.setLight(alightNP)
     render.setLight(dlightNP)
 
     # Input
 
     self._setupKeys()
-#    self.accept('r', self.doReset)
+    self.accept('r', self.doReset)
     self.accept('f2', self.toggleTexture)
-    self.accept('f3', self.toggleDebug)
+#    self.accept('f3', self.toggleDebug)
 #    self.accept('f5', self.doScreenshot)
 
     # Task
@@ -157,6 +164,9 @@ class Game(DirectObject):
       dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
       dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
       self.controls['mouseDeltaXY'] = [dX,dY]    
+      
+      #TODO: ADD RAY TEST FOR FOCUS HERE
+      
       return task.cont
 
             
@@ -234,9 +244,12 @@ class Game(DirectObject):
   def cleanup(self):
     self.world.removeRigidBody(self.groundNP.node())
     self.world.removeRigidBody(self.boxNP.node())
+    for o in self.objects:
+      self.world.removeRigidBody(o.node())
+    self.objects = list()
     self.world = None
 
-    self.debugNP = None
+#    self.debugNP = None
     self.groundNP = None
     self.boxNP = None
 
@@ -283,18 +296,18 @@ class Game(DirectObject):
   def setup(self):
     self.worldNP = render.attachNewNode('World')
     # World
-    self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
-    self.debugNP.show()
-    self.debugNP.node().showWireframe(True)
-    self.debugNP.node().showConstraints(True)
-    self.debugNP.node().showBoundingBoxes(False)
-    self.debugNP.node().showNormals(True)
+#    self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
+#    self.debugNP.show()
+#    self.debugNP.node().showWireframe(True)
+#    self.debugNP.node().showConstraints(True)
+#    self.debugNP.node().showBoundingBoxes(False)
+#    self.debugNP.node().showNormals(True)
     #self.debugNP.showTightBounds()
     #self.debugNP.showBounds()
 
     self.world = BulletWorld()
     self.world.setGravity(Vec3(0, 0, -9.81))
-    self.world.setDebugNode(self.debugNP.node())
+#    self.world.setDebugNode(self.debugNP.node())
 
     # Ground (static)
 #    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
