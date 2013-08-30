@@ -38,9 +38,10 @@ import common
 #from panda3d.core import PStatClient
 #PStatClient.connect()
 
-NUM_MARBLES = 0
+NUM_MARBLES = 15
 _KeyMap ={'jump':'space','action':'mouse1','left':'a','right':'d','strafe_L':'q','strafe_R':'e','wire':'z'}
 
+        
 class Game(DirectObject):
   mousePos = [0,0]
   mousePos_old = mousePos
@@ -70,7 +71,7 @@ class Game(DirectObject):
     # Input
 
     self._setupKeys()
-    self.accept('r', self.doReset)
+#    self.accept('r', self.doReset)
     self.accept('f2', self.toggleTexture)
 #    self.accept('f3', self.toggleDebug)
 #    self.accept('f5', self.doScreenshot)
@@ -178,6 +179,8 @@ class Game(DirectObject):
 
   def doReset(self):
     self.cleanup()
+    #TODO: FIX CLEANUP
+    print ".cleanup() does not properly clear geomnodes of ground"
     self.setup()
 
   def toggleWireframe(self):
@@ -239,6 +242,7 @@ class Game(DirectObject):
     self.processInput(dt)
     #self.world.doPhysics(dt)
     self.world.doPhysics(dt, 5, 1.0/180.0) 
+    self.marbleAI() # give them some sort of reactions
     return task.cont
 
   def cleanup(self):
@@ -292,7 +296,23 @@ class Game(DirectObject):
     visualNP.setColor(color)
     
     return ballnp
-    
+  
+  def marbleAI(self):
+    for thismarble in self.objects:
+      for thatmarble in self.objects:
+        if not thismarble == thatmarble:
+          delta = thismarble.getPos() - thatmarble.getPos()
+          dist = delta.length()
+          if dist < 10:
+            Af = 10 / (dist**2)
+          else:
+            Af = 0.0
+          delta.setZ(0)
+          delta.normalize()
+          force = delta * Af
+          thismarble.node().setActive(True)
+          thismarble.node().applyCentralForce(force)
+
   def setup(self):
     self.worldNP = render.attachNewNode('World')
     # World
@@ -319,12 +339,12 @@ class Game(DirectObject):
       
     # Objective balls
     for i in range(NUM_MARBLES):
-      R = 20
+      R = 10
       rs = .25 + 1.75*random.random()
       rp = Vec3(random.randint(-R,R),random.randint(-R,R),random.randint(.5*R,2*R))
       rc = Vec4(random.random(),random.random(),random.random(),1)
-      self.objects.append(self.spawnMarble('Marble'+str(i),rs,rp,rc))
-    
+      newMarble = self.spawnMarble('Marble'+str(i),rs,rp,rc)
+      self.objects.append(newMarble)
     # Bullet nodes should survive a flatten operation!
     #self.worldNP.flattenStrong()
     #render.ls()
