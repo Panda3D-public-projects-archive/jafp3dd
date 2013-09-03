@@ -40,8 +40,8 @@ import common
 
 NUM_MARBLES = 15
 _KeyMap ={'jump':'space','action':'mouse1','left':'a','right':'d','strafe_L':'q','strafe_R':'e','wire':'z'}
+sceneID = 'resources/groundg.egg'
 
-        
 class Game(DirectObject):
   mousePos = [0,0]
   mousePos_old = mousePos
@@ -49,11 +49,11 @@ class Game(DirectObject):
       'camZoom':0,'camHead':0,'camPitch':0,\
       "mouseDeltaXY":[0,0],"mouseWheel":0,"mouseLook":False,"mouseSteer":False}
   objects = list()
-  
+
   def __init__(self):
     base.setBackgroundColor(0.1, 0.1, 0.8, 1)
     base.setFrameRateMeter(True)
-    
+
     # Light
     alight = AmbientLight('ambientLight')
     alight.setColor(Vec4(0.5, 0.5, 0.5, 1)*.2)
@@ -73,44 +73,44 @@ class Game(DirectObject):
     self._setupKeys()
 #    self.accept('r', self.doReset)
     self.accept('f2', self.toggleTexture)
-#    self.accept('f3', self.toggleDebug)
+    self.accept('f3', self.toggleDebug)
 #    self.accept('f5', self.doScreenshot)
 
     # Task
     taskMgr.add(self.update, 'updateWorld')
     taskMgr.add(self.mouseHandler,'Mouse Manager')
     base.camera.setPos(0,-5,25)
-    
+
     # Physics
     self.setup()
-    
+
     # CAMERA
     base.camera.reparentTo(self.boxNP)
     base.camera.setCompass()
     self.camController = common.ControlledCamera(self.controls, base.camera, self.boxNP)
-    
+
   def _setupKeys(self):
-    
+
       self.accept(_KeyMap['left'],self._setControls,["camHead",1])
       self.accept(_KeyMap['left']+"-up",self._setControls,["camHead",0])
       self.accept(_KeyMap['right'],self._setControls,["camHead",-1])
       self.accept(_KeyMap['right']+"-up",self._setControls,["camHead",0])
-  
-  
+
+
       self.accept(_KeyMap['strafe_L'],self._setControls,["strafe",-1])
       self.accept(_KeyMap['strafe_L']+"-up",self._setControls,["strafe",0])
       self.accept(_KeyMap['strafe_R'],self._setControls,["strafe",1])
       self.accept(_KeyMap['strafe_R']+"-up",self._setControls,["strafe",0])
-  
+
       self.accept(_KeyMap['jump'],self._setControls,["jump",1])
       self.accept(_KeyMap['jump']+'-up',self._setControls,["jump",0])
-      
+
       self.accept("w",self._setControls,["walk",1])
       self.accept("s",self._setControls,["walk",-1])
       self.accept("s-up",self._setControls,["walk",0])
       self.accept("w-up",self._setControls,["walk",0])
       self.accept("r",self._setControls,["autoWalk",1])
-  
+
       self.accept("page_up",self._setControls,["camPitch",-1])
       self.accept("page_down",self._setControls,["camPitch",1])
       self.accept("page_up-up",self._setControls,["camPitch",0])
@@ -119,12 +119,12 @@ class Game(DirectObject):
       self.accept("arrow_right",self._setControls,["camHead",1])
       self.accept("arrow_left-up",self._setControls,["camHead",0])
       self.accept("arrow_right-up",self._setControls,["camHead",0])
-  
+
       self.accept("arrow_down",self._setControls,["camZoom",1])
       self.accept("arrow_up",self._setControls,["camZoom",-1])
       self.accept("arrow_down-up",self._setControls,["camZoom",0])
       self.accept("arrow_up-up",self._setControls,["camZoom",0])
-  
+
       self.accept(_KeyMap['action'],self.pickingFunc)
       self.accept("mouse3",self._setControls,["mouseLook",True])
       self.accept("mouse3-up",self._setControls,["mouseLook",False])
@@ -132,17 +132,17 @@ class Game(DirectObject):
 #      self.accept("mouse2-up",self._setControls,["mouseLook",False])
 #      self.accept("mouse3",self._setControls,["mouseSteer",True])
 #      self.accept("mouse3-up",self._setControls,["mouseSteer",False])
-  
+
       self.accept("wheel_up",self._setControls,["mouseWheel",-1])
       self.accept("wheel_down",self._setControls,["mouseWheel",1])
   #        self.accept("wheel_up-up",self._setControls,["mouseWheel",0])
   #        self.accept("wheel_down-up",self._setControls,["mouseWheel",0])
-      
+
       self.accept(_KeyMap['wire'],self.toggleWireframe)
       self.accept("escape",sys.exit)
-      
-      
-  def _setControls(self,key,value):  
+
+
+  def _setControls(self,key,value):
     self.controls[key] = value
     # manage special conditions/states
     if key == 'autoWalk':
@@ -153,24 +153,24 @@ class Game(DirectObject):
     if key == 'mouseWheel':
         cur = self.controls['mouseWheel']
         self.controls['mouseWheel'] = cur + value # add up mouse wheel clicks
-        
 
-    
+
+
   def mouseHandler(self,task):
-  
+
     if base.mouseWatcherNode.hasMouse():
       self.mousePos_old = self.mousePos
       self.mousePos = [base.mouseWatcherNode.getMouseX(), \
       base.mouseWatcherNode.getMouseY()]
       dX = self.mousePos[0] - self.mousePos_old[0] # mouse horizontal delta
       dY = self.mousePos[1] - self.mousePos_old[1] # mouse vertical delta
-      self.controls['mouseDeltaXY'] = [dX,dY]    
-      
+      self.controls['mouseDeltaXY'] = [dX,dY]
+
       #TODO: ADD RAY TEST FOR FOCUS HERE
-      
+
       return task.cont
 
-            
+
   # _____HANDLER_____
 
   def doExit(self):
@@ -204,19 +204,20 @@ class Game(DirectObject):
     pFrom = Point3()
     pTo = Point3()
     base.camLens.extrude(pMouse, pFrom, pTo)
-     
+
     # Transform to global coordinates
     pFrom = render.getRelativePoint(base.cam, pFrom)
-    pTo = render.getRelativePoint(base.cam, pTo)    
+    pTo = render.getRelativePoint(base.cam, pTo)
     result = self.world.rayTestClosest(pFrom,pTo)
-    print result.getNode().getName()
-    
+    if result:
+      print result.getNode().getName()
+
   # ____TASK___
 
   def processInput(self, dt):
     force = Vec3(0, 0, 0)
     torque = Vec3(0, 0, 0)
-    
+
     force.setY(self.controls['walk'])
 #    force.setX(self.controls['strafe'])
 #    torque.setZ(self.controls['turn'])
@@ -241,7 +242,7 @@ class Game(DirectObject):
     dt = globalClock.getDt()
     self.processInput(dt)
     #self.world.doPhysics(dt)
-    self.world.doPhysics(dt, 5, 1.0/180.0) 
+    self.world.doPhysics(dt, 5, 1.0/180.0)
     self.marbleAI() # give them some sort of reactions
     return task.cont
 
@@ -259,24 +260,24 @@ class Game(DirectObject):
 
     self.worldNP.removeNode()
 
- 
+
   def importBlenderScene(self,eggname):
-      
+
       terrain = loader.loadModel(eggname)
       print terrain.ls()
       geomNodes = terrain.findAllMatches('**/+GeomNode')
       for geom in geomNodes:
           if not geom.node().getTag('isGhost'):
-              geom.reparentTo(render)            
+              geom.reparentTo(render)
           mesh = BulletTriangleMesh()
-          mesh.addGeom(geom.node().getGeom(0))   
+          mesh.addGeom(geom.node().getGeom(0))
           shape = BulletTriangleMeshShape(mesh,dynamic='false')
           self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode(geom.node().getName()))
           self.groundNP.node().addShape(shape)
       #    self.groundNP.setPos(0, 0, -2)
           self.groundNP.setCollideMask(BitMask32.allOn())
           self.world.attachRigidBody(self.groundNP.node())
- 
+
   def spawnMarble(self,name='',size=1.0,position=Vec3(0,0,0),color=Vec3(1,1,1)):
     # Ball2 (dynamic)
     shape = BulletSphereShape(0.45)
@@ -294,9 +295,9 @@ class Game(DirectObject):
     visualNP.clearModelNodes()
     visualNP.reparentTo(ballnp)
     visualNP.setColor(color)
-    
+
     return ballnp
-  
+
   def marbleAI(self):
     for thismarble in self.objects:
       for thatmarble in self.objects:
@@ -316,27 +317,27 @@ class Game(DirectObject):
   def setup(self):
     self.worldNP = render.attachNewNode('World')
     # World
-#    self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
+    self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
 #    self.debugNP.show()
-#    self.debugNP.node().showWireframe(True)
-#    self.debugNP.node().showConstraints(True)
-#    self.debugNP.node().showBoundingBoxes(False)
-#    self.debugNP.node().showNormals(True)
+    self.debugNP.node().showWireframe(True)
+    self.debugNP.node().showConstraints(True)
+    self.debugNP.node().showBoundingBoxes(False)
+    self.debugNP.node().showNormals(True)
     #self.debugNP.showTightBounds()
     #self.debugNP.showBounds()
 
     self.world = BulletWorld()
     self.world.setGravity(Vec3(0, 0, -9.81))
-#    self.world.setDebugNode(self.debugNP.node())
+    self.world.setDebugNode(self.debugNP.node())
 
     # Ground (static)
 #    shape = BulletPlaneShape(Vec3(0, 0, 1), 1)
-    self.importBlenderScene('resources/groundf.egg')
-    
+    self.importBlenderScene(sceneID)
+
     # Player Ball
     self.boxNP = self.spawnMarble('Player1',1.0,Vec3(0,0,2),Vec4(1,0,0,1))
     self.boxNP.node().applyCentralImpulse(Vec3(0,0,15))
-      
+
     # Objective balls
     for i in range(NUM_MARBLES):
       R = 10
